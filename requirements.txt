@@ -1,0 +1,14 @@
+streamlit
+openai
+python-dotenv
+pandas
+requests
+PyPDF2
+pdfplumber
+plotly
+geonamescache
+reportlab
+python-docx
+PyMuPDF
+pdfminer.six
+rendercv
