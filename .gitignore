@@ -1,0 +1,10 @@
+.env
+.secrets.toml
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+api/
+*.zip
+*.csv
