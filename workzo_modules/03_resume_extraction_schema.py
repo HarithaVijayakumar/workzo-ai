@@ -1499,3 +1499,56 @@ def extract_pdf_text(uploaded_file) -> str:
     best = max(candidates, key=_score_extracted_cv_text)
     return _clean_pdf_extraction_noise(best)
 
+
+
+# =========================================================
+# WorkZo v9 schema hardening: no raw dict strings in Projects
+# =========================================================
+def workzo_v9_project_item(item):
+    import ast, json, re
+    if isinstance(item, str):
+        raw = item.strip()
+        if raw.startswith('{') and raw.endswith('}'):
+            try:
+                item = ast.literal_eval(raw)
+            except Exception:
+                try:
+                    item = json.loads(raw)
+                except Exception:
+                    return {"name": re.sub(r"[{}'\"]", "", raw)[:90], "bullets": []}
+        else:
+            return {"name": raw.strip(' -•'), "bullets": []}
+    if isinstance(item, dict):
+        name = item.get('name') or item.get('title') or item.get('project') or ''
+        bullets = item.get('bullets') or item.get('description') or []
+        if isinstance(name, str) and name.strip().startswith('{') and name.strip().endswith('}'):
+            try:
+                inner = ast.literal_eval(name.strip())
+                if isinstance(inner, dict):
+                    name = inner.get('name') or inner.get('title') or name
+                    bullets = inner.get('bullets') or bullets
+            except Exception:
+                pass
+        if isinstance(bullets, str):
+            bullets = [x.strip(' -•') for x in bullets.replace(';','\n').splitlines() if x.strip()]
+        elif not isinstance(bullets, list):
+            bullets = [str(bullets)] if bullets else []
+        return {"name": str(name).strip(), "bullets": [str(x).strip(' -•') for x in bullets if str(x).strip()]}
+    return {"name": str(item), "bullets": []}
+
+try:
+    _old_parse_projects_text_to_items = parse_projects_text_to_items
+    def parse_projects_text_to_items(text: str) -> list:
+        items = _old_parse_projects_text_to_items(text)
+        return [workzo_v9_project_item(x) for x in (items or [])]
+except Exception:
+    pass
+
+try:
+    _old_validate_resume_dates_and_sections = validate_resume_dates_and_sections
+    def validate_resume_dates_and_sections(data: dict) -> dict:
+        data = _old_validate_resume_dates_and_sections(data or {})
+        data['projects'] = [workzo_v9_project_item(x) for x in (data.get('projects') or [])]
+        return data
+except Exception:
+    pass

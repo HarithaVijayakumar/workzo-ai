@@ -700,7 +700,7 @@ def build_visual_cv_html(cv_text, template_name="ATS Resume", target_country="")
 def render_cv_template_preview(template_name, target_country, user_status):
     st.markdown("### Live Template Preview")
     st.caption("This preview is forced to read the current editable fields directly.")
-    st.components.v1.html(_wz_force_visual_html({}, template_name, target_country), height=850, scrolling=True)
+    st.html(_wz_force_visual_html({}, template_name, target_country))
 # =========================================================
 
 
@@ -1154,17 +1154,12 @@ def _workzo_apply_v7_fixes() -> None:
             except Exception: pass
     globals()['workzo_preserve_best_scores']=wz7_preserve_scores
     wz7_preserve_scores(); wz7_sync_profile()
-
-    # ---------- force scroll-to-top every run/navigation ----------
+    # ---------- native navigation marker; no iframe/script ----------
     def wz7_scroll_top():
         try:
-            import streamlit.components.v1 as components
-            components.html("""
-            <script>
-            const go=()=>{try{window.parent.scrollTo(0,0)}catch(e){};try{window.parent.document.querySelector('section.main').scrollTo(0,0)}catch(e){};try{window.parent.document.querySelector('[data-testid="stAppViewContainer"]').scrollTo(0,0)}catch(e){}};
-            go(); setTimeout(go,50); setTimeout(go,200); setTimeout(go,500);
-            </script>
-            """, height=0)
+            st.markdown('<span id="workzo-page-top"></span>', unsafe_allow_html=True)
+            if st.session_state.pop('_workzo_scroll_to_top', False):
+                st.query_params['wz_view'] = str(st.session_state.get('_workzo_page_nonce', 'top'))
         except Exception: pass
     globals()['maybe_scroll_to_top']=wz7_scroll_top
     globals()['request_scroll_to_top']=lambda: st.session_state.__setitem__('_workzo_scroll_to_top', True)

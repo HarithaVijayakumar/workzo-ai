@@ -35,7 +35,6 @@ except ImportError:
     LAParams = None
 import plotly.graph_objects as go
 import streamlit as st
-import streamlit.components.v1 as components
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -288,115 +287,40 @@ if time.time() - st.session_state.first_request_time > 3600:
 
 def can_make_request() -> bool:
     return st.session_state.request_count < MAX_REQUESTS_PER_HOUR
+
+# Analytics files (defined early so startup analytics never crash)
+ANALYTICS_FILE = os.path.join(BASE_DIR, "workzo_beta_analytics.csv")
+FEEDBACK_FILE = os.path.join(BASE_DIR, "workzo_beta_feedback.csv")
 ISSUES_FILE = os.path.join(BASE_DIR, "workzo_beta_issues.csv")
 
 # =========================================================
 # NAVIGATION / SCROLL HELPERS
 # =========================================================
 def request_scroll_to_top() -> None:
-    """Ask the next rerun to force the browser viewport to the top."""
+    """Mark the next render as a fresh page transition.
+
+    No iframe, no components.html, no JavaScript. Streamlit cannot directly
+    control the browser viewport natively, so we use a tiny query-param nonce
+    to make navigation a fresh state change and render a top anchor first.
+    """
+    import time as _time
     st.session_state["_workzo_scroll_to_top"] = True
+    st.session_state["_workzo_page_nonce"] = str(int(_time.time() * 1000))
 
 
 def maybe_scroll_to_top() -> None:
-    """Force Streamlit's parent page and scroll containers back to the top.
-    This prevents pages from opening in the middle after a button click or upload.
+    """Native, warning-free page reset marker.
+
+    This removes deprecated st.components.v1.html usage. It also prevents the
+    app from creating hidden HTML iframes that were causing warnings and layout
+    instability. The top anchor is rendered at the beginning of every page.
     """
-    if not st.session_state.pop("_workzo_scroll_to_top", False):
-        return
-    components.html(
-        """
-        <script>
-        const forceTop = () => {
-            const doc = window.parent.document;
-            const targets = [
-                window.parent,
-                doc.documentElement,
-                doc.body,
-                doc.querySelector('section.main'),
-                doc.querySelector('[data-testid="stAppViewContainer"]'),
-                doc.querySelector('[data-testid="stMain"]'),
-                doc.querySelector('[data-testid="stMainBlockContainer"]')
-            ].filter(Boolean);
-            for (const t of targets) {
-                try {
-                    if (typeof t.scrollTo === 'function') {
-                        t.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-                    }
-                    t.scrollTop = 0;
-                } catch(e) {}
-            }
-        };
-        forceTop();
-        setTimeout(forceTop, 50);
-        setTimeout(forceTop, 150);
-        setTimeout(forceTop, 350);
-        setTimeout(forceTop, 700);
-        </script>
-        """,
-        height=0,
-        width=0,
-    )
-
-
-def update_url_page(page_key: str) -> None:
-    """Keep the current app page in the browser URL so Back/Forward works inside WorkZo."""
-    try:
-        st.query_params["page"] = page_key
-    except Exception:
-        pass
-
-
-def read_url_page(default: str = "dashboard") -> str:
-    try:
-        value = st.query_params.get("page", default)
-        if isinstance(value, list):
-            value = value[0] if value else default
-        return value or default
-    except Exception:
-        return default
-
-
-def sync_navigation_state(page_key: str) -> None:
-    """Store the selected page, update the URL, and always start the new page from the top."""
-    st.session_state.page = page_key
-    st.session_state.nav_page = page_key
-    st.session_state.nav_change_nonce = st.session_state.get("nav_change_nonce", 0) + 1
-    update_url_page(page_key)
-    request_scroll_to_top()
-
-def queue_navigation(page_key: str) -> None:
-    """Button callback used by dashboard navigation cards."""
-    st.session_state._workzo_pending_nav = page_key
-    request_scroll_to_top()
-
-def consume_pending_navigation() -> None:
-    page_key = st.session_state.pop("_workzo_pending_nav", None)
-    if page_key:
-        sync_navigation_state(page_key)
-
-def go_home() -> None:
-    queue_navigation("dashboard")
-
-
-def register_request() -> None:
-    st.session_state.request_count += 1
-
-
-# =========================================================
-# BETA ANALYTICS - PRIVACY SAFE
-# =========================================================
-ANALYTICS_FILE = os.path.join(BASE_DIR, "workzo_beta_analytics.csv")
-FEEDBACK_FILE = os.path.join(BASE_DIR, "workzo_beta_feedback.csv")
-
-def _query_param_value(name: str, default: str = "") -> str:
-    try:
-        value = st.query_params.get(name, default)
-        if isinstance(value, list):
-            value = value[0] if value else default
-        return str(value or default)
-    except Exception:
-        return default
+    st.markdown('<span id="workzo-page-top"></span>', unsafe_allow_html=True)
+    if st.session_state.pop("_workzo_scroll_to_top", False):
+        try:
+            st.query_params["wz_view"] = st.session_state.get("_workzo_page_nonce", "top")
+        except Exception:
+            pass
 
 
 def _is_valid_uuidish(value: str) -> bool:
@@ -404,28 +328,31 @@ def _is_valid_uuidish(value: str) -> bool:
 
 
 def _inject_persistent_user_id_script(uid: str) -> None:
-    """Persist an anonymous browser id in localStorage and mirror it into the URL.
-    This lets Founder Analytics count returning visitors across refreshes/new sessions without storing personal data.
-    """
-    safe_uid = html.escape(uid, quote=True)
-    components.html(f"""
-    <script>
-    (function() {{
-        const key = 'workzo_anonymous_user_id_v2';
-        const current = new URLSearchParams(window.parent.location.search).get('wz_uid');
-        let saved = null;
-        try {{ saved = window.parent.localStorage.getItem(key); }} catch(e) {{}}
-        let uid = saved || current || '{safe_uid}';
-        try {{ window.parent.localStorage.setItem(key, uid); }} catch(e) {{}}
-        if (!current || current !== uid) {{
-            const url = new URL(window.parent.location.href);
-            url.searchParams.set('wz_uid', uid);
-            window.parent.history.replaceState(null, '', url.toString());
-        }}
-    }})();
-    </script>
-    """, height=0, width=0)
+    """Deprecated browser localStorage bridge removed.
 
+    Keeps a session-only anonymous id without using st.components.v1.html,
+    so Streamlit no longer shows the 2026 deprecation warning.
+    """
+    try:
+        st.session_state.setdefault("anonymous_user_id", str(uid or ""))
+    except Exception:
+        pass
+
+
+
+
+def _ensure_analytics_paths() -> None:
+    """Defensive fallback for older patched builds where analytics constants may be missing."""
+    global ANALYTICS_FILE, FEEDBACK_FILE, ISSUES_FILE
+    try:
+        base = BASE_DIR
+    except Exception:
+        base = os.getcwd()
+    ANALYTICS_FILE = globals().get("ANALYTICS_FILE") or os.path.join(base, "workzo_beta_analytics.csv")
+    FEEDBACK_FILE = globals().get("FEEDBACK_FILE") or os.path.join(base, "workzo_beta_feedback.csv")
+    ISSUES_FILE = globals().get("ISSUES_FILE") or os.path.join(base, "workzo_beta_issues.csv")
+
+_ensure_analytics_paths()
 
 def _has_prior_user_events(uid: str) -> bool:
     if not uid or not os.path.exists(ANALYTICS_FILE):
@@ -436,6 +363,36 @@ def _has_prior_user_events(uid: str) -> bool:
             return any((r.get("anonymous_user_id") or "") == uid for r in reader)
     except Exception:
         return False
+
+
+
+
+def _query_param_value(key: str, default: str = "") -> str:
+    """Return a single query-param value safely across Streamlit versions.
+
+    Works with st.query_params (new) and experimental_get_query_params (old).
+    Never raises during normal app startup.
+    """
+    try:
+        # New Streamlit API: st.query_params behaves like a mapping.
+        params = getattr(st, "query_params", None)
+        if params is not None:
+            value = params.get(key, default)
+            if isinstance(value, list):
+                return str(value[0]) if value else default
+            return str(value) if value is not None else default
+    except Exception:
+        pass
+
+    try:
+        # Backward-compatible fallback.
+        params = st.experimental_get_query_params()
+        value = params.get(key, [default])
+        if isinstance(value, list):
+            return str(value[0]) if value else default
+        return str(value) if value is not None else default
+    except Exception:
+        return default
 
 
 def get_or_create_anonymous_user_id() -> str:
@@ -462,6 +419,7 @@ def get_or_create_session_id() -> str:
     return st.session_state.session_id
 
 def init_beta_analytics():
+    _ensure_analytics_paths()
     get_or_create_anonymous_user_id()
     get_or_create_session_id()
     if "feature_usage_counts" not in st.session_state:
@@ -2251,44 +2209,32 @@ def set_workzo_cv_text(text: str, *, sync_editor: bool = True) -> str:
 # --- WorkZo v6 real UI overrides: fixed buttons + scroll + cards ---
 st.markdown("""
 <style>
-/* Default buttons: compact but not tiny */
+/* Default buttons: readable and aligned to their containers */
 div[data-testid="stButton"] > button,
 div.stButton > button,
 div[data-testid="stDownloadButton"] > button,
 div.stDownloadButton > button,
 div[data-testid="stLinkButton"] > a {
-    min-height: 42px !important;
-    height: auto !important;
-    padding: 0.55rem 1.05rem !important;
+    min-height: 44px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0.62rem 1rem !important;
     border-radius: 12px !important;
     font-size: 0.98rem !important;
     line-height: 1.2 !important;
     white-space: normal !important;
     text-align: center !important;
 }
-/* Start Now in hero only: restore stronger CTA size */
+/* Hero Start Now only: larger CTA */
 .workzo-start-button-wrapper div[data-testid="stButton"] > button {
-    min-height: 58px !important;
-    width: 260px !important;
-    min-width: 260px !important;
-    max-width: 260px !important;
-    padding: 0.9rem 1.4rem !important;
-    font-size: 1.08rem !important;
-    border-radius: 15px !important;
-    margin: 0 auto !important;
-    display: block !important;
+    min-height: 62px !important;
+    padding: 0.95rem 1.45rem !important;
+    font-size: 1.12rem !important;
+    border-radius: 16px !important;
+    font-weight: 800 !important;
 }
-/* Resume mode choice buttons should match the card width */
-.workzo-resume-button-row div[data-testid="stButton"] > button,
-.workzo-action-grid div[data-testid="stButton"] > button,
-.workzo-progress-action div[data-testid="stButton"] > button {
-    width: 100% !important;
-    max-width: none !important;
-}
-/* Fix dashboard cards and chips */
 .workzo-progress-done { color:#22c55e; font-weight:900; margin-left:8px; }
 .workzo-dashboard-chip { white-space: normal !important; }
-/* Prevent huge top offset after navigation */
-.block-container { padding-top: 1.25rem !important; }
+.block-container { padding-top: 1rem !important; }
 </style>
 """, unsafe_allow_html=True)

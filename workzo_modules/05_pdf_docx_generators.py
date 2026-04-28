@@ -249,8 +249,11 @@ def wz135_pdf_safe_text(text_value: str) -> str:
     }
     for old, new in replacements.items():
         value = value.replace(old, new)
-    value = re.sub(r"\s+", " ", value).strip()
-    return value
+    # Preserve paragraph boundaries for CV PDFs; collapse spaces within each line only.
+    value = value.replace("\r\n", "\n").replace("\r", "\n")
+    value = re.sub(r"[ \t]+", " ", value)
+    value = re.sub(r"\n{3,}", "\n\n", value)
+    return value.strip()
 
 # Keep older helper name working, but make it stronger.
 def clean_for_pdf_grid(text_value: str) -> str:
@@ -1651,3 +1654,62 @@ def make_styled_pdf_from_structured_preview(title: str, structured_data: Dict[st
     data = _workzo_final_preview_data(structured_data or {})
     text = workzo_build_cv_text_from_editable(data)
     return _workzo_resume_text_pdf_safe(title, text)
+
+
+# =========================================================
+# WorkZo v9: robust structured CV cleanup before rendering/PDF
+# =========================================================
+def wz9_normalize_project_item(item):
+    import ast, json, re
+    if isinstance(item, str):
+        raw = item.strip()
+        # Handle strings like "{'name': 'Magist', 'bullets': [...]}"
+        if raw.startswith('{') and raw.endswith('}'):
+            try:
+                item = ast.literal_eval(raw)
+            except Exception:
+                try:
+                    item = json.loads(raw)
+                except Exception:
+                    return {"name": re.sub(r"[{}'\"]", "", raw)[:80], "bullets": []}
+        else:
+            return {"name": raw.strip("- •"), "bullets": []}
+    if isinstance(item, dict):
+        name = item.get('name') or item.get('project') or item.get('title') or ''
+        # Some broken builds put the full dict inside name.
+        if isinstance(name, str) and name.strip().startswith('{') and name.strip().endswith('}'):
+            try:
+                inner = ast.literal_eval(name.strip())
+                if isinstance(inner, dict):
+                    name = inner.get('name') or inner.get('title') or name
+                    bullets = inner.get('bullets') or item.get('bullets') or []
+                else:
+                    bullets = item.get('bullets') or []
+            except Exception:
+                bullets = item.get('bullets') or []
+        else:
+            bullets = item.get('bullets') or item.get('description') or []
+        if isinstance(bullets, str):
+            bullets = [x.strip(' -•') for x in bullets.replace(';','\n').splitlines() if x.strip()]
+        if not isinstance(bullets, list):
+            bullets = [str(bullets)] if bullets else []
+        return {"name": wz135_pdf_safe_text(name), "bullets": [wz135_pdf_safe_text(x) for x in bullets if str(x).strip()]}
+    return {"name": wz135_pdf_safe_text(item), "bullets": []}
+
+def wz9_clean_structured_resume_data(data):
+    data = validate_resume_dates_and_sections(_coerce_structured_resume_schema(data or {}))
+    data['projects'] = [wz9_normalize_project_item(x) for x in (data.get('projects') or [])]
+    for key in ['core_skills','tools_technologies','languages','certifications']:
+        data[key] = [wz135_pdf_safe_text(x) for x in _as_list(data.get(key)) if str(x).strip()]
+    for job in data.get('work_experience') or []:
+        if isinstance(job, dict):
+            job['bullets'] = [wz135_pdf_safe_text(x) for x in _as_list(job.get('bullets')) if str(x).strip()]
+    return data
+
+# Wrap the strict PDF renderer so every PDF gets cleaned data first.
+try:
+    _workzo_old_strict_structured_pdf = _strict_structured_pdf
+    def _strict_structured_pdf(title: str, structured_data: dict, template_name: str = "ATS Resume", target_country: str = "") -> bytes:
+        return _workzo_old_strict_structured_pdf(title, wz9_clean_structured_resume_data(structured_data or {}), template_name, target_country)
+except Exception:
+    pass

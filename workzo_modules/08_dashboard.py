@@ -72,9 +72,9 @@ def ensure_dashboard_analysis():
             if isinstance(result, dict) and result:
                 st.session_state["dashboard_analysis"] = result
                 if result.get("resume_score") is not None:
-                    st.session_state["cv_score_value"] = result.get("resume_score")
+                    st.session_state["cv_score_value"] = max(int(st.session_state.get("cv_score_value") or 0), int(result.get("resume_score") or 0))
                 if result.get("ats_score") is not None:
-                    st.session_state["ats_score_value"] = result.get("ats_score")
+                    st.session_state["ats_score_value"] = max(int(st.session_state.get("ats_score_value") or 0), int(result.get("ats_score") or 0))
                 return result
     except Exception:
         pass
@@ -86,9 +86,9 @@ def ensure_dashboard_analysis():
             if isinstance(result, dict) and result:
                 st.session_state["dashboard_analysis"] = result
                 if result.get("resume_score") is not None:
-                    st.session_state["cv_score_value"] = result.get("resume_score")
+                    st.session_state["cv_score_value"] = max(int(st.session_state.get("cv_score_value") or 0), int(result.get("resume_score") or 0))
                 if result.get("ats_score") is not None:
-                    st.session_state["ats_score_value"] = result.get("ats_score")
+                    st.session_state["ats_score_value"] = max(int(st.session_state.get("ats_score_value") or 0), int(result.get("ats_score") or 0))
                 return result
     except Exception:
         pass
@@ -119,8 +119,8 @@ def ensure_dashboard_analysis():
     }
     st.session_state["dashboard_analysis"] = result
     st.session_state["resume_analysis"] = result
-    st.session_state["cv_score_value"] = result.get("resume_score", resume_score)
-    st.session_state["ats_score_value"] = result.get("ats_score", ats_score)
+    st.session_state["cv_score_value"] = max(int(st.session_state.get("cv_score_value") or 0), int(result.get("resume_score", resume_score) or 0))
+    st.session_state["ats_score_value"] = max(int(st.session_state.get("ats_score_value") or 0), int(result.get("ats_score", ats_score) or 0))
     return result
 
 # WorkZo modular split v138

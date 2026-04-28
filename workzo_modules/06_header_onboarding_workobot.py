@@ -7,7 +7,7 @@
 import os
 import base64
 import streamlit as st
-import streamlit.components.v1 as components
+# components removed: no deprecated st.components.v1.html
 
 def strip_markdown_for_resume(text):
     """
@@ -95,42 +95,13 @@ def request_scroll_to_top() -> None:
 
 
 def maybe_scroll_to_top() -> None:
-    """Scroll Streamlit page to the top when navigation changes."""
+    """Native warning-free top marker. No iframe/components/script."""
+    st.markdown('<span id="workzo-page-top"></span>', unsafe_allow_html=True)
     try:
-        should_scroll = st.session_state.pop("_workzo_scroll_to_top", True)
-    except Exception:
-        should_scroll = True
-    if not should_scroll:
-        return
-    try:
-        components.html(
-            """
-            <script>
-            const forceTop = () => {
-                try {
-                    window.parent.scrollTo({top: 0, left: 0, behavior: 'auto'});
-                    const doc = window.parent.document;
-                    const targets = [
-                        doc.documentElement,
-                        doc.body,
-                        doc.querySelector('[data-testid="stAppViewContainer"]'),
-                        doc.querySelector('[data-testid="stMain"]'),
-                        doc.querySelector('[data-testid="stMainBlockContainer"]')
-                    ].filter(Boolean);
-                    for (const t of targets) { try { t.scrollTop = 0; } catch(e) {} }
-                } catch(e) {}
-            };
-            forceTop();
-            setTimeout(forceTop, 80);
-            setTimeout(forceTop, 250);
-            </script>
-            """,
-            height=0,
-            width=0,
-        )
+        if st.session_state.pop("_workzo_scroll_to_top", False):
+            st.query_params["wz_view"] = str(st.session_state.get("_workzo_page_nonce", "top"))
     except Exception:
         pass
-
 
 def update_url_page(page_key: str) -> None:
     try:
@@ -191,7 +162,7 @@ def go_home() -> None:
 import streamlit as st
 import base64
 import os
-import streamlit.components.v1 as components
+# components removed: no deprecated st.components.v1.html
 
 
 def maybe_scroll_to_top():
@@ -200,8 +171,8 @@ def maybe_scroll_to_top():
     small JS fires immediately and once again after layout settles.
     """
     try:
-        import streamlit.components.v1 as components
-        components.html("""
+        # components removed: no deprecated st.components.v1.html
+        st.html("""
         <script>
         const scrollTop = () => {
           try { window.parent.scrollTo({top: 0, left: 0, behavior: 'instant'}); } catch(e) {}
@@ -435,26 +406,11 @@ def show_landing_page():
     c1, c2, c3 = st.columns([1, 1.2, 1])
     with c2:
         st.markdown('<div class="workzo-start-button-wrapper">', unsafe_allow_html=True)
-        if st.button("Start Now", type="primary", use_container_width=False, key="landing_start_now_simple"):
+        if st.button("Start Now", type="primary", use_container_width=True, key="landing_start_now_simple"):
             st.session_state.page = "onboarding"
             st.session_state.nav_page = "dashboard"
             request_scroll_to_top()
             st.rerun()
-        components.html("""
-        <script>
-        const buttons = window.parent.document.querySelectorAll('button');
-        buttons.forEach((btn) => {
-          if ((btn.innerText || '').trim() === 'Start Now') {
-            btn.style.minWidth = '260px';
-            btn.style.width = '260px';
-            btn.style.minHeight = '58px';
-            btn.style.fontSize = '18px';
-            btn.style.borderRadius = '15px';
-            btn.style.fontWeight = '700';
-          }
-        });
-        </script>
-        """, height=0)
         st.markdown('</div>', unsafe_allow_html=True)
 
     st.caption("You can upload a CV, create one with AI, or try sample data on the next page.")
@@ -1702,7 +1658,7 @@ def render_cv_template_preview(template_name: str, target_country: str, user_sta
 """, unsafe_allow_html=True)
 
     sample_cv = build_template_sample_cv(template_name, target_country)
-    st.components.v1.html(build_visual_cv_html(sample_cv, template_name, target_country), height=620, scrolling=True)
+    st.html(build_visual_cv_html(sample_cv, template_name, target_country))
 
     with st.expander("What this template includes", expanded=False):
         st.markdown(get_template_instructions(template_name, target_country))
@@ -2153,11 +2109,7 @@ def render_cv_template_preview(template_name: str, target_country: str, user_sta
         except Exception:
             live_text = ""
 
-    st.components.v1.html(
-        build_visual_cv_html(live_text, template_name, target_country),
-        height=850,
-        scrolling=True
-    )
+    st.html(build_visual_cv_html(live_text, template_name, target_country))
 
     try:
         with st.expander("What this template includes", expanded=False):

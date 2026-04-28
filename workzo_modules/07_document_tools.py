@@ -276,11 +276,7 @@ def show_document_tools():
                         st.success(ui_label("CV translated. Review the preview below."))
                         st.rerun()
 
-            st.components.v1.html(
-                workzo_visual_cv_html_from_structured(preview_structured, preview_template, preview_country),
-                height=850,
-                scrolling=True
-            )
+            st.html(workzo_visual_cv_html_from_structured(preview_structured, preview_template, preview_country))
 
             safe_country = re.sub(r"[^a-z0-9]+", "_", str(preview_country).lower()).strip("_") or "country"
             safe_template = re.sub(r"[^a-z0-9]+", "_", str(preview_template).lower()).strip("_") or "template"
@@ -463,15 +459,11 @@ def show_document_tools():
             st.session_state.generated_country_cv_structured = preview_structured
             st.session_state.generated_country_cv_text = preview_cv
             st.markdown(f"### {ui_label('Live Visual Resume Preview — uses the editable fields above')}")
-            st.components.v1.html(
-                workzo_visual_cv_html_from_structured(
-                    preview_structured,
-                    country_preview_template,
-                    country_preview_country
-                ),
-                height=850,
-                scrolling=True
-            )
+            st.html(workzo_visual_cv_html_from_structured(
+                preview_structured,
+                country_preview_template,
+                country_preview_country
+            ))
 
             result = st.session_state.get("generated_country_cv_result", "")
             with st.expander(ui_label("Template / Country Fit Notes"), expanded=False):
