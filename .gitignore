@@ -6,3 +6,12 @@ __pycache__/
 *.pyd
 .DS_Store
 api/
+*.zip
+*.csv
+venv/
+.env/
+.venv/
+Lib/
+Scripts/
+Include/
+pyvenv.cfg
