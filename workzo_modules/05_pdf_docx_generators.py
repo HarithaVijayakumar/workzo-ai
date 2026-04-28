@@ -1713,3 +1713,445 @@ try:
         return _workzo_old_strict_structured_pdf(title, wz9_clean_structured_resume_data(structured_data or {}), template_name, target_country)
 except Exception:
     pass
+
+
+# =========================================================
+# WorkZo v12: final robust CV cleanup + PDF safety layer
+# Prevents raw dict/list strings such as {'name': 'Magist', 'bullets': [...]} from appearing.
+# =========================================================
+def _wz12_literal(value):
+    try:
+        import ast, json
+        if isinstance(value, str):
+            t=value.strip()
+            if (t.startswith('{') and t.endswith('}')) or (t.startswith('[') and t.endswith(']')):
+                try: return ast.literal_eval(t)
+                except Exception:
+                    try: return json.loads(t)
+                    except Exception: return value
+        return value
+    except Exception:
+        return value
+
+def _wz12_list(value):
+    value=_wz12_literal(value)
+    if value is None or value=='': return []
+    if isinstance(value, list): return value
+    if isinstance(value, tuple): return list(value)
+    return [value]
+
+def _wz12_text(value):
+    import re
+    value=_wz12_literal(value)
+    if isinstance(value, dict):
+        if 'name' in value and ('bullets' in value or 'description' in value):
+            return _wz12_project_text(value)
+        return ' '.join(_wz12_text(v) for v in value.values() if str(v or '').strip())
+    if isinstance(value, list):
+        return ', '.join(_wz12_text(v) for v in value if str(v or '').strip())
+    txt=str(value or '')
+    reps={
+        'for m':'form','in for m':'inform','in itiative':'initiative','In dian':'Indian','You Tube':'YouTube',
+        'Text Blob':'TextBlob','Manage Engine':'ManageEngine','Service Desk':'ServiceDesk','My SQL':'MySQL',
+        'Linked In':'LinkedIn','ð□□':'','ð□':'','â€™':"'",'â€“':'–','â€”':'—','â€¢':'•','Â':'',
+    }
+    for a,b in reps.items(): txt=txt.replace(a,b)
+    txt=re.sub(r'[\ufffd]+','',txt)
+    txt=re.sub(r'\s+',' ',txt).strip()
+    return txt
+
+def _wz12_project_text(item):
+    item=_wz12_literal(item)
+    if isinstance(item, str):
+        lit=_wz12_literal(item)
+        if lit is not item: return _wz12_project_text(lit)
+        return _wz12_text(item)
+    if isinstance(item, dict):
+        name=_wz12_literal(item.get('name') or item.get('title') or item.get('project') or '')
+        if isinstance(name, dict):
+            # previous broken builds nested the full project dict in name
+            item=name
+            name=item.get('name') or item.get('title') or item.get('project') or ''
+        bullets=item.get('bullets') or item.get('details') or item.get('description') or []
+        if isinstance(bullets, str):
+            lit=_wz12_literal(bullets)
+            if isinstance(lit, list): bullets=lit
+            else: bullets=[x.strip(' -•*') for x in bullets.replace(';','\n').splitlines() if x.strip()]
+        lines=[]
+        nm=_wz12_text(name)
+        if nm: lines.append(nm)
+        for b in _wz12_list(bullets):
+            bt=_wz12_text(b).strip(' -•*')
+            if bt: lines.append('- '+bt)
+        return '\n'.join(lines).strip()
+    return _wz12_text(item)
+
+def _wz12_normalize_structured(data):
+    try:
+        data=_wz12_literal(data)
+        if not isinstance(data, dict): return {}
+        data=dict(data)
+        # Normalize projects deeply
+        projects=[]
+        for p in _wz12_list(data.get('projects')):
+            p=_wz12_literal(p)
+            if isinstance(p, dict):
+                name=_wz12_literal(p.get('name') or p.get('title') or p.get('project') or '')
+                if isinstance(name, dict): p=name; name=p.get('name') or p.get('title') or p.get('project') or ''
+                bullets=p.get('bullets') or p.get('details') or p.get('description') or []
+                projects.append({'name':_wz12_text(name), 'bullets':[_wz12_text(x).strip(' -•*') for x in _wz12_list(bullets) if _wz12_text(x).strip()]})
+            elif str(p or '').strip():
+                txt=_wz12_project_text(p)
+                lines=[x.strip() for x in txt.splitlines() if x.strip()]
+                if lines:
+                    projects.append({'name':lines[0].strip(' -•*'), 'bullets':[x.strip(' -•*') for x in lines[1:]]})
+        data['projects']=projects
+        for key in ['core_skills','skills','tools_technologies','languages','certifications']:
+            if key in data:
+                data[key]=[_wz12_text(x).strip(' -•*') for x in _wz12_list(data.get(key)) if _wz12_text(x).strip()]
+        for key in ['work_experience','experience']:
+            if key in data:
+                out=[]
+                for j in _wz12_list(data.get(key)):
+                    j=_wz12_literal(j)
+                    if isinstance(j, dict):
+                        out.append({
+                            'title':_wz12_text(j.get('title') or j.get('role') or j.get('position')),
+                            'company':_wz12_text(j.get('company') or j.get('employer') or j.get('organization')),
+                            'dates':_wz12_text(j.get('dates') or j.get('date') or ''),
+                            'bullets':[_wz12_text(x).strip(' -•*') for x in _wz12_list(j.get('bullets') or j.get('responsibilities') or j.get('achievements')) if _wz12_text(x).strip()]
+                        })
+                    elif str(j or '').strip():
+                        out.append({'title':_wz12_text(j),'company':'','dates':'','bullets':[]})
+                data['work_experience']=out
+        return data
+    except Exception:
+        return data if isinstance(data, dict) else {}
+
+def _wz12_clean_cv_text(text):
+    import re
+    out=[]
+    for line in str(text or '').splitlines():
+        raw=line.strip()
+        candidate=raw.lstrip('-•* ').strip()
+        lit=_wz12_literal(candidate)
+        if isinstance(lit, dict) and ('name' in lit or 'title' in lit or 'bullets' in lit):
+            proj=_wz12_project_text(lit)
+            if proj:
+                out.extend(proj.splitlines())
+            continue
+        cleaned=_wz12_text(raw)
+        if cleaned:
+            out.append(cleaned)
+    text='\n'.join(out)
+    text=re.sub(r'\n{3,}','\n\n',text).strip()
+    return text
+
+try:
+    _wz12_prev_pdf_text = make_styled_pdf_from_cv_text
+except Exception:
+    _wz12_prev_pdf_text = None
+try:
+    _wz12_prev_pdf_struct = make_styled_pdf_from_structured_preview
+except Exception:
+    _wz12_prev_pdf_struct = None
+
+def make_styled_pdf_from_cv_text(title: str, cv_text: str, template_name: str = "ATS Resume", target_country: str = "") -> bytes:
+    return _workzo_resume_text_pdf_safe(_wz12_text(title or 'WorkZo CV'), _wz12_clean_cv_text(cv_text or ''))
+
+def make_styled_pdf_from_structured_preview(title: str, structured_data: dict, template_name: str = "ATS Resume", target_country: str = "") -> bytes:
+    data=_wz12_normalize_structured(structured_data or {})
+    try:
+        text=workzo_build_cv_text_from_editable(data)
+    except Exception:
+        text=''
+    return _workzo_resume_text_pdf_safe(_wz12_text(title or 'WorkZo CV'), _wz12_clean_cv_text(text))
+
+# =========================================================
+# WorkZo v16 - REAL PDF output fix
+# Purpose: never return plain text bytes for a .pdf download.
+# Fixes Adobe Acrobat "damaged / unsupported file" error.
+# Also deeply cleans stringified project dictionaries before PDF generation.
+# =========================================================
+def _wz16_literal(value):
+    """Safely convert stringified dict/list values back to Python objects."""
+    if not isinstance(value, str):
+        return value
+    text = value.strip()
+    if not text:
+        return value
+    if (text.startswith("{") and text.endswith("}")) or (text.startswith("[") and text.endswith("]")):
+        try:
+            return ast.literal_eval(text)
+        except Exception:
+            try:
+                return json.loads(text)
+            except Exception:
+                return value
+    return value
+
+
+def _wz16_clean_text(value: Any) -> str:
+    """Clean visible CV text without destroying normal letters."""
+    value = _wz16_literal(value)
+    if isinstance(value, dict):
+        # Avoid printing raw dicts in the CV/PDF.
+        if any(k in value for k in ("name", "title", "project", "bullets", "description", "details")):
+            return _wz16_project_to_text(value)
+        return " ".join(_wz16_clean_text(v) for v in value.values() if str(v or "").strip())
+    if isinstance(value, (list, tuple)):
+        return ", ".join(_wz16_clean_text(v) for v in value if str(v or "").strip())
+
+    text = str(value or "")
+    replacements = {
+        "\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"',
+        "\u2013": "-", "\u2014": "-", "\u2212": "-", "\u2022": "-",
+        "\u00a0": " ", "\ufeff": "", "\u200b": "", "\t": " ",
+        "Ã¢â‚¬â€œ": "-", "Ã¢â‚¬â€�": "-", "Ã¢â‚¬Â¢": "-",
+        "â€“": "-", "â€”": "-", "â€¢": "-", "â€˜": "'", "â€™": "'",
+        "â€œ": '"', "â€\x9d": '"', "Â": "", "�": "",
+        "ð□□": "", "ð□": "", "ð\x9f\x8e¤": "", "ð\x9f\x93\x8b": "",
+        "for m": "form", "in for m": "inform", "in itiative": "initiative",
+        "In dian": "Indian", "You Tube": "YouTube", "Text Blob": "TextBlob",
+        "Manage Engine": "ManageEngine", "Service Desk": "ServiceDesk", "My SQL": "MySQL", "Linked In": "LinkedIn",
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    text = re.sub(r"[ \t]+", " ", text)
+    return text.strip()
+
+
+def _wz16_as_list(value: Any) -> List[Any]:
+    value = _wz16_literal(value)
+    if value is None or value == "":
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, tuple):
+        return list(value)
+    if isinstance(value, str):
+        # Preserve multi-line blocks for projects/experience callers; split simple semicolon lists.
+        if "\n" in value:
+            return [x for x in value.splitlines() if str(x).strip()]
+        return [x.strip() for x in value.split(";") if x.strip()] if ";" in value else [value]
+    return [value]
+
+
+def _wz16_project_to_text(item: Any) -> str:
+    item = _wz16_literal(item)
+    if isinstance(item, str):
+        lit = _wz16_literal(item)
+        if lit is not item:
+            return _wz16_project_to_text(lit)
+        return _wz16_clean_text(item)
+    if isinstance(item, dict):
+        name = _wz16_literal(item.get("name") or item.get("title") or item.get("project") or "")
+        # Broken older builds sometimes stored the whole project dict inside name.
+        if isinstance(name, dict):
+            item = name
+            name = item.get("name") or item.get("title") or item.get("project") or ""
+        bullets = item.get("bullets") or item.get("details") or item.get("description") or []
+        bullets = _wz16_literal(bullets)
+        if isinstance(bullets, str):
+            bullets = [x.strip(" -•*") for x in bullets.replace(";", "\n").splitlines() if x.strip()]
+        lines = []
+        clean_name = _wz16_clean_text(name)
+        if clean_name:
+            lines.append(clean_name)
+        for bullet in _wz16_as_list(bullets):
+            clean_bullet = _wz16_clean_text(bullet).strip(" -•*")
+            if clean_bullet:
+                lines.append("- " + clean_bullet)
+        return "\n".join(lines).strip()
+    return _wz16_clean_text(item)
+
+
+def _wz16_clean_cv_text(text: Any) -> str:
+    """Clean plain CV text and expand raw dict project rows into readable lines."""
+    text = str(text or "").replace("\r\n", "\n").replace("\r", "\n")
+    out: List[str] = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
+            out.append("")
+            continue
+        candidate = line.lstrip("-•* ").strip()
+        lit = _wz16_literal(candidate)
+        if isinstance(lit, dict):
+            expanded = _wz16_project_to_text(lit)
+            if expanded:
+                out.extend(expanded.splitlines())
+            continue
+        cleaned = _wz16_clean_text(line)
+        if cleaned:
+            out.append(cleaned)
+    cleaned_text = "\n".join(out)
+    cleaned_text = re.sub(r"\n{3,}", "\n\n", cleaned_text).strip()
+    return cleaned_text
+
+
+def _wz16_minimal_valid_pdf(title: str, body: str) -> bytes:
+    """Last-resort valid PDF writer when ReportLab is unavailable."""
+    def esc_pdf(s: str) -> str:
+        s = _wz16_clean_text(s)
+        return s.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+    lines = [title or "WorkZo CV"] + [ln for ln in str(body or "").splitlines() if ln.strip()]
+    # PDF text stream, one line at a time. Keep it short enough for a fallback.
+    y_start = 800
+    stream_parts = ["BT", "/F1 11 Tf", "40 %d Td" % y_start]
+    first = True
+    for line in lines[:70]:
+        line = esc_pdf(line[:95])
+        if first:
+            stream_parts.append(f"({line}) Tj")
+            first = False
+        else:
+            stream_parts.append(f"0 -15 Td ({line}) Tj")
+    stream_parts.append("ET")
+    stream = "\n".join(stream_parts)
+    stream_bytes = stream.encode("latin-1", errors="replace")
+
+    objects = []
+    objects.append(b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n")
+    objects.append(b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n")
+    objects.append(b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n")
+    objects.append(b"4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n")
+    objects.append(b"5 0 obj\n<< /Length " + str(len(stream_bytes)).encode("ascii") + b" >>\nstream\n" + stream_bytes + b"\nendstream\nendobj\n")
+
+    pdf = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for obj in objects:
+        offsets.append(len(pdf))
+        pdf.extend(obj)
+    xref_offset = len(pdf)
+    pdf.extend(("xref\n0 %d\n" % (len(objects) + 1)).encode("ascii"))
+    pdf.extend(b"0000000000 65535 f \n")
+    for off in offsets[1:]:
+        pdf.extend(("%010d 00000 n \n" % off).encode("ascii"))
+    pdf.extend(("trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF" % (len(objects) + 1, xref_offset)).encode("ascii"))
+    return bytes(pdf)
+
+
+def _wz16_resume_text_pdf(title: str, cv_text: str) -> bytes:
+    """Generate a real PDF binary. Never returns plain text bytes."""
+    title = _wz16_clean_text(title or "WorkZo CV") or "WorkZo CV"
+    raw = _wz16_clean_cv_text(cv_text or "")
+
+    # Add breaks before common headings if text came as one long paragraph.
+    headings = ["Professional Summary", "Profile", "Summary", "Core Skills", "Skills", "Professional Experience", "Experience", "Projects", "Education", "Languages", "Certifications", "Contact"]
+    for h in headings:
+        raw = re.sub(r"(?<!\n)(\s*)(" + re.escape(h) + r")\b", r"\n\n\2", raw, flags=re.I)
+    raw = re.sub(r"\s*[-•]\s+", "\n- ", raw)
+    raw = re.sub(r"[ \t]+", " ", raw)
+    raw = re.sub(r"\n{3,}", "\n\n", raw).strip()
+
+    if SimpleDocTemplate is None or Paragraph is None or Spacer is None or getSampleStyleSheet is None or ParagraphStyle is None or colors is None:
+        return _wz16_minimal_valid_pdf(title, raw)
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=36, leftMargin=36, topMargin=32, bottomMargin=32)
+    base = getSampleStyleSheet()
+    styles = {
+        "title": ParagraphStyle("WZ16Title", parent=base["Title"], fontName="Helvetica-Bold", fontSize=18, leading=22, spaceAfter=8, textColor=colors.HexColor("#0f172a")),
+        "heading": ParagraphStyle("WZ16Heading", parent=base["Heading3"], fontName="Helvetica-Bold", fontSize=10.5, leading=13, spaceBefore=9, spaceAfter=5, textColor=colors.HexColor("#0f172a")),
+        "body": ParagraphStyle("WZ16Body", parent=base["BodyText"], fontName="Helvetica", fontSize=9.2, leading=12.6, spaceAfter=4, textColor=colors.HexColor("#111827")),
+        "bullet": ParagraphStyle("WZ16Bullet", parent=base["BodyText"], fontName="Helvetica", fontSize=9.0, leading=12.2, leftIndent=12, spaceAfter=3, textColor=colors.HexColor("#111827")),
+    }
+    story = [Paragraph(html.escape(title), styles["title"])]
+    heading_set = {h.lower() for h in headings}
+    for raw_line in raw.split("\n"):
+        line = raw_line.strip()
+        if not line:
+            story.append(Spacer(1, 5))
+            continue
+        key = line.rstrip(":").lower()
+        if key in heading_set or (len(line) <= 34 and line.isupper() and not line.startswith(("-", "•"))):
+            story.append(Paragraph(html.escape(line.rstrip(":").upper()), styles["heading"]))
+        elif line.startswith(("-", "•")):
+            story.append(Paragraph(html.escape(line.lstrip("-• ").strip()), styles["bullet"], bulletText="•"))
+        else:
+            story.append(Paragraph(html.escape(line), styles["body"]))
+    try:
+        doc.build(story)
+        buffer.seek(0)
+        pdf = buffer.getvalue()
+        if isinstance(pdf, (bytes, bytearray)) and bytes(pdf).startswith(b"%PDF"):
+            return bytes(pdf)
+    except Exception:
+        pass
+    return _wz16_minimal_valid_pdf(title, raw)
+
+
+def _wz16_normalize_structured(data: Any) -> Dict[str, Any]:
+    """Normalize structured CV so projects never render as raw dictionaries."""
+    data = _wz16_literal(data)
+    if not isinstance(data, dict):
+        return {}
+    try:
+        data = _coerce_structured_resume_schema(data)
+    except Exception:
+        data = dict(data)
+    data = dict(data)
+
+    # Normalize project objects deeply.
+    projects = []
+    for item in _wz16_as_list(data.get("projects")):
+        item = _wz16_literal(item)
+        if isinstance(item, dict):
+            name = _wz16_literal(item.get("name") or item.get("title") or item.get("project") or "")
+            if isinstance(name, dict):
+                item = name
+                name = item.get("name") or item.get("title") or item.get("project") or ""
+            bullets = item.get("bullets") or item.get("details") or item.get("description") or []
+            projects.append({
+                "name": _wz16_clean_text(name),
+                "bullets": [_wz16_clean_text(b).strip(" -•*") for b in _wz16_as_list(bullets) if _wz16_clean_text(b).strip()],
+            })
+        elif str(item or "").strip():
+            text = _wz16_project_to_text(item)
+            lines = [x.strip() for x in text.splitlines() if x.strip()]
+            if lines:
+                projects.append({"name": lines[0].strip(" -•*"), "bullets": [x.strip(" -•*") for x in lines[1:]]})
+    data["projects"] = projects
+
+    for key in ["core_skills", "skills", "tools_technologies", "languages", "certifications"]:
+        if key in data:
+            data[key] = [_wz16_clean_text(x).strip(" -•*") for x in _wz16_as_list(data.get(key)) if _wz16_clean_text(x).strip()]
+
+    for key in ["work_experience", "experience"]:
+        if key in data:
+            jobs = []
+            for item in _wz16_as_list(data.get(key)):
+                item = _wz16_literal(item)
+                if isinstance(item, dict):
+                    jobs.append({
+                        "title": _wz16_clean_text(item.get("title") or item.get("role") or item.get("position") or ""),
+                        "company": _wz16_clean_text(item.get("company") or item.get("employer") or item.get("organization") or ""),
+                        "dates": _wz16_clean_text(item.get("dates") or item.get("date") or ""),
+                        "bullets": [_wz16_clean_text(b).strip(" -•*") for b in _wz16_as_list(item.get("bullets") or item.get("responsibilities") or item.get("achievements")) if _wz16_clean_text(b).strip()],
+                    })
+                elif str(item or "").strip():
+                    jobs.append({"title": _wz16_clean_text(item), "company": "", "dates": "", "bullets": []})
+            data["work_experience"] = jobs
+
+    return data
+
+
+# Final overrides used by the rest of WorkZo. These intentionally come last.
+def make_styled_pdf_from_cv_text(title: str, cv_text: str, template_name: str = "ATS Resume", target_country: str = "") -> bytes:
+    return _wz16_resume_text_pdf(title or "WorkZo CV", cv_text or "")
+
+
+def make_styled_pdf_from_structured_preview(title: str, structured_data: Dict[str, Any], template_name: str = "ATS Resume", target_country: str = "") -> bytes:
+    data = _wz16_normalize_structured(structured_data or {})
+    try:
+        text = workzo_build_cv_text_from_editable(data)
+    except Exception:
+        text = ""
+    return _wz16_resume_text_pdf(title or "WorkZo CV", text)
+
+
+def generate_pdf(cv_text: str, title: str = "WorkZo CV") -> bytes:
+    """Compatibility helper for any older download code that calls generate_pdf()."""
+    return _wz16_resume_text_pdf(title, cv_text or "")

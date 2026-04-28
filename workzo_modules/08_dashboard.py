@@ -1016,7 +1016,7 @@ Focus on transferable experience, measurable achievements, job-specific keywords
                         "Skill Gap Roadmap",
                         "Skill Gap Advice",
                         "Market Smart Guide",
-                        "Country Career Guide",
+                        "Market Smart Guide",
                         "Country-Specific Career Guidance",
                         "Country-Specific Advice",
                         "Final Application Checklist",
@@ -1203,3 +1203,29 @@ Focus on transferable experience, measurable achievements, job-specific keywords
 # =========================================================
 # WORKZO V11.7 - JD-SPECIFIC INTERVIEW ASSISTANT
 # =========================================================
+
+# =========================================================
+# WorkZo v15 dashboard score stabilizer
+# =========================================================
+def _wz15_restore_best_scores():
+    try:
+        import streamlit as st
+        for key in ["cv_score_value", "ats_score_value", "application_readiness_value"]:
+            best_key = "_best_" + key
+            cur = int(st.session_state.get(key) or 0)
+            best = int(st.session_state.get(best_key) or 0)
+            if cur < best:
+                st.session_state[key] = best
+            else:
+                st.session_state[best_key] = cur
+    except Exception:
+        pass
+try:
+    _wz15_old_show_dashboard = show_dashboard
+    def show_dashboard():
+        _wz15_restore_best_scores()
+        result = _wz15_old_show_dashboard()
+        _wz15_restore_best_scores()
+        return result
+except Exception:
+    pass

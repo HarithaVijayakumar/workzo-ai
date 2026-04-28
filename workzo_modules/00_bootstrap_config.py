@@ -2236,5 +2236,145 @@ div[data-testid="stLinkButton"] > a {
 .workzo-progress-done { color:#22c55e; font-weight:900; margin-left:8px; }
 .workzo-dashboard-chip { white-space: normal !important; }
 .block-container { padding-top: 1rem !important; }
+
+/* WorkZo v12 primary CTA visible fix */
+button[kind="primary"], div[data-testid="stButton"] button[data-testid="baseButton-primary"] {
+    min-height:64px!important; min-width:260px!important; padding:1rem 2rem!important; font-size:1.18rem!important; border-radius:16px!important; font-weight:850!important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# --- WorkZo v13 onboarding button fix: consistent card action buttons ---
+st.markdown("""
+<style>
+/* Make normal WorkZo buttons readable and consistent across new Streamlit versions */
+div[data-testid="stButton"] > button,
+div[data-testid="stButton"] button,
+button[data-testid="baseButton-secondary"],
+button[data-testid="baseButton-primary"],
+div[data-testid="stDownloadButton"] > button,
+div[data-testid="stDownloadButton"] button {
+    min-height: 46px !important;
+    padding: 0.65rem 1.15rem !important;
+    border-radius: 12px !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+}
+
+/* Resume input page: buttons below the three cards should match the card/column width */
+.workzo-resume-button-row {
+    width: 100% !important;
+    margin-top: 0.75rem !important;
+}
+.workzo-resume-button-row + div[data-testid="stButton"],
+.workzo-resume-button-row ~ div[data-testid="stButton"],
+div[data-testid="column"] div[data-testid="stButton"] > button {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Hero Start Now only: keep this as the large CTA */
+.workzo-start-button-wrapper {
+    display: flex !important;
+    justify-content: center !important;
+    margin-top: 1.8rem !important;
+}
+.workzo-start-button-wrapper div[data-testid="stButton"] {
+    width: auto !important;
+}
+.workzo-start-button-wrapper div[data-testid="stButton"] > button,
+.workzo-start-button-wrapper button[data-testid="baseButton-primary"] {
+    width: auto !important;
+    min-width: 210px !important;
+    min-height: 58px !important;
+    padding: 0.95rem 2.25rem !important;
+    font-size: 1.15rem !important;
+    border-radius: 16px !important;
+    font-weight: 850 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+# =========================================================
+# WorkZo v14 CV onboarding button alignment fix
+# =========================================================
+st.markdown("""
+<style>
+/* Make the CV input choice buttons align with the cards above them.
+   Streamlit renders buttons outside the HTML card, so we make the
+   button fill its column width and keep the card/button visually paired. */
+div[data-testid="stButton"] > button {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+/* Keep the landing Start Now CTA from becoming full-page width. */
+button[kind="primary"],
+button[data-testid="baseButton-primary"] {
+    max-width: 360px !important;
+    width: auto !important;
+    min-width: 160px !important;
+    min-height: 52px !important;
+    padding: 0.75rem 1.5rem !important;
+    border-radius: 14px !important;
+    font-size: 1.05rem !important;
+}
+
+.workzo-resume-mode-card {
+    margin-bottom: 10px !important;
+    min-height: 112px !important;
+}
+
+/* Selected CV input card state */
+.workzo-resume-mode-card.active {
+    border-color: rgba(20,184,166,0.85) !important;
+    box-shadow: 0 0 0 1px rgba(20,184,166,0.20), 0 14px 35px rgba(8,47,73,0.25) !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# =========================================================
+# WorkZo v15 final visual stabilizer
+# =========================================================
+st.markdown("""
+<style>
+/* Keep the one hero CTA visually strong. Streamlit cannot style by text reliably,
+   so all primary buttons are large and product-like. */
+div[data-testid="stButton"] button[data-testid="baseButton-primary"],
+button[data-testid="baseButton-primary"],
+button[kind="primary"] {
+    min-height: 64px !important;
+    min-width: 260px !important;
+    padding: 1rem 2.3rem !important;
+    border-radius: 16px !important;
+    font-size: 1.18rem !important;
+    font-weight: 850 !important;
+}
+/* Normal action buttons: aligned, readable, and not tiny. */
+div[data-testid="stButton"], div.stButton {
+    width: 100% !important;
+}
+div[data-testid="stButton"] > button,
+div.stButton > button,
+div[data-testid="stDownloadButton"] > button,
+div.stDownloadButton > button,
+div[data-testid="stLinkButton"] > a {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 48px !important;
+    padding: 0.70rem 1rem !important;
+    border-radius: 13px !important;
+    font-size: 1.02rem !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    text-align: center !important;
+}
+/* Keep widgets from beginning too far down after page rerun. */
+.block-container { padding-top: 1rem !important; }
+.workzo-progress-done { color:#22c55e !important; font-weight:900 !important; margin-left:8px !important; }
 </style>
 """, unsafe_allow_html=True)

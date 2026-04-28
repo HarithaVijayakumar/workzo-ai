@@ -166,21 +166,28 @@ import os
 
 
 def maybe_scroll_to_top():
-    """Force every navigation target to start at the top.
-    Streamlit sometimes restores the previous scroll position after rerun; this
-    small JS fires immediately and once again after layout settles.
+    """Scroll the active Streamlit page to the top after navigation.
+
+    Uses st.iframe (the Streamlit-recommended replacement for deprecated
+    st.components.v1.html). If the Streamlit version does not support iframe,
+    it falls back to a harmless top anchor.
     """
     try:
-        # components removed: no deprecated st.components.v1.html
-        st.html("""
-        <script>
-        const scrollTop = () => {
-          try { window.parent.scrollTo({top: 0, left: 0, behavior: 'instant'}); } catch(e) {}
-          try { window.parent.document.querySelector('section.main').scrollTo(0,0); } catch(e) {}
-        };
-        scrollTop(); setTimeout(scrollTop, 80); setTimeout(scrollTop, 250);
-        </script>
-        """, height=1)
+        if st.session_state.pop("_workzo_scroll_to_top", False):
+            script = """
+            <script>
+            const scrollTop = () => {
+              try { window.parent.scrollTo({top: 0, left: 0, behavior: 'instant'}); } catch(e) {}
+              try { window.parent.document.querySelector('section.main').scrollTo(0,0); } catch(e) {}
+              try { window.parent.document.querySelector('[data-testid="stAppViewContainer"]').scrollTo(0,0); } catch(e) {}
+            };
+            scrollTop(); setTimeout(scrollTop, 60); setTimeout(scrollTop, 220);
+            </script>
+            """
+            if hasattr(st, "iframe"):
+                st.iframe(srcdoc=script, height=0, width=0)
+            else:
+                st.markdown('<span id="workzo-page-top"></span>', unsafe_allow_html=True)
     except Exception:
         pass
 ICON_PATH = os.path.join(BASE_DIR, "workzo_icon.png")
@@ -532,46 +539,23 @@ def show_onboarding():
         unsafe_allow_html=True
     )
 
-    c_upload, c_create, c_linkedin = st.columns(3)
-    with c_upload:
-        active = st.session_state.get("cv_mode") == "Upload CV"
-        st.markdown(f"""
-        <div class='workzo-resume-mode-card {'active' if active else ''}'>
-            <div class='workzo-resume-mode-title'>Upload CV{' - selected' if active else ''}</div>
-            <div class='workzo-resume-mode-copy'>Upload an existing PDF or TXT resume.</div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.markdown("<div class='workzo-resume-button-row'>", unsafe_allow_html=True)
-        if st.button("Start upload", key="choose_upload_cv", use_container_width=True):
-            st.session_state.cv_mode = "Upload CV"
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-    with c_create:
-        active = st.session_state.get("cv_mode") == "Create CV"
-        st.markdown(f"""
-        <div class='workzo-resume-mode-card {'active' if active else ''}'>
-            <div class='workzo-resume-mode-title'>Create CV{' - selected' if active else ''}</div>
-            <div class='workzo-resume-mode-copy'>Enter rough notes and WorkZo builds a professional CV.</div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.markdown("<div class='workzo-resume-button-row'>", unsafe_allow_html=True)
-        if st.button("Start create", key="choose_create_cv", use_container_width=True):
-            st.session_state.cv_mode = "Create CV"
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-    with c_linkedin:
-        active = st.session_state.get("cv_mode") == "LinkedIn"
-        st.markdown(f"""
-        <div class='workzo-resume-mode-card {'active' if active else ''}'>
-            <div class='workzo-resume-mode-title'>Import LinkedIn{' - selected' if active else ''}</div>
-            <div class='workzo-resume-mode-copy'>Paste your LinkedIn link and add extra notes.</div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.markdown("<div class='workzo-resume-button-row'>", unsafe_allow_html=True)
-        if st.button("Start LinkedIn", key="choose_linkedin_cv", use_container_width=True):
-            st.session_state.cv_mode = "LinkedIn"
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+    c_upload, c_create, c_linkedin = st.columns(3, gap="large")
+
+    def _cv_mode_card(col, mode_label: str, copy: str, key: str):
+        with col:
+            active = st.session_state.get("cv_mode") == mode_label
+            label = ("✓ " if active else "") + mode_label
+            with st.container(border=True):
+                st.markdown(f"**{label}**")
+                st.caption(copy)
+                if st.button(mode_label, key=key, use_container_width=True):
+                    st.session_state.cv_mode = mode_label
+                    request_scroll_to_top()
+                    st.rerun()
+
+    _cv_mode_card(c_upload, "Upload CV", "Upload an existing PDF or TXT resume.", "choose_upload_cv")
+    _cv_mode_card(c_create, "Create CV", "Enter rough notes and WorkZo builds a professional CV.", "choose_create_cv")
+    _cv_mode_card(c_linkedin, "Import LinkedIn", "Paste your LinkedIn link and add extra notes.", "choose_linkedin_cv")
 
     cv_mode = st.session_state.get("cv_mode", "")
 

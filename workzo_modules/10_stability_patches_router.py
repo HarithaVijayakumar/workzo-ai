@@ -722,8 +722,13 @@ if "read_url_page" not in globals():
 
 if "request_scroll_to_top" not in globals():
     def request_scroll_to_top() -> None:
+        # Native Streamlit-only scroll reset: change query params on navigation.
+        # This avoids deprecated components/iframe scripts.
         try:
+            import time
             st.session_state["_workzo_scroll_to_top"] = True
+            st.session_state["_workzo_page_nonce"] = str(int(time.time() * 1000))
+            st.query_params["wz_top"] = st.session_state["_workzo_page_nonce"]
         except Exception:
             pass
 
@@ -785,6 +790,14 @@ def _workzo_run_router_if_available() -> None:
 
     try:
         workzo_v137_stabilize_state()
+    except Exception:
+        pass
+
+    try:
+        if callable(globals().get("workzo_preserve_best_scores")):
+            workzo_preserve_best_scores()
+        elif callable(globals().get("workzo_preserve_best_scores_v12")):
+            workzo_preserve_best_scores_v12()
     except Exception:
         pass
 
@@ -1040,92 +1053,123 @@ def _workzo_apply_v7_fixes() -> None:
 
     # ---------- PDF: 3 genuinely different templates, all using structured data ----------
     def wz7_pdf_from_structured(title, structured_data, template_name='ATS Resume', target_country=''):
+        """Safe WorkZo PDF renderer.
+
+        Important fix: do NOT put the whole CV inside one large ReportLab table cell.
+        A tall two-column table cannot split across pages and causes LayoutError.
+        This renderer uses normal flowables so long CVs can continue onto page 2/3.
+        """
         from io import BytesIO
         try:
             from reportlab.lib.pagesizes import A4
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
             from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
             from reportlab.lib import colors
-        except Exception:
-            return wz7_build_cv_text(structured_data).encode('utf-8')
-        d=wz7_normalize_cv_data(structured_data or {})
-        buf=BytesIO(); doc=SimpleDocTemplate(buf,pagesize=A4,rightMargin=34,leftMargin=34,topMargin=30,bottomMargin=30)
-        base=getSampleStyleSheet()
-        styles={
-          'name': ParagraphStyle('wz7name', parent=base['Title'], fontName='Helvetica-Bold', fontSize=20, leading=24, textColor=colors.HexColor('#0f172a'), spaceAfter=2),
-          'role': ParagraphStyle('wz7role', parent=base['BodyText'], fontSize=10.5, leading=13, textColor=colors.HexColor('#334155'), spaceAfter=4),
-          'section': ParagraphStyle('wz7sec', parent=base['Heading3'], fontName='Helvetica-Bold', fontSize=10, leading=13, textColor=colors.HexColor('#0f172a'), spaceBefore=8, spaceAfter=4),
-          'body': ParagraphStyle('wz7body', parent=base['BodyText'], fontSize=9, leading=12.2, textColor=colors.HexColor('#111827'), spaceAfter=3),
-          'bullet': ParagraphStyle('wz7bul', parent=base['BodyText'], fontSize=8.8, leading=11.8, leftIndent=12, spaceAfter=2),
-          'mini': ParagraphStyle('wz7mini', parent=base['BodyText'], fontName='Helvetica-Bold', fontSize=9, leading=11.5, spaceBefore=3, spaceAfter=2),
-          'muted': ParagraphStyle('wz7muted', parent=base['BodyText'], fontSize=8, leading=10, textColor=colors.HexColor('#64748b')),
+        except Exception as exc:
+            raise RuntimeError('ReportLab is required to generate a valid PDF. Please install reportlab.') from exc
+
+        d = wz7_normalize_cv_data(structured_data or {})
+        buf = BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=38, leftMargin=38, topMargin=34, bottomMargin=34)
+        base = getSampleStyleSheet()
+
+        styles = {
+            'name': ParagraphStyle('wzsafe_name', parent=base['Title'], fontName='Helvetica-Bold', fontSize=20, leading=24, textColor=colors.HexColor('#0f172a'), spaceAfter=2),
+            'role': ParagraphStyle('wzsafe_role', parent=base['BodyText'], fontSize=10.5, leading=13, textColor=colors.HexColor('#334155'), spaceAfter=4),
+            'contact': ParagraphStyle('wzsafe_contact', parent=base['BodyText'], fontSize=8.5, leading=10.5, textColor=colors.HexColor('#475569'), spaceAfter=8),
+            'section': ParagraphStyle('wzsafe_section', parent=base['Heading3'], fontName='Helvetica-Bold', fontSize=10.5, leading=13, textColor=colors.HexColor('#0f172a'), spaceBefore=9, spaceAfter=5),
+            'body': ParagraphStyle('wzsafe_body', parent=base['BodyText'], fontSize=9, leading=12.4, textColor=colors.HexColor('#111827'), spaceAfter=4),
+            'bullet': ParagraphStyle('wzsafe_bullet', parent=base['BodyText'], fontSize=8.8, leading=11.8, leftIndent=14, firstLineIndent=0, spaceAfter=2),
+            'mini': ParagraphStyle('wzsafe_mini', parent=base['BodyText'], fontName='Helvetica-Bold', fontSize=9.2, leading=11.8, textColor=colors.HexColor('#111827'), spaceBefore=3, spaceAfter=2),
+            'muted': ParagraphStyle('wzsafe_muted', parent=base['BodyText'], fontSize=8.1, leading=10.2, textColor=colors.HexColor('#64748b'), spaceAfter=2),
         }
-        def P(x,style='body'): return Paragraph(html.escape(wz7_clean_text(x)), styles[style])
-        def bullets(vals):
-            return [Paragraph(html.escape(wz7_clean_text(v).strip(' -•*')), styles['bullet'], bulletText='•') for v in vals if wz7_clean_text(v).strip()]
-        def content_main():
-            story=[]
-            if d.get('professional_summary'): story += [P('Professional Summary','section'), P(d['professional_summary'])]
-            skills=list(dict.fromkeys((d.get('core_skills') or [])+(d.get('tools_technologies') or [])))
-            if skills: story += [P('Skills','section')] + bullets(skills[:30])
-            if d.get('work_experience'):
-                story.append(P('Experience','section'))
-                for job in d['work_experience']:
-                    hdr=' | '.join([job.get(k,'') for k in ['title','company','dates'] if job.get(k)])
-                    if hdr: story.append(P(hdr,'mini'))
-                    story += bullets(job.get('bullets',[])[:7])
-            if d.get('projects'):
-                story.append(P('Projects','section'))
-                for pr in d['projects'][:4]:
-                    if pr.get('name'): story.append(P(pr.get('name'),'mini'))
-                    story += bullets(pr.get('bullets',[])[:4])
-            if d.get('education'):
-                story.append(P('Education','section'))
-                for ed in d['education']:
-                    line=' | '.join([ed.get(k,'') for k in ['degree','institution','dates'] if ed.get(k)])
-                    if line: story.append(P(line))
-            if d.get('languages'): story += [P('Languages','section')] + bullets(d['languages'])
-            if d.get('certifications'): story += [P('Certifications','section')] + bullets(d['certifications'])
-            return story
-        contact=d.get('contact') or {}; contact_line=' | '.join([contact.get(k,'') for k in ['phone','email','location','linkedin'] if contact.get(k)])
-        template=(template_name or '').lower()
-        story=[P(d.get('full_name') or 'Your Name','name'), P(d.get('target_role') or title or 'Professional CV','role')]
-        if contact_line: story.append(P(contact_line,'muted'))
-        story.append(Spacer(1,6))
-        if 'europe' in template or 'german' in template or 'lebenslauf' in template or 'two' in template:
-            # two-column European layout
-            side=[]
-            skills=list(dict.fromkeys((d.get('core_skills') or [])+(d.get('tools_technologies') or [])))
-            if skills: side += [P('Skills','section')] + bullets(skills[:18])
-            if d.get('languages'): side += [P('Languages','section')] + bullets(d['languages'])
-            if d.get('certifications'): side += [P('Certifications','section')] + bullets(d['certifications'][:8])
-            main=[]
-            if d.get('professional_summary'): main += [P('Profile','section'), P(d['professional_summary'])]
-            for sec in ['work_experience','projects','education']:
-                if sec=='work_experience' and d.get(sec):
-                    main.append(P('Experience','section'))
-                    for job in d[sec]:
-                        main.append(P(' | '.join([job.get(k,'') for k in ['title','company','dates'] if job.get(k)]),'mini'))
-                        main += bullets(job.get('bullets',[])[:6])
-                if sec=='projects' and d.get(sec):
-                    main.append(P('Projects','section'))
-                    for pr in d[sec][:4]:
-                        main.append(P(pr.get('name') or 'Project','mini')); main += bullets(pr.get('bullets',[])[:4])
-                if sec=='education' and d.get(sec):
-                    main.append(P('Education','section'))
-                    for ed in d[sec]: main.append(P(' | '.join([ed.get(k,'') for k in ['degree','institution','dates'] if ed.get(k)])))
-            grid=Table([[side, main]], colWidths=[doc.width*.32, doc.width*.68])
-            grid.setStyle(TableStyle([('BACKGROUND',(0,0),(0,0),colors.HexColor('#eef2f7')),('VALIGN',(0,0),(-1,-1),'TOP'),('LEFTPADDING',(0,0),(-1,-1),10),('RIGHTPADDING',(0,0),(-1,-1),10),('TOPPADDING',(0,0),(-1,-1),10)]))
-            story.append(grid)
-        elif 'minimal' in template:
-            # minimal centered layout
-            styles['name'].alignment=1; styles['role'].alignment=1; styles['muted'].alignment=1
-            story = [P(d.get('full_name') or 'Your Name','name'), P(d.get('target_role') or title or 'Professional CV','role')]
-            if contact_line: story.append(P(contact_line,'muted'))
-            story.append(Spacer(1,10)); story += content_main()
-        else:
-            story += content_main()
-        doc.build(story or [P('WorkZo CV','name')]); buf.seek(0); return buf.getvalue()
+        template = (template_name or '').lower()
+        if 'minimal' in template:
+            styles['name'].alignment = 1
+            styles['role'].alignment = 1
+            styles['contact'].alignment = 1
+
+        def clean(x):
+            return wz7_clean_text(x).strip()
+        def P(x, style='body'):
+            return Paragraph(html.escape(clean(x)), styles[style])
+        def add_section(story, label):
+            story.append(P(label, 'section'))
+        def add_bullets(story, vals, limit=20):
+            count = 0
+            for v in vals or []:
+                val = clean(v).strip(' -•*\t')
+                if val:
+                    story.append(Paragraph(html.escape(val), styles['bullet'], bulletText='-'))
+                    count += 1
+                    if count >= limit:
+                        break
+
+        story = []
+        story.append(P(d.get('full_name') or 'Your Name', 'name'))
+        story.append(P(d.get('target_role') or title or 'Professional CV', 'role'))
+        contact = d.get('contact') or {}
+        contact_line = ' | '.join([clean(contact.get(k, '')) for k in ['phone', 'email', 'location', 'linkedin'] if clean(contact.get(k, ''))])
+        if contact_line:
+            story.append(P(contact_line, 'contact'))
+        story.append(Spacer(1, 6))
+
+        if d.get('professional_summary'):
+            add_section(story, 'Professional Summary')
+            story.append(P(d.get('professional_summary'), 'body'))
+
+        skills = list(dict.fromkeys((d.get('core_skills') or []) + (d.get('tools_technologies') or [])))
+        if skills:
+            add_section(story, 'Skills')
+            add_bullets(story, skills, 32)
+
+        if d.get('work_experience'):
+            add_section(story, 'Experience')
+            for job in d.get('work_experience') or []:
+                if not isinstance(job, dict):
+                    continue
+                hdr = ' | '.join([clean(job.get(k, '')) for k in ['title', 'company', 'dates'] if clean(job.get(k, ''))])
+                if hdr:
+                    story.append(P(hdr, 'mini'))
+                add_bullets(story, job.get('bullets', []), 7)
+                story.append(Spacer(1, 4))
+
+        if d.get('projects'):
+            add_section(story, 'Projects')
+            for pr in (d.get('projects') or [])[:6]:
+                if not isinstance(pr, dict):
+                    continue
+                name = clean(pr.get('name') or pr.get('title') or '')
+                if name:
+                    story.append(P(name, 'mini'))
+                add_bullets(story, pr.get('bullets', []), 4)
+                story.append(Spacer(1, 3))
+
+        if d.get('education'):
+            add_section(story, 'Education')
+            for ed in d.get('education') or []:
+                if not isinstance(ed, dict):
+                    continue
+                line = ' | '.join([clean(ed.get(k, '')) for k in ['degree', 'institution', 'dates'] if clean(ed.get(k, ''))])
+                if line:
+                    story.append(P(line, 'body'))
+
+        if d.get('languages'):
+            add_section(story, 'Languages')
+            add_bullets(story, d.get('languages'), 12)
+
+        if d.get('certifications'):
+            add_section(story, 'Certifications')
+            add_bullets(story, d.get('certifications'), 12)
+
+        if not story:
+            story = [P('WorkZo CV', 'name')]
+        doc.build(story)
+        buf.seek(0)
+        data = buf.getvalue()
+        if not data.startswith(b'%PDF'):
+            raise ValueError('Invalid PDF generated')
+        return data
     def wz7_pdf_from_text(title, cv_text, template_name='ATS Resume', target_country=''):
         # text fallback: convert common sections into a safe structured-ish text PDF via existing text parser if available.
         data={'full_name':'','target_role':title,'professional_summary':wz7_clean_text(cv_text)}
@@ -1231,6 +1275,97 @@ except Exception as _wz7_exc:
         st.warning(f"WorkZo v7 patch warning: {_wz7_exc}")
     except Exception:
         pass
+
+
+
+# --- WorkZo v12 verified UI + navigation + score patches ---
+def workzo_preserve_best_scores_v12() -> None:
+    try:
+        for key in ["cv_score_value", "ats_score_value", "application_readiness_value"]:
+            best_key = "_best_" + key
+            current = int(st.session_state.get(key) or 0)
+            best = int(st.session_state.get(best_key) or 0)
+            if current < best:
+                st.session_state[key] = best
+            elif current > best:
+                st.session_state[best_key] = current
+    except Exception:
+        pass
+
+def request_scroll_to_top() -> None:
+    try:
+        import time
+        st.session_state["_workzo_scroll_to_top"] = True
+        st.session_state["_workzo_page_nonce"] = str(int(time.time() * 1000))
+        st.query_params["wz_top"] = st.session_state["_workzo_page_nonce"]
+    except Exception:
+        pass
+
+def maybe_scroll_to_top() -> None:
+    try:
+        if st.session_state.pop("_workzo_scroll_to_top", False):
+            script = """
+            <script>
+            const scrollTop = () => {
+              try { window.parent.scrollTo({top:0,left:0,behavior:'instant'}); } catch(e) {}
+              try { window.parent.document.querySelector('section.main').scrollTo(0,0); } catch(e) {}
+              try { window.parent.document.querySelector('[data-testid="stAppViewContainer"]').scrollTo(0,0); } catch(e) {}
+            };
+            scrollTop(); setTimeout(scrollTop, 60); setTimeout(scrollTop, 220);
+            </script>
+            """
+            if hasattr(st, "iframe"):
+                st.iframe(srcdoc=script, height=0, width=0)
+            else:
+                st.markdown('<span id="workzo-page-top"></span>', unsafe_allow_html=True)
+    except Exception:
+        pass
+
+try:
+    workzo_preserve_best_scores_v12()
+    st.markdown("""
+    <style>
+    /* v12 button system */
+    div[data-testid="stButton"] > button,
+    div.stButton > button,
+    div[data-testid="stDownloadButton"] > button,
+    div[data-testid="stLinkButton"] > a {
+        min-height: 46px !important;
+        padding: 0.70rem 1.10rem !important;
+        border-radius: 13px !important;
+        font-size: 1.02rem !important;
+        font-weight: 650 !important;
+        white-space: normal !important;
+        text-align: center !important;
+        max-width: 100% !important;
+    }
+    /* Primary buttons are the main CTAs; this fixes the visible Start Now button. */
+    button[kind="primary"],
+    div[data-testid="stButton"] button[kind="primary"],
+    div[data-testid="stButton"] > button[data-testid="baseButton-primary"] {
+        min-height: 66px !important;
+        min-width: 280px !important;
+        padding: 1rem 2rem !important;
+        border-radius: 16px !important;
+        font-size: 1.18rem !important;
+        font-weight: 850 !important;
+    }
+    .workzo-start-button-wrapper,
+    .workzo-start-button-wrapper + div,
+    .workzo-start-button-wrapper ~ div {
+        text-align:center !important;
+    }
+    .workzo-resume-button-row div[data-testid="stButton"] > button,
+    .workzo-action-grid div[data-testid="stButton"] > button,
+    .workzo-progress-action div[data-testid="stButton"] > button,
+    div[data-testid="column"] div[data-testid="stButton"] > button {
+        width: 100% !important;
+    }
+    .workzo-progress-done { color:#22c55e!important; font-weight:900!important; margin-left:8px!important; }
+    </style>
+    """, unsafe_allow_html=True)
+except Exception:
+    pass
 
 _workzo_run_router_if_available()
 

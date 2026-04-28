@@ -1,0 +1,9 @@
+C:\Users\User\Desktop\ai-germany-assistant
+streamlit run app.py
+
+
+github=
+
+git add .
+git commit -m "Fix dashboard CV parsing issue"
+git push

@@ -324,3 +324,36 @@ CV text:
         st.session_state.resume_analysis = result
         st.session_state.dashboard_resume_analysis = result
         return result
+
+# =========================================================
+# WorkZo v15 score preservation wrapper
+# =========================================================
+def _wz15_preserve_scores_from_result(result):
+    try:
+        import streamlit as st
+        if isinstance(result, dict):
+            pairs = [("resume_score", "cv_score_value"), ("ats_score", "ats_score_value")]
+            for src, dst in pairs:
+                val = result.get(src)
+                if val is not None:
+                    old = int(st.session_state.get(dst) or 0)
+                    new = int(val or 0)
+                    st.session_state[dst] = max(old, new)
+                    st.session_state["_best_" + dst] = max(int(st.session_state.get("_best_" + dst) or 0), st.session_state[dst])
+        for key in ["cv_score_value", "ats_score_value", "application_readiness_value"]:
+            best_key = "_best_" + key
+            cur = int(st.session_state.get(key) or 0)
+            best = int(st.session_state.get(best_key) or 0)
+            st.session_state[key] = max(cur, best)
+            st.session_state[best_key] = st.session_state[key]
+    except Exception:
+        pass
+    return result
+
+try:
+    _wz15_old_analyze_resume_dashboard_stable = analyze_resume_dashboard_stable
+    def analyze_resume_dashboard_stable(cv_text: str, force_refresh: bool = False):
+        result = _wz15_old_analyze_resume_dashboard_stable(cv_text, force_refresh=force_refresh)
+        return _wz15_preserve_scores_from_result(result)
+except Exception:
+    pass
