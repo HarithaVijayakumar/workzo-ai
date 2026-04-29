@@ -1112,6 +1112,10 @@ def _workzo_apply_v7_fixes() -> None:
                 browser = p.chromium.launch(**launch_kwargs)
                 page = browser.new_page(viewport={"width": 794, "height": 1123}, device_scale_factor=1)
                 page.set_content(full_html, wait_until="networkidle")
+                try:
+                    page.emulate_media(media="screen")
+                except Exception:
+                    pass
                 pdf_bytes = page.pdf(
                     format="A4",
                     print_background=True,
@@ -1135,71 +1139,128 @@ def _workzo_apply_v7_fixes() -> None:
             except Exception:
                 pass
 
-        # 2) Fallback: safe ReportLab PDF. This will NOT match preview exactly, but prevents crashes.
+        # 2) Fallback: preview-like two-column ReportLab PDF.
+        # Used only when Playwright is unavailable. It is not pixel-perfect,
+        # but it keeps the downloaded CV visually close to the live sidebar preview.
         try:
             from reportlab.lib.pagesizes import A4
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
             from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
             from reportlab.lib import colors
         except Exception:
             return wz7_build_cv_text(d).encode('utf-8')
 
         buf = BytesIO()
-        doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=34, leftMargin=34, topMargin=30, bottomMargin=30)
+        doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=0, leftMargin=0, topMargin=0, bottomMargin=0)
         base = getSampleStyleSheet()
         styles = {
-          'name': ParagraphStyle('wz7name_safe', parent=base['Title'], fontName='Helvetica-Bold', fontSize=20, leading=24, textColor=colors.HexColor('#0f172a'), spaceAfter=2),
-          'role': ParagraphStyle('wz7role_safe', parent=base['BodyText'], fontSize=10.5, leading=13, textColor=colors.HexColor('#334155'), spaceAfter=4),
-          'section': ParagraphStyle('wz7sec_safe', parent=base['Heading3'], fontName='Helvetica-Bold', fontSize=10, leading=13, textColor=colors.HexColor('#0f172a'), spaceBefore=8, spaceAfter=4),
-          'body': ParagraphStyle('wz7body_safe', parent=base['BodyText'], fontSize=9, leading=12.2, textColor=colors.HexColor('#111827'), spaceAfter=3),
-          'bullet': ParagraphStyle('wz7bul_safe', parent=base['BodyText'], fontSize=8.8, leading=11.8, leftIndent=12, spaceAfter=2),
-          'mini': ParagraphStyle('wz7mini_safe', parent=base['BodyText'], fontName='Helvetica-Bold', fontSize=9, leading=11.5, spaceBefore=3, spaceAfter=2),
-          'muted': ParagraphStyle('wz7muted_safe', parent=base['BodyText'], fontSize=8, leading=10, textColor=colors.HexColor('#64748b')),
+          'name': ParagraphStyle('wz7name_preview_fallback', parent=base['Title'], fontName='Helvetica-Bold', fontSize=24, leading=29, textColor=colors.HexColor('#0f172a'), spaceAfter=6),
+          'role': ParagraphStyle('wz7role_preview_fallback', parent=base['BodyText'], fontName='Helvetica', fontSize=12, leading=15, textColor=colors.HexColor('#0f172a'), spaceAfter=8),
+          'contact': ParagraphStyle('wz7contact_preview_fallback', parent=base['BodyText'], fontSize=8.6, leading=11, textColor=colors.HexColor('#475569'), spaceAfter=0),
+          'section': ParagraphStyle('wz7sec_preview_fallback', parent=base['Heading3'], fontName='Helvetica-Bold', fontSize=10.5, leading=13, textColor=colors.HexColor('#0f172a'), spaceBefore=10, spaceAfter=7),
+          'body': ParagraphStyle('wz7body_preview_fallback', parent=base['BodyText'], fontSize=9.2, leading=12.4, textColor=colors.HexColor('#020617'), spaceAfter=5),
+          'bullet': ParagraphStyle('wz7bul_preview_fallback', parent=base['BodyText'], fontSize=9.0, leading=12.2, leftIndent=12, firstLineIndent=0, spaceAfter=3, textColor=colors.HexColor('#020617')),
+          'side_bullet': ParagraphStyle('wz7sidebul_preview_fallback', parent=base['BodyText'], fontSize=9.0, leading=12.2, leftIndent=12, firstLineIndent=0, spaceAfter=3, textColor=colors.HexColor('#020617')),
+          'mini': ParagraphStyle('wz7mini_preview_fallback', parent=base['BodyText'], fontName='Helvetica-Bold', fontSize=9.3, leading=12.2, spaceBefore=4, spaceAfter=4, textColor=colors.HexColor('#020617')),
+          'side': ParagraphStyle('wz7side_preview_fallback', parent=base['BodyText'], fontSize=9.0, leading=12.0, spaceAfter=4, textColor=colors.HexColor('#020617')),
         }
         def P(x, style='body'):
             return Paragraph(html.escape(wz7_clean_text(x)), styles[style])
-        def add_bullets(story, vals, limit=40):
+        def section(title_text):
+            return Paragraph(html.escape(str(title_text).upper()), styles['section'])
+        def add_bullets(target, vals, limit=40, style='bullet'):
             for v in (vals or [])[:limit]:
                 cleaned = wz7_clean_text(v).strip(' -•*')
                 if cleaned:
-                    story.append(Paragraph(html.escape(cleaned), styles['bullet'], bulletText='•'))
+                    target.append(Paragraph(html.escape(cleaned), styles[style], bulletText='•'))
 
         contact = d.get('contact') or {}
-        contact_line = ' | '.join([contact.get(k, '') for k in ['phone', 'email', 'location', 'linkedin'] if contact.get(k)])
-        story = [P(d.get('full_name') or 'Your Name', 'name'), P(d.get('target_role') or title or 'Professional CV', 'role')]
+        contact_line = ' · '.join([contact.get(k, '') for k in ['phone', 'email', 'location', 'linkedin'] if contact.get(k)])
+        header = [P(d.get('full_name') or 'Your Name', 'name'), P(d.get('target_role') or title or 'Professional CV', 'role')]
         if contact_line:
-            story.append(P(contact_line, 'muted'))
-        story.append(Spacer(1, 8))
+            header.append(P(contact_line, 'contact'))
+        header_table = Table([[header]], colWidths=[doc.width])
+        header_table.setStyle(TableStyle([
+            ('LEFTPADDING', (0,0), (-1,-1), 40), ('RIGHTPADDING', (0,0), (-1,-1), 40),
+            ('TOPPADDING', (0,0), (-1,-1), 26), ('BOTTOMPADDING', (0,0), (-1,-1), 24),
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ]))
+        divider = Table([['']], colWidths=[doc.width], rowHeights=[3])
+        divider.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#1f2937'))]))
 
-        if d.get('professional_summary'):
-            story += [P('Professional Summary', 'section'), P(d['professional_summary'])]
         skills = list(dict.fromkeys((d.get('core_skills') or []) + (d.get('tools_technologies') or [])))
+        sidebar = []
         if skills:
-            story.append(P('Skills', 'section')); add_bullets(story, skills)
-        if d.get('work_experience'):
-            story.append(P('Experience', 'section'))
-            for job in d['work_experience']:
-                hdr = ' | '.join([job.get(k, '') for k in ['title', 'company', 'dates'] if job.get(k)])
-                if hdr: story.append(P(hdr, 'mini'))
-                add_bullets(story, job.get('bullets', []), 8)
-        if d.get('projects'):
-            story.append(P('Projects', 'section'))
-            for pr in d['projects'][:6]:
-                if pr.get('name'): story.append(P(pr.get('name'), 'mini'))
-                add_bullets(story, pr.get('bullets', []), 5)
+            sidebar.append(section('Skills')); add_bullets(sidebar, skills, 32, 'side_bullet')
+        if d.get('languages'):
+            sidebar.append(section('Languages')); add_bullets(sidebar, d['languages'], 10, 'side_bullet')
         if d.get('education'):
-            story.append(P('Education', 'section'))
+            sidebar.append(section('Education'))
             for ed in d['education']:
                 line = ' | '.join([ed.get(k, '') for k in ['degree', 'institution', 'dates'] if ed.get(k)])
-                if line: story.append(P(line))
-        if d.get('languages'):
-            story.append(P('Languages', 'section')); add_bullets(story, d['languages'])
+                if line: sidebar.append(P(line, 'side'))
         if d.get('certifications'):
-            story.append(P('Certifications', 'section')); add_bullets(story, d['certifications'])
+            sidebar.append(section('Certifications')); add_bullets(sidebar, d['certifications'], 10, 'side_bullet')
 
-        doc.build(story or [P('WorkZo CV', 'name')])
-        buf.seek(0)
-        return buf.getvalue()
+        main = []
+        if d.get('professional_summary'):
+            main += [section('Profile'), P(d['professional_summary'])]
+        if d.get('work_experience'):
+            main.append(section('Experience'))
+            for job in d['work_experience']:
+                hdr = ' | '.join([job.get(k, '') for k in ['title', 'company', 'dates'] if job.get(k)])
+                if hdr: main.append(P(hdr, 'mini'))
+                add_bullets(main, job.get('bullets', []), 8, 'bullet')
+        if d.get('projects'):
+            main.append(section('Projects'))
+            for pr in d['projects'][:5]:
+                if pr.get('name'): main.append(P(pr.get('name'), 'mini'))
+                add_bullets(main, pr.get('bullets', []), 5, 'bullet')
+
+        body_grid = Table([[sidebar or [P('—', 'side')], main or [P('—')]]], colWidths=[doc.width * .36, doc.width * .64])
+        body_grid.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (0,0), colors.HexColor('#eef2f7')),
+            ('BACKGROUND', (1,0), (1,0), colors.white),
+            ('LEFTPADDING', (0,0), (0,0), 26), ('RIGHTPADDING', (0,0), (0,0), 22),
+            ('LEFTPADDING', (1,0), (1,0), 30), ('RIGHTPADDING', (1,0), (1,0), 34),
+            ('TOPPADDING', (0,0), (-1,-1), 28), ('BOTTOMPADDING', (0,0), (-1,-1), 28),
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ]))
+        try:
+            doc.build([header_table, divider, body_grid])
+            buf.seek(0)
+            return buf.getvalue()
+        except Exception:
+            buf = BytesIO()
+            doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=34, leftMargin=34, topMargin=30, bottomMargin=30)
+            safe_story = [P(d.get('full_name') or 'Your Name', 'name'), P(d.get('target_role') or title or 'Professional CV', 'role')]
+            if contact_line: safe_story.append(P(contact_line, 'contact'))
+            safe_story.append(Spacer(1, 8))
+            if d.get('professional_summary'): safe_story += [section('Profile'), P(d['professional_summary'])]
+            if skills: safe_story.append(section('Skills')); add_bullets(safe_story, skills, 50, 'bullet')
+            if d.get('work_experience'):
+                safe_story.append(section('Experience'))
+                for job in d['work_experience']:
+                    hdr = ' | '.join([job.get(k, '') for k in ['title', 'company', 'dates'] if job.get(k)])
+                    if hdr: safe_story.append(P(hdr, 'mini'))
+                    add_bullets(safe_story, job.get('bullets', []), 8, 'bullet')
+            if d.get('projects'):
+                safe_story.append(section('Projects'))
+                for pr in d['projects'][:6]:
+                    if pr.get('name'): safe_story.append(P(pr.get('name'), 'mini'))
+                    add_bullets(safe_story, pr.get('bullets', []), 5, 'bullet')
+            if d.get('education'):
+                safe_story.append(section('Education'))
+                for ed in d['education']:
+                    line = ' | '.join([ed.get(k, '') for k in ['degree', 'institution', 'dates'] if ed.get(k)])
+                    if line: safe_story.append(P(line))
+            if d.get('languages'):
+                safe_story.append(section('Languages')); add_bullets(safe_story, d['languages'], 20, 'bullet')
+            if d.get('certifications'):
+                safe_story.append(section('Certifications')); add_bullets(safe_story, d['certifications'], 20, 'bullet')
+            doc.build(safe_story or [P('WorkZo CV', 'name')])
+            buf.seek(0)
+            return buf.getvalue()
     def wz7_pdf_from_text(title, cv_text, template_name='ATS Resume', target_country=''):
         # text fallback: convert common sections into a safe structured-ish text PDF via existing text parser if available.
         data={'full_name':'','target_role':title,'professional_summary':wz7_clean_text(cv_text)}
