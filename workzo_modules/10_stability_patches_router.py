@@ -1053,123 +1053,153 @@ def _workzo_apply_v7_fixes() -> None:
 
     # ---------- PDF: 3 genuinely different templates, all using structured data ----------
     def wz7_pdf_from_structured(title, structured_data, template_name='ATS Resume', target_country=''):
-        """Safe WorkZo PDF renderer.
+        """Create downloaded CV from the SAME HTML/CSS used in the live preview.
 
-        Important fix: do NOT put the whole CV inside one large ReportLab table cell.
-        A tall two-column table cannot split across pages and causes LayoutError.
-        This renderer uses normal flowables so long CVs can continue onto page 2/3.
+        Primary path: Playwright converts the preview HTML to PDF.
+        Fallback path: a safe one-column ReportLab PDF is used only when Playwright/browser is unavailable.
         """
         from io import BytesIO
+        d = wz7_normalize_cv_data(structured_data or {})
+
+        # 1) Preferred: exact HTML preview -> PDF download using Playwright.
+        try:
+            from playwright.sync_api import sync_playwright
+            import os as _os
+
+            preview_html_fn = globals().get('_wz_force_visual_html') or globals().get('workzo_visual_cv_html_from_structured')
+            if callable(preview_html_fn):
+                cv_html = preview_html_fn(d, template_name, target_country)
+            else:
+                cv_html = "<div><h1>WorkZo CV</h1><pre>" + html.escape(wz7_build_cv_text(d)) + "</pre></div>"
+
+            export_css = """
+            <style>
+              @page { size: A4; margin: 0; }
+              html, body { margin: 0 !important; padding: 0 !important; background: white !important; }
+              .cv-page {
+                width: 210mm !important;
+                min-height: 297mm !important;
+                margin: 0 auto !important;
+                box-shadow: none !important;
+                overflow: visible !important;
+                page-break-after: always;
+              }
+              .cv-page:last-child { page-break-after: auto; }
+              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            </style>
+            """
+            full_html = f"""<!doctype html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">{export_css}</head>
+<body>{cv_html}</body>
+</html>"""
+
+            with sync_playwright() as p:
+                launch_kwargs = {"headless": True, "args": ["--no-sandbox", "--disable-dev-shm-usage"]}
+
+                # Streamlit Cloud can use system Chromium from packages.txt; local/dev can use Playwright's own browser.
+                system_chromium_candidates = [
+                    _os.environ.get("PLAYWRIGHT_CHROMIUM_EXECUTABLE", ""),
+                    "/usr/bin/chromium",
+                    "/usr/bin/chromium-browser",
+                    "/usr/bin/google-chrome",
+                    "/snap/bin/chromium",
+                ]
+                executable_path = next((x for x in system_chromium_candidates if x and _os.path.exists(x)), None)
+                if executable_path:
+                    launch_kwargs["executable_path"] = executable_path
+
+                browser = p.chromium.launch(**launch_kwargs)
+                page = browser.new_page(viewport={"width": 794, "height": 1123}, device_scale_factor=1)
+                page.set_content(full_html, wait_until="networkidle")
+                pdf_bytes = page.pdf(
+                    format="A4",
+                    print_background=True,
+                    prefer_css_page_size=True,
+                    margin={"top": "0", "bottom": "0", "left": "0", "right": "0"},
+                )
+                browser.close()
+
+            if pdf_bytes and pdf_bytes.startswith(b"%PDF"):
+                return pdf_bytes
+            raise ValueError("Playwright returned invalid PDF bytes")
+
+        except Exception as html_pdf_error:
+            try:
+                st.session_state['workzo_last_html_pdf_error'] = str(html_pdf_error)
+                st.warning(
+                    "HTML-to-PDF export is not active, so WorkZo is using the simple fallback PDF. "
+                    "Add playwright to requirements.txt, add chromium to packages.txt, redeploy, and restart the app. "
+                    f"Details: {html_pdf_error}"
+                )
+            except Exception:
+                pass
+
+        # 2) Fallback: safe ReportLab PDF. This will NOT match preview exactly, but prevents crashes.
         try:
             from reportlab.lib.pagesizes import A4
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
             from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
             from reportlab.lib import colors
-        except Exception as exc:
-            raise RuntimeError('ReportLab is required to generate a valid PDF. Please install reportlab.') from exc
+        except Exception:
+            return wz7_build_cv_text(d).encode('utf-8')
 
-        d = wz7_normalize_cv_data(structured_data or {})
         buf = BytesIO()
-        doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=38, leftMargin=38, topMargin=34, bottomMargin=34)
+        doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=34, leftMargin=34, topMargin=30, bottomMargin=30)
         base = getSampleStyleSheet()
-
         styles = {
-            'name': ParagraphStyle('wzsafe_name', parent=base['Title'], fontName='Helvetica-Bold', fontSize=20, leading=24, textColor=colors.HexColor('#0f172a'), spaceAfter=2),
-            'role': ParagraphStyle('wzsafe_role', parent=base['BodyText'], fontSize=10.5, leading=13, textColor=colors.HexColor('#334155'), spaceAfter=4),
-            'contact': ParagraphStyle('wzsafe_contact', parent=base['BodyText'], fontSize=8.5, leading=10.5, textColor=colors.HexColor('#475569'), spaceAfter=8),
-            'section': ParagraphStyle('wzsafe_section', parent=base['Heading3'], fontName='Helvetica-Bold', fontSize=10.5, leading=13, textColor=colors.HexColor('#0f172a'), spaceBefore=9, spaceAfter=5),
-            'body': ParagraphStyle('wzsafe_body', parent=base['BodyText'], fontSize=9, leading=12.4, textColor=colors.HexColor('#111827'), spaceAfter=4),
-            'bullet': ParagraphStyle('wzsafe_bullet', parent=base['BodyText'], fontSize=8.8, leading=11.8, leftIndent=14, firstLineIndent=0, spaceAfter=2),
-            'mini': ParagraphStyle('wzsafe_mini', parent=base['BodyText'], fontName='Helvetica-Bold', fontSize=9.2, leading=11.8, textColor=colors.HexColor('#111827'), spaceBefore=3, spaceAfter=2),
-            'muted': ParagraphStyle('wzsafe_muted', parent=base['BodyText'], fontSize=8.1, leading=10.2, textColor=colors.HexColor('#64748b'), spaceAfter=2),
+          'name': ParagraphStyle('wz7name_safe', parent=base['Title'], fontName='Helvetica-Bold', fontSize=20, leading=24, textColor=colors.HexColor('#0f172a'), spaceAfter=2),
+          'role': ParagraphStyle('wz7role_safe', parent=base['BodyText'], fontSize=10.5, leading=13, textColor=colors.HexColor('#334155'), spaceAfter=4),
+          'section': ParagraphStyle('wz7sec_safe', parent=base['Heading3'], fontName='Helvetica-Bold', fontSize=10, leading=13, textColor=colors.HexColor('#0f172a'), spaceBefore=8, spaceAfter=4),
+          'body': ParagraphStyle('wz7body_safe', parent=base['BodyText'], fontSize=9, leading=12.2, textColor=colors.HexColor('#111827'), spaceAfter=3),
+          'bullet': ParagraphStyle('wz7bul_safe', parent=base['BodyText'], fontSize=8.8, leading=11.8, leftIndent=12, spaceAfter=2),
+          'mini': ParagraphStyle('wz7mini_safe', parent=base['BodyText'], fontName='Helvetica-Bold', fontSize=9, leading=11.5, spaceBefore=3, spaceAfter=2),
+          'muted': ParagraphStyle('wz7muted_safe', parent=base['BodyText'], fontSize=8, leading=10, textColor=colors.HexColor('#64748b')),
         }
-        template = (template_name or '').lower()
-        if 'minimal' in template:
-            styles['name'].alignment = 1
-            styles['role'].alignment = 1
-            styles['contact'].alignment = 1
-
-        def clean(x):
-            return wz7_clean_text(x).strip()
         def P(x, style='body'):
-            return Paragraph(html.escape(clean(x)), styles[style])
-        def add_section(story, label):
-            story.append(P(label, 'section'))
-        def add_bullets(story, vals, limit=20):
-            count = 0
-            for v in vals or []:
-                val = clean(v).strip(' -•*\t')
-                if val:
-                    story.append(Paragraph(html.escape(val), styles['bullet'], bulletText='-'))
-                    count += 1
-                    if count >= limit:
-                        break
+            return Paragraph(html.escape(wz7_clean_text(x)), styles[style])
+        def add_bullets(story, vals, limit=40):
+            for v in (vals or [])[:limit]:
+                cleaned = wz7_clean_text(v).strip(' -•*')
+                if cleaned:
+                    story.append(Paragraph(html.escape(cleaned), styles['bullet'], bulletText='•'))
 
-        story = []
-        story.append(P(d.get('full_name') or 'Your Name', 'name'))
-        story.append(P(d.get('target_role') or title or 'Professional CV', 'role'))
         contact = d.get('contact') or {}
-        contact_line = ' | '.join([clean(contact.get(k, '')) for k in ['phone', 'email', 'location', 'linkedin'] if clean(contact.get(k, ''))])
+        contact_line = ' | '.join([contact.get(k, '') for k in ['phone', 'email', 'location', 'linkedin'] if contact.get(k)])
+        story = [P(d.get('full_name') or 'Your Name', 'name'), P(d.get('target_role') or title or 'Professional CV', 'role')]
         if contact_line:
-            story.append(P(contact_line, 'contact'))
-        story.append(Spacer(1, 6))
+            story.append(P(contact_line, 'muted'))
+        story.append(Spacer(1, 8))
 
         if d.get('professional_summary'):
-            add_section(story, 'Professional Summary')
-            story.append(P(d.get('professional_summary'), 'body'))
-
+            story += [P('Professional Summary', 'section'), P(d['professional_summary'])]
         skills = list(dict.fromkeys((d.get('core_skills') or []) + (d.get('tools_technologies') or [])))
         if skills:
-            add_section(story, 'Skills')
-            add_bullets(story, skills, 32)
-
+            story.append(P('Skills', 'section')); add_bullets(story, skills)
         if d.get('work_experience'):
-            add_section(story, 'Experience')
-            for job in d.get('work_experience') or []:
-                if not isinstance(job, dict):
-                    continue
-                hdr = ' | '.join([clean(job.get(k, '')) for k in ['title', 'company', 'dates'] if clean(job.get(k, ''))])
-                if hdr:
-                    story.append(P(hdr, 'mini'))
-                add_bullets(story, job.get('bullets', []), 7)
-                story.append(Spacer(1, 4))
-
+            story.append(P('Experience', 'section'))
+            for job in d['work_experience']:
+                hdr = ' | '.join([job.get(k, '') for k in ['title', 'company', 'dates'] if job.get(k)])
+                if hdr: story.append(P(hdr, 'mini'))
+                add_bullets(story, job.get('bullets', []), 8)
         if d.get('projects'):
-            add_section(story, 'Projects')
-            for pr in (d.get('projects') or [])[:6]:
-                if not isinstance(pr, dict):
-                    continue
-                name = clean(pr.get('name') or pr.get('title') or '')
-                if name:
-                    story.append(P(name, 'mini'))
-                add_bullets(story, pr.get('bullets', []), 4)
-                story.append(Spacer(1, 3))
-
+            story.append(P('Projects', 'section'))
+            for pr in d['projects'][:6]:
+                if pr.get('name'): story.append(P(pr.get('name'), 'mini'))
+                add_bullets(story, pr.get('bullets', []), 5)
         if d.get('education'):
-            add_section(story, 'Education')
-            for ed in d.get('education') or []:
-                if not isinstance(ed, dict):
-                    continue
-                line = ' | '.join([clean(ed.get(k, '')) for k in ['degree', 'institution', 'dates'] if clean(ed.get(k, ''))])
-                if line:
-                    story.append(P(line, 'body'))
-
+            story.append(P('Education', 'section'))
+            for ed in d['education']:
+                line = ' | '.join([ed.get(k, '') for k in ['degree', 'institution', 'dates'] if ed.get(k)])
+                if line: story.append(P(line))
         if d.get('languages'):
-            add_section(story, 'Languages')
-            add_bullets(story, d.get('languages'), 12)
-
+            story.append(P('Languages', 'section')); add_bullets(story, d['languages'])
         if d.get('certifications'):
-            add_section(story, 'Certifications')
-            add_bullets(story, d.get('certifications'), 12)
+            story.append(P('Certifications', 'section')); add_bullets(story, d['certifications'])
 
-        if not story:
-            story = [P('WorkZo CV', 'name')]
-        doc.build(story)
+        doc.build(story or [P('WorkZo CV', 'name')])
         buf.seek(0)
-        data = buf.getvalue()
-        if not data.startswith(b'%PDF'):
-            raise ValueError('Invalid PDF generated')
-        return data
+        return buf.getvalue()
     def wz7_pdf_from_text(title, cv_text, template_name='ATS Resume', target_country=''):
         # text fallback: convert common sections into a safe structured-ish text PDF via existing text parser if available.
         data={'full_name':'','target_role':title,'professional_summary':wz7_clean_text(cv_text)}
