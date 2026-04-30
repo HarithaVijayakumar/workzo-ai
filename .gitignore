@@ -8,3 +8,4 @@ __pycache__/
 api/
 *.zip
 *.csv
+workzo_ui_state_*.json
