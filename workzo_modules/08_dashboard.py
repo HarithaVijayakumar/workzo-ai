@@ -4307,90 +4307,113 @@ except Exception:
     pass
 
 # =========================================================
-# WorkZo v43 - mobile-safe top toolbox
-# Native Streamlit sidebar is hidden on phones by 00_bootstrap_config_v43.
-# This compact top menu gives mobile users navigation without breaking layout.
+
 # =========================================================
-def _wz43_mobile_top_toolbox():
+
+# =========================================================
+# WorkZo v45 - mobile top navigation, desktop left sidebar
+# Desktop users keep the native left toolbox. Mobile users get a top nav so
+# content is not squeezed by the Streamlit sidebar.
+# =========================================================
+def _wz45_render_mobile_top_nav():
     try:
-        import streamlit as st
-        st.markdown("""
-        <div class='workzo-mobile-toolbox' style='margin:0 0 1rem 0;'>
-          <div style='border:1px solid rgba(20,184,166,.26);border-radius:18px;padding:12px 14px;background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(20,184,166,.12));'>
-            <div style='font-weight:900;color:#f8fafc;margin-bottom:6px;'>☰ WorkZo Tools</div>
-            <div style='font-size:.9rem;color:#cbd5e1;'>Mobile quick navigation</div>
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
-        with st.expander("☰ Tools / Navigation", expanded=False):
-            c1, c2 = st.columns(2)
-            with c1:
-                if st.button("Dashboard", key="wz43_mobile_nav_dashboard", use_container_width=True):
-                    st.session_state["page"] = "dashboard"
-                    st.session_state["nav_page"] = "dashboard"
-                    try:
-                        request_scroll_to_top()
-                    except Exception:
-                        pass
-                    st.rerun()
-                if st.button("CV Documents", key="wz43_mobile_nav_cv", use_container_width=True):
-                    st.session_state["page"] = "cv_documents"
-                    st.session_state["nav_page"] = "cv_documents"
-                    try:
-                        request_scroll_to_top()
-                    except Exception:
-                        pass
-                    st.rerun()
-            with c2:
-                if st.button("Job Assist", key="wz43_mobile_nav_job", use_container_width=True):
-                    st.session_state["page"] = "job_assist"
-                    st.session_state["nav_page"] = "job_assist"
-                    try:
-                        request_scroll_to_top()
-                    except Exception:
-                        pass
-                    st.rerun()
-                if st.button("Work-O-Bot", key="wz43_mobile_nav_bot", use_container_width=True):
-                    st.session_state["page"] = "workobot"
-                    st.session_state["nav_page"] = "workobot"
-                    try:
-                        request_scroll_to_top()
-                    except Exception:
-                        pass
-                    st.rerun()
-            with st.expander("Company context", expanded=False):
-                website_value = st.text_input(
-                    "Company website",
-                    value=st.session_state.get("target_company_website", ""),
-                    key="wz43_mobile_company_website",
-                    placeholder="https://company.com",
-                )
-                st.session_state["target_company_website"] = website_value
-            try:
-                language_list = globals().get("language_options", ["English", "German", "French", "Dutch", "Spanish"])
-                current_language = st.session_state.get("preferred_language", "English")
-                if current_language not in language_list:
-                    current_language = "English" if "English" in language_list else language_list[0]
-                new_lang = st.selectbox(
-                    "Language",
-                    language_list,
-                    index=language_list.index(current_language),
-                    key="wz43_mobile_language_select",
-                )
-                if new_lang != st.session_state.get("preferred_language"):
-                    st.session_state["preferred_language"] = new_lang
-                    st.session_state["ui_language"] = new_lang
-                    st.session_state["response_language"] = new_lang
-                    st.rerun()
-            except Exception:
-                pass
+        import time as _time
+        import html as _html
+        lang = str(st.session_state.get("preferred_language", "English") or "English")
+        labels = {
+            "English": {"tools": "Tools / Navigation", "dashboard": "Dashboard", "cv": "CV Documents", "jobs": "Job Assist", "bot": "Work-O-Bot"},
+            "German": {"tools": "Tools / Navigation", "dashboard": "Dashboard", "cv": "Lebenslauf & Dokumente", "jobs": "Job-Assistent", "bot": "Work-O-Bot"},
+            "French": {"tools": "Outils / navigation", "dashboard": "Tableau de bord", "cv": "CV & documents", "jobs": "Assistant emploi", "bot": "Work-O-Bot"},
+            "Dutch": {"tools": "Tools / navigatie", "dashboard": "Dashboard", "cv": "CV & documenten", "jobs": "Jobassistent", "bot": "Work-O-Bot"},
+            "Spanish": {"tools": "Herramientas / navegación", "dashboard": "Panel", "cv": "CV y documentos", "jobs": "Asistente de empleo", "bot": "Work-O-Bot"},
+        }
+        t = labels.get(lang, labels["English"])
+        nonce = str(int(_time.time() * 1000))
+        def link(page, text):
+            return f"<a class='wz45-mobile-link' href='?page={page}&wz_top={nonce}'>{_html.escape(text)}</a>"
+        st.markdown(
+            f"""
+            <style>
+            /* WorkZo v46: show this top toolbox ONLY on mobile.
+               Desktop keeps the real Streamlit left sidebar toolbox. */
+            .wz45-mobile-topnav {{ display: none !important; }}
+            @media (max-width: 700px) {{
+                .wz45-mobile-topnav {{
+                    display: block !important;
+                    position: sticky !important;
+                    top: 0 !important;
+                    z-index: 9999 !important;
+                    margin: 0 0 0.75rem 0 !important;
+                    padding: 0.75rem !important;
+                    border: 1px solid rgba(20,184,166,0.24) !important;
+                    border-radius: 18px !important;
+                    background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(8,47,73,0.92)) !important;
+                    box-shadow: 0 10px 28px rgba(2,6,23,0.30) !important;
+                }}
+                .wz45-mobile-title {{ color: #f8fafc !important; font-weight: 850 !important; font-size: 0.95rem !important; margin-bottom: 0.5rem !important; }}
+                .wz45-mobile-links {{ display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 0.45rem !important; }}
+                .wz45-mobile-link {{
+                    display: block !important;
+                    text-align: center !important;
+                    color: #e0f2fe !important;
+                    text-decoration: none !important;
+                    border: 1px solid rgba(96,165,250,0.26) !important;
+                    background: rgba(37,99,235,0.16) !important;
+                    border-radius: 999px !important;
+                    padding: 0.48rem 0.55rem !important;
+                    font-weight: 700 !important;
+                    font-size: 0.86rem !important;
+                    white-space: nowrap !important;
+                }}
+            }}
+            </style>
+            <div class="wz45-mobile-topnav">
+                <div class="wz45-mobile-title">☰ {_html.escape(t['tools'])}</div>
+                <div class="wz45-mobile-links">
+                    {link('dashboard', '🏠 ' + t['dashboard'])}
+                    {link('cv_documents', '📄 ' + t['cv'])}
+                    {link('job_assist', '🎯 ' + t['jobs'])}
+                    {link('workobot', '🤖 ' + t['bot'])}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
     except Exception:
         pass
 
 try:
-    _wz43_previous_show_dashboard = show_dashboard
+    _wz45_previous_show_dashboard = show_dashboard
     def show_dashboard():
-        _wz43_mobile_top_toolbox()
-        return _wz43_previous_show_dashboard()
+        _wz45_render_mobile_top_nav()
+        return _wz45_previous_show_dashboard()
+except Exception:
+    pass
+
+
+# =========================================================
+# WorkZo v48 dashboard responsive toolbox guard
+# The mobile top menu is rendered, but CSS shows it only on phones.
+# =========================================================
+try:
+    st.markdown("""
+    <style id="workzo-v48-dashboard-topnav-guard">
+    .wz45-mobile-topnav { display: none !important; }
+    @media (min-width: 701px) {
+        .wz45-mobile-topnav {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+        }
+    }
+    @media (max-width: 700px) {
+        .wz45-mobile-topnav { display: block !important; visibility: visible !important; height: auto !important; }
+    }
+    </style>
+    """, unsafe_allow_html=True)
 except Exception:
     pass

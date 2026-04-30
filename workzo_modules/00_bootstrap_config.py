@@ -2394,137 +2394,163 @@ def render_founder_dashboard():
         pass
 
 
+
 # =========================================================
-# WorkZo v43 - mobile app layout recovery
-# IMPORTANT: Do not force the native Streamlit sidebar on mobile.
-# Forcing it created the squeezed/right-shifted broken layout on phones.
-# On mobile we hide the native sidebar and give the main app full width.
-# Desktop keeps the normal left toolbox.
+# WorkZo v45 - responsive toolbox policy
+# Desktop: normal Streamlit left toolbox. Do NOT force it open, so the native
+# hide/show button works and does not get locked.
+# Mobile: hide native left sidebar and use the mobile top navigation rendered
+# from 08_dashboard.py to prevent squeezed/right-shifted layout.
 # =========================================================
 st.markdown("""
 <style>
-/* Desktop/tablet: keep normal sidebar visible */
 @media (min-width: 901px) {
-  section[data-testid="stSidebar"] {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    min-width: 300px !important;
-    max-width: 340px !important;
+  .wz45-mobile-topnav { display: none !important; }
+  section[data-testid="stSidebar"] { border-right: 1px solid rgba(148,163,184,0.16) !important; }
+}
+@media (max-width: 700px) {
+  html, body, .stApp, [data-testid="stAppViewContainer"] { width: 100% !important; max-width: 100% !important; overflow-x: hidden !important; }
+  section[data-testid="stSidebar"], section[data-testid="stSidebar"][aria-expanded="true"], section[data-testid="stSidebar"][aria-expanded="false"], div[data-testid="stSidebar"] {
+    display: none !important; visibility: hidden !important; opacity: 0 !important; width: 0 !important; min-width: 0 !important; max-width: 0 !important; height: 0 !important; position: absolute !important; left: -99999px !important; top: -99999px !important; transform: none !important; overflow: hidden !important; pointer-events: none !important; z-index: -1 !important;
   }
+  [data-testid="stAppViewContainer"] > .main, [data-testid="stAppViewContainer"] main, main, .main, .block-container, div[data-testid="stMainBlockContainer"] {
+    margin-left: 0 !important; margin-right: 0 !important; padding-left: 0.8rem !important; padding-right: 0.8rem !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important; transform: none !important; overflow-x: hidden !important; box-sizing: border-box !important;
+  }
+  div[data-testid="stHorizontalBlock"], div[data-testid="column"] { width: 100% !important; max-width: 100% !important; min-width: 0 !important; flex: 1 1 100% !important; box-sizing: border-box !important; }
+  .workzo-header, .workzo-dashboard-hero-compact, .next-action-card, .metric-card, .workzo-progress-card, .workzo-action-card, .workzo-saas-page-card, .glass-card, .card, .workzo-command-card, .workzo-command-hero {
+    width: 100% !important; max-width: 100% !important; min-width: 0 !important; margin-left: 0 !important; margin-right: 0 !important; box-sizing: border-box !important; overflow-wrap: anywhere !important;
+  }
+  .workzo-header { display: flex !important; align-items: center !important; justify-content: flex-start !important; gap: 0.75rem !important; padding: 0.85rem !important; margin: 0.7rem 0 1rem 0 !important; }
+  .workzo-logo, .workzo-sidebar-logo, .workzo-logo-fallback { width: 44px !important; height: 44px !important; min-width: 44px !important; max-width: 44px !important; object-fit: contain !important; }
+  .workzo-brand-title, .workzo-brand, .workzo-hero-title, h1, h2, h3 { white-space: normal !important; word-break: normal !important; overflow-wrap: anywhere !important; line-height: 1.15 !important; }
+  .workzo-brand-title { font-size: 1.55rem !important; }
+  .workzo-brand-subtitle, .next-action-copy, p, .stMarkdown { overflow-wrap: anywhere !important; }
+  .wz45-mobile-topnav { display: block !important; position: sticky !important; top: 0 !important; z-index: 9999 !important; margin: 0 0 0.75rem 0 !important; padding: 0.75rem !important; border: 1px solid rgba(20,184,166,0.24) !important; border-radius: 18px !important; background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(8,47,73,0.92)) !important; box-shadow: 0 10px 28px rgba(2,6,23,0.30) !important; }
+  .wz45-mobile-title { color: #f8fafc !important; font-weight: 850 !important; font-size: 0.95rem !important; margin-bottom: 0.5rem !important; }
+  .wz45-mobile-links { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 0.45rem !important; }
+  .wz45-mobile-link { display: block !important; text-align: center !important; color: #e0f2fe !important; text-decoration: none !important; border: 1px solid rgba(96,165,250,0.26) !important; background: rgba(37,99,235,0.16) !important; border-radius: 999px !important; padding: 0.48rem 0.55rem !important; font-weight: 700 !important; font-size: 0.86rem !important; white-space: nowrap !important; }
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+# =========================================================
+# WorkZo v48 final responsive toolbox override
+# Desktop/tablet keeps the native left Streamlit sidebar.
+# Phones hide the sidebar and use the compact top navigation only.
+# =========================================================
+st.markdown("""
+<style id="workzo-v48-responsive-toolbox-final">
+/* Default/desktop: left toolbox visible, mobile top toolbox hidden */
+.wz45-mobile-topnav,
+.wz-mobile-topnav,
+.workzo-mobile-topnav {
+    display: none !important;
 }
 
-/* Phone: hide native sidebar so it cannot squeeze the app off-screen */
-@media (max-width: 900px) {
-  html, body, .stApp, [data-testid="stAppViewContainer"] {
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-  }
-
-  section[data-testid="stSidebar"],
-  section[data-testid="stSidebar"][aria-expanded="true"],
-  section[data-testid="stSidebar"][aria-expanded="false"] {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    width: 0 !important;
-    min-width: 0 !important;
-    max-width: 0 !important;
-    height: 0 !important;
-    min-height: 0 !important;
-    max-height: 0 !important;
-    position: absolute !important;
-    left: -9999px !important;
-    transform: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-    z-index: -1 !important;
-  }
-
-  [data-testid="stAppViewContainer"] > .main,
-  [data-testid="stAppViewContainer"] main,
-  .main,
-  .block-container,
-  div[data-testid="stMainBlockContainer"] {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    padding-left: 0.85rem !important;
-    padding-right: 0.85rem !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    transform: none !important;
-    overflow-x: hidden !important;
-  }
-
-  div[data-testid="stHorizontalBlock"],
-  div[data-testid="column"],
-  .workzo-header,
-  .workzo-dashboard-hero-compact,
-  .next-action-card,
-  .metric-card,
-  .workzo-progress-card,
-  .workzo-action-card,
-  .workzo-saas-page-card,
-  .glass-card,
-  .card {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    box-sizing: border-box !important;
-    overflow-wrap: anywhere !important;
-    word-break: normal !important;
-  }
-
-  .workzo-header {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 0.75rem !important;
-    padding: 0.85rem !important;
-    margin-top: 0.5rem !important;
-    margin-bottom: 1rem !important;
-  }
-
-  .workzo-logo,
-  .workzo-sidebar-logo {
-    width: 48px !important;
-    height: 48px !important;
-    min-width: 48px !important;
-    max-width: 48px !important;
-  }
-
-  .workzo-brand-title,
-  .workzo-brand,
-  .workzo-hero-title,
-  h1, h2 {
-    font-size: clamp(1.35rem, 7vw, 2rem) !important;
-    line-height: 1.15 !important;
-    white-space: normal !important;
-    overflow-wrap: anywhere !important;
-  }
-
-  .workzo-brand-subtitle,
-  .next-action-copy,
-  p, .stMarkdown {
-    white-space: normal !important;
-    overflow-wrap: anywhere !important;
-  }
-
-  /* On phones, show a compact top navigation block generated by dashboard.py if present. */
-  .workzo-mobile-toolbox {
-    display: block !important;
-  }
+@media (min-width: 701px) {
+    section[data-testid="stSidebar"] {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        min-width: 300px !important;
+        max-width: 360px !important;
+        width: 320px !important;
+        position: relative !important;
+        left: auto !important;
+        top: auto !important;
+        transform: none !important;
+        overflow: auto !important;
+        pointer-events: auto !important;
+        z-index: 999 !important;
+        border-right: 1px solid rgba(148,163,184,0.16) !important;
+    }
+    section[data-testid="stSidebar"] > div:first-child {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    [data-testid="collapsedControl"] { display: none !important; }
+    .wz45-mobile-topnav,
+    .wz-mobile-topnav,
+    .workzo-mobile-topnav {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+    }
 }
 
-@media (min-width: 901px) {
-  .workzo-mobile-toolbox {
-    display: none !important;
-  }
+@media (max-width: 700px) {
+    html, body, .stApp, [data-testid="stAppViewContainer"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+    section[data-testid="stSidebar"],
+    section[data-testid="stSidebar"][aria-expanded="true"],
+    section[data-testid="stSidebar"][aria-expanded="false"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        height: 0 !important;
+        position: absolute !important;
+        left: -99999px !important;
+        top: -99999px !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+        z-index: -1 !important;
+    }
+    [data-testid="collapsedControl"] { display: none !important; }
+    .block-container,
+    main .block-container,
+    div[data-testid="stMainBlockContainer"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+        padding-top: 0.5rem !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
+    div[data-testid="stHorizontalBlock"],
+    div[data-testid="column"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        flex: 1 1 100% !important;
+        box-sizing: border-box !important;
+    }
+    .workzo-header,
+    .workzo-dashboard-hero-compact,
+    .next-action-card,
+    .metric-card,
+    .workzo-progress-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        box-sizing: border-box !important;
+        overflow-wrap: anywhere !important;
+    }
+    .wz45-mobile-topnav,
+    .wz-mobile-topnav,
+    .workzo-mobile-topnav {
+        display: block !important;
+        visibility: visible !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
 }
 </style>
 """, unsafe_allow_html=True)
