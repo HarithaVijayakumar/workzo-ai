@@ -4015,7 +4015,7 @@ def _wz35_dashboard_home():
 
     country = st.session_state.get("country") or st.session_state.get("target_country") or "Not set"
     language = st.session_state.get("preferred_language") or st.session_state.get("language") or "English"
-    company = st.session_state.get("prepare_target_company") or st.session_state.get("target_company") or st.session_state.get("target_company_website") or "Company not added"
+    company = st.session_state.get("prepare_target_company") or st.session_state.get("target_company") or st.session_state.get("target_company_website") or ui_label("Company not added")
     next_action = _wz35_next_action(cv_exists, resume_score, ats_score, job_exists, improved_ready, prepared_ready)
 
     st.markdown(f"""
@@ -4091,7 +4091,7 @@ def _wz35_dashboard_home():
             _wz35_flow_card(label, done, current == i, note)
             if st.button(button, key=f"wz35_flow_btn_{i}", use_container_width=True):
                 _wz35_go(target, extra)
-    st.caption("Scores are guidance only. WorkZo should not invent skills, company facts, language level, salary, or experience.")
+    st.caption(ui_label("Scores are guidance only. WorkZo should not invent skills, company facts, language level, salary, or experience."))
     _wz35_remember_scores()
     _wz35_save_state()
 
@@ -4236,5 +4236,161 @@ try:
             st.rerun()
         st.session_state["_wz38_language_rerun_done"] = False
         return _wz38_previous_show_dashboard()
+except Exception:
+    pass
+
+
+# =========================================================
+# WorkZo v40 - translate final dashboard literals used by smart cards
+# =========================================================
+def _wz35_next_action(cv_exists, resume_score, ats_score, job_exists, improved_ready, prepared_ready):
+    if not cv_exists:
+        return {"title":ui_label("Start with your CV"), "copy":ui_label("Upload or create your CV first so WorkZo can score it and guide the next steps."), "button":ui_label("Add CV"), "target":"onboarding", "extra":{}}
+    if resume_score < 75 or ats_score < 75:
+        return {"title":ui_label("Improve your CV first"), "copy":ui_label("Your Resume or ATS score needs improvement. Fix structure, keywords, and role alignment before applying widely."), "button":txt("open_cv_tools"), "target":"cv_documents", "extra":{"document_tools_mode":"Improve / Update CV"}}
+    if not job_exists:
+        return {"title":ui_label("Find or analyze a job next"), "copy":ui_label("Your CV is ready enough. Now find matching roles or paste one job description for a fit check."), "button":txt("open_job_assist"), "target":"job_assist", "extra":{"job_assist_mode_key":"find"}}
+    if not improved_ready:
+        return {"title":ui_label("Tailor your CV for this job"), "copy":ui_label("You have job context. Now tailor the CV to this specific role before creating application materials."), "button":ui_label("Improve CV for Job"), "target":"cv_documents", "extra":{"document_tools_mode":"Improve CV for a Job"}}
+    if not prepared_ready:
+        return {"title":ui_label("Prepare the application"), "copy":ui_label("Create a focused cover letter and preparation notes using the company, CV, and job description."), "button":txt("prepare_this_job"), "target":"job_assist", "extra":{"job_assist_mode_key":"prepare"}}
+    return {"title":ui_label("Ready to apply"), "copy":ui_label("Your core application flow is complete. Apply, save the tracker item, and practice answers in Work-O-Bot."), "button":txt("ask_workobot"), "target":"workobot", "extra":{}}
+
+# Make score guidance translatable wherever the final dashboard uses it.
+try:
+    if "UI_TEXT" in globals():
+        UI_TEXT.setdefault("German", {}).update({
+            "readiness_overview": "Bereitschaftsübersicht",
+            "smart_actions": "Smarte Aktionen",
+            "open_cv_tools": "CV-Tools öffnen",
+            "open_job_assist": "Job Assist öffnen",
+            "create_cover_letter": "Cover Letter erstellen",
+            "ask_workobot": "Work-O-Bot fragen",
+        })
+        UI_TEXT.setdefault("French", {}).update({
+            "readiness_overview": "Vue d’ensemble de la préparation",
+            "smart_actions": "Actions intelligentes",
+            "open_cv_tools": "Ouvrir les outils CV",
+            "open_job_assist": "Ouvrir l’assistant emploi",
+            "create_cover_letter": "Créer une lettre de motivation",
+            "ask_workobot": "Demander à Work-O-Bot",
+        })
+except Exception:
+    pass
+
+
+# =========================================================
+# WorkZo v41 - final dashboard language sync
+# =========================================================
+def _wz41_sync_language_from_any_widget():
+    try:
+        for _k in ["wz39_preferred_language", "sidebar_preferred_language", "wz35_preferred_language", "wz40_mobile_preferred_language", "wz30_language", "wz29_language", "wz28_language", "wz27_language", "onboarding_preferred_language", "preferred_language", "language"]:
+            _v = st.session_state.get(_k)
+            if isinstance(_v, str) and _v.strip():
+                if callable(globals().get("workzo_set_language_everywhere")):
+                    return workzo_set_language_everywhere(_v.strip())
+                st.session_state["preferred_language"] = _v.strip()
+                st.session_state["language"] = _v.strip()
+                st.session_state["ui_language"] = _v.strip()
+                st.session_state["response_language"] = _v.strip()
+                return _v.strip()
+    except Exception:
+        pass
+    return st.session_state.get("preferred_language", "English")
+
+try:
+    _wz41_previous_show_dashboard = show_dashboard
+    def show_dashboard():
+        _wz41_sync_language_from_any_widget()
+        return _wz41_previous_show_dashboard()
+except Exception:
+    pass
+
+# =========================================================
+# WorkZo v43 - mobile-safe top toolbox
+# Native Streamlit sidebar is hidden on phones by 00_bootstrap_config_v43.
+# This compact top menu gives mobile users navigation without breaking layout.
+# =========================================================
+def _wz43_mobile_top_toolbox():
+    try:
+        import streamlit as st
+        st.markdown("""
+        <div class='workzo-mobile-toolbox' style='margin:0 0 1rem 0;'>
+          <div style='border:1px solid rgba(20,184,166,.26);border-radius:18px;padding:12px 14px;background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(20,184,166,.12));'>
+            <div style='font-weight:900;color:#f8fafc;margin-bottom:6px;'>☰ WorkZo Tools</div>
+            <div style='font-size:.9rem;color:#cbd5e1;'>Mobile quick navigation</div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+        with st.expander("☰ Tools / Navigation", expanded=False):
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("Dashboard", key="wz43_mobile_nav_dashboard", use_container_width=True):
+                    st.session_state["page"] = "dashboard"
+                    st.session_state["nav_page"] = "dashboard"
+                    try:
+                        request_scroll_to_top()
+                    except Exception:
+                        pass
+                    st.rerun()
+                if st.button("CV Documents", key="wz43_mobile_nav_cv", use_container_width=True):
+                    st.session_state["page"] = "cv_documents"
+                    st.session_state["nav_page"] = "cv_documents"
+                    try:
+                        request_scroll_to_top()
+                    except Exception:
+                        pass
+                    st.rerun()
+            with c2:
+                if st.button("Job Assist", key="wz43_mobile_nav_job", use_container_width=True):
+                    st.session_state["page"] = "job_assist"
+                    st.session_state["nav_page"] = "job_assist"
+                    try:
+                        request_scroll_to_top()
+                    except Exception:
+                        pass
+                    st.rerun()
+                if st.button("Work-O-Bot", key="wz43_mobile_nav_bot", use_container_width=True):
+                    st.session_state["page"] = "workobot"
+                    st.session_state["nav_page"] = "workobot"
+                    try:
+                        request_scroll_to_top()
+                    except Exception:
+                        pass
+                    st.rerun()
+            with st.expander("Company context", expanded=False):
+                website_value = st.text_input(
+                    "Company website",
+                    value=st.session_state.get("target_company_website", ""),
+                    key="wz43_mobile_company_website",
+                    placeholder="https://company.com",
+                )
+                st.session_state["target_company_website"] = website_value
+            try:
+                language_list = globals().get("language_options", ["English", "German", "French", "Dutch", "Spanish"])
+                current_language = st.session_state.get("preferred_language", "English")
+                if current_language not in language_list:
+                    current_language = "English" if "English" in language_list else language_list[0]
+                new_lang = st.selectbox(
+                    "Language",
+                    language_list,
+                    index=language_list.index(current_language),
+                    key="wz43_mobile_language_select",
+                )
+                if new_lang != st.session_state.get("preferred_language"):
+                    st.session_state["preferred_language"] = new_lang
+                    st.session_state["ui_language"] = new_lang
+                    st.session_state["response_language"] = new_lang
+                    st.rerun()
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+try:
+    _wz43_previous_show_dashboard = show_dashboard
+    def show_dashboard():
+        _wz43_mobile_top_toolbox()
+        return _wz43_previous_show_dashboard()
 except Exception:
     pass
