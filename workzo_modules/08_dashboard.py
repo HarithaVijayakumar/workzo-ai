@@ -17416,3 +17416,156 @@ def show_document_tools():
         _wz52_previous_show_document_tools()
     else:
         st.warning("Document tools are not available in this build.")
+
+# =========================================================
+# WorkZo v58 - Mobile toolbox safe navigation fix
+# Scope: fixes mobile toolbox buttons/links kicking users out by preserving
+# existing query params and safe progress memory during mobile navigation.
+# No app features are changed.
+# =========================================================
+
+def _wz58_qp_items_preserved():
+    """Return current query params as a simple dict, preserving safe memory keys."""
+    try:
+        # Save safe progress memory before building mobile links.
+        # This does NOT store CV text or documents.
+        if callable(globals().get("workzo_save_light_memory")):
+            workzo_save_light_memory()
+    except Exception:
+        pass
+
+    data = {}
+    try:
+        params = getattr(st, "query_params", {})
+        if params is not None:
+            for k in list(params.keys()):
+                try:
+                    v = params.get(k)
+                    if isinstance(v, list):
+                        v = v[0] if v else ""
+                    if v not in (None, ""):
+                        data[str(k)] = str(v)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    # Keep important session values in the URL where your existing app already supports it.
+    try:
+        uid = st.session_state.get("anonymous_user_id")
+        if uid and "wz_uid" not in data:
+            data["wz_uid"] = str(uid)
+    except Exception:
+        pass
+    try:
+        lang = st.session_state.get("preferred_language") or st.session_state.get("language")
+        if lang and "wz_lang" not in data:
+            data["wz_lang"] = str(lang)
+    except Exception:
+        pass
+    return data
+
+
+def _wz58_mobile_href(page: str) -> str:
+    """Build a mobile navigation URL without dropping existing app state params."""
+    try:
+        import time as _time
+        import urllib.parse as _urlparse
+        params = _wz58_qp_items_preserved()
+        params["page"] = str(page or "dashboard")
+        params["wz_top"] = str(int(_time.time() * 1000))
+        return "?" + _urlparse.urlencode(params)
+    except Exception:
+        return "?page=" + str(page or "dashboard")
+
+
+def _wz45_render_mobile_top_nav():
+    """Mobile-only HTML toolbox with safe state-preserving links."""
+    try:
+        import html as _html
+        lang = str(st.session_state.get("preferred_language", "English") or "English")
+        labels = {
+            "English": {"tools": "Tools / Navigation", "dashboard": "Dashboard", "cv": "CV Documents", "jobs": "Job Assist", "bot": "Work-O-Bot"},
+            "German": {"tools": "Tools / Navigation", "dashboard": "Dashboard", "cv": "Lebenslauf & Dokumente", "jobs": "Job-Assistent", "bot": "Work-O-Bot"},
+            "French": {"tools": "Outils / navigation", "dashboard": "Tableau de bord", "cv": "CV & documents", "jobs": "Assistant emploi", "bot": "Work-O-Bot"},
+            "Dutch": {"tools": "Tools / navigatie", "dashboard": "Dashboard", "cv": "CV & documenten", "jobs": "Jobassistent", "bot": "Work-O-Bot"},
+            "Spanish": {"tools": "Herramientas / navegación", "dashboard": "Panel", "cv": "CV y documentos", "jobs": "Asistente de empleo", "bot": "Work-O-Bot"},
+        }
+        t = labels.get(lang, labels["English"])
+        def link(page, text):
+            return f"<a class='wz45-mobile-link' href='{_wz58_mobile_href(page)}'>{_html.escape(text)}</a>"
+        st.markdown(f"""
+        <style>
+        .wz45-mobile-topnav {{ display: none !important; }}
+        @media (max-width: 700px) {{
+            .wz45-mobile-topnav {{
+                display: block !important; position: sticky !important; top: 0 !important; z-index: 9999 !important;
+                margin: 0 0 0.75rem 0 !important; padding: 0.75rem !important;
+                border: 1px solid rgba(20,184,166,0.24) !important; border-radius: 18px !important;
+                background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(8,47,73,0.92)) !important;
+                box-shadow: 0 10px 28px rgba(2,6,23,0.30) !important;
+            }}
+            .wz45-mobile-title {{ color: #f8fafc !important; font-weight: 850 !important; font-size: 0.95rem !important; margin-bottom: 0.5rem !important; }}
+            .wz45-mobile-links {{ display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 0.45rem !important; }}
+            .wz45-mobile-link {{
+                display: block !important; text-align: center !important; color: #e0f2fe !important; text-decoration: none !important;
+                border: 1px solid rgba(96,165,250,0.26) !important; background: rgba(37,99,235,0.16) !important;
+                border-radius: 999px !important; padding: 0.48rem 0.55rem !important; font-weight: 700 !important;
+                font-size: 0.86rem !important; white-space: nowrap !important;
+            }}
+        }}
+        </style>
+        <div class="wz45-mobile-topnav">
+            <div class="wz45-mobile-title">☰ {_html.escape(t['tools'])}</div>
+            <div class="wz45-mobile-links">
+                {link('dashboard', '🏠 ' + t['dashboard'])}
+                {link('cv_documents', '📄 ' + t['cv'])}
+                {link('job_assist', '🎯 ' + t['jobs'])}
+                {link('workobot', '🤖 ' + t['bot'])}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz57_render_mobile_toolbox():
+    """Mobile-only toolbox with safe state-preserving links."""
+    try:
+        founder_link = ""
+        if st.session_state.get("founder_unlocked"):
+            founder_link = f"<a class='wz57-mobile-link' href='{_wz58_mobile_href('founder_dashboard')}'>📊 Founder</a>"
+        st.markdown(f"""
+        <style>
+        .wz57-mobile-toolbox {{ display: none !important; }}
+        @media (max-width: 700px) {{
+            .wz57-mobile-toolbox {{
+                display: block !important; position: sticky !important; top: 0 !important; z-index: 9999 !important;
+                margin: 0 0 0.8rem 0 !important; padding: 0.75rem !important;
+                border: 1px solid rgba(20,184,166,0.28) !important; border-radius: 18px !important;
+                background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(8,47,73,0.94)) !important;
+                box-shadow: 0 12px 30px rgba(2,6,23,0.34) !important;
+            }}
+            .wz57-mobile-title {{ color: #f8fafc !important; font-weight: 850 !important; font-size: 0.95rem !important; margin-bottom: 0.55rem !important; }}
+            .wz57-mobile-grid {{ display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 0.45rem !important; }}
+            .wz57-mobile-link {{
+                display: block !important; text-align: center !important; color: #e0f2fe !important; text-decoration: none !important;
+                border: 1px solid rgba(96,165,250,0.30) !important; background: rgba(37,99,235,0.18) !important;
+                border-radius: 999px !important; padding: 0.52rem 0.58rem !important; font-weight: 750 !important;
+                font-size: 0.86rem !important; white-space: nowrap !important;
+            }}
+        }}
+        </style>
+        <div class="wz57-mobile-toolbox">
+            <div class="wz57-mobile-title">☰ Tools</div>
+            <div class="wz57-mobile-grid">
+                <a class='wz57-mobile-link' href='{_wz58_mobile_href('dashboard')}'>🏠 Dashboard</a>
+                <a class='wz57-mobile-link' href='{_wz58_mobile_href('cv_documents')}'>📄 CV</a>
+                <a class='wz57-mobile-link' href='{_wz58_mobile_href('job_assist')}'>🎯 Job Assist</a>
+                <a class='wz57-mobile-link' href='{_wz58_mobile_href('workobot')}'>🤖 Work-O-Bot</a>
+                {founder_link}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
