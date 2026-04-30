@@ -240,6 +240,96 @@ st.set_page_config(
     layout="wide"
 )
 
+
+
+# =========================================================
+# WorkZo v49 lightweight persistent memory
+# Keeps non-sensitive progress/scores after browser refresh via query params.
+# Does NOT store CV text, personal details, documents, or job descriptions.
+# =========================================================
+def _wz49_b64_encode(data: dict) -> str:
+    try:
+        import base64 as _b64, json as _json
+        raw = _json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        return _b64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+    except Exception:
+        return ""
+
+
+def _wz49_b64_decode(value: str) -> dict:
+    try:
+        import base64 as _b64, json as _json
+        value = str(value or "").strip()
+        if not value:
+            return {}
+        value += "=" * (-len(value) % 4)
+        raw = _b64.urlsafe_b64decode(value.encode("ascii"))
+        data = _json.loads(raw.decode("utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def workzo_load_light_memory() -> None:
+    """Restore safe progress memory after refresh.
+
+    This intentionally stores only flags/scores/preferences. It does not persist
+    CV text or job descriptions, so user privacy remains protected.
+    """
+    try:
+        params = getattr(st, "query_params", {})
+        encoded = params.get("wz_mem", "") if params is not None else ""
+        if isinstance(encoded, list):
+            encoded = encoded[0] if encoded else ""
+        data = _wz49_b64_decode(encoded)
+        if not data:
+            return
+        allowed = {
+            "cv_score_value", "ats_score_value", "application_readiness_value",
+            "job_fit_score_value", "interview_score",
+            "_best_cv_score_value", "_best_ats_score_value", "_best_job_fit_score_value",
+            "_wz_progress_cv_uploaded", "_wz_progress_cv_improved", "_wz_progress_job_matched", "_wz_progress_prepared",
+            "preferred_language", "language", "ui_language", "response_language", "country", "user_status",
+        }
+        for key, value in data.items():
+            if key in allowed and key not in st.session_state:
+                st.session_state[key] = value
+        # Keep language aliases aligned after refresh.
+        lang = st.session_state.get("preferred_language") or st.session_state.get("language")
+        if lang:
+            st.session_state["preferred_language"] = lang
+            st.session_state["language"] = lang
+            st.session_state["ui_language"] = lang
+            st.session_state["response_language"] = lang
+    except Exception:
+        pass
+
+
+def workzo_save_light_memory() -> None:
+    """Write safe progress memory to the URL so refresh keeps the dashboard state."""
+    try:
+        data = {}
+        keys = [
+            "cv_score_value", "ats_score_value", "application_readiness_value",
+            "job_fit_score_value", "interview_score",
+            "_best_cv_score_value", "_best_ats_score_value", "_best_job_fit_score_value",
+            "_wz_progress_cv_uploaded", "_wz_progress_cv_improved", "_wz_progress_job_matched", "_wz_progress_prepared",
+            "preferred_language", "language", "ui_language", "response_language", "country", "user_status",
+        ]
+        for key in keys:
+            val = st.session_state.get(key)
+            if val not in (None, "", [], {}):
+                if isinstance(val, (str, int, float, bool)):
+                    data[key] = val
+        encoded = _wz49_b64_encode(data)
+        if encoded:
+            st.query_params["wz_mem"] = encoded
+    except Exception:
+        pass
+
+
+workzo_load_light_memory()
+
 # =========================================================
 # LOAD ENV
 # =========================================================

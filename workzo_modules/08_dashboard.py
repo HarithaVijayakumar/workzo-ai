@@ -3582,28 +3582,82 @@ def _wz32_dashboard_home():
     with a4:
         _wz31_action_card('Work-O-Bot', 'Ask career questions or practice interview answers in your selected language.', 'Ask Work-O-Bot', 'workobot', 'wz32_open_bot')
 
+    # Persist only safe progress flags. Do not store CV text or job descriptions.
+    if cv_exists:
+        st.session_state['_wz_has_cv'] = True
+    if improved_ready:
+        st.session_state['_wz_cv_improved'] = True
+    if bool(st.session_state.get('latest_curated_jobs') or st.session_state.get('latest_job_query_expansion')):
+        st.session_state['_wz_job_found'] = True
+    if job_exists or st.session_state.get('latest_job_analysis'):
+        st.session_state['_wz_job_analyzed'] = True
+    prepared_ready = bool(cover_ready or str(st.session_state.get('latest_application_prep','') or st.session_state.get('latest_cover_letter','')).strip())
+    if prepared_ready:
+        st.session_state['_wz_prepared'] = True
+
+    # Use restored memory after refresh, but never invent private CV/job text.
+    cv_done = bool(cv_exists or st.session_state.get('_wz_has_cv'))
+    improved_done = bool(improved_ready or st.session_state.get('_wz_cv_improved'))
+    job_done = bool(job_exists or st.session_state.get('_wz_job_found') or st.session_state.get('_wz_job_analyzed'))
+    prep_done = bool(prepared_ready or st.session_state.get('_wz_prepared'))
+
     st.markdown('### Application progress')
-    st.caption('Move step by step, or jump to the part you want to work on.')
-    current_step = _wz32_pick_current_step(cv_exists, resume_score, ats_score, job_exists, improved_ready, cover_ready)
-    score_checked = bool(cv_exists and resume_score > 0 and ats_score > 0)
-    prepared_ready = bool(cover_ready or str(st.session_state.get('latest_application_prep','')).strip())
+    st.caption('Move step by step. Each card is checked only after that action is actually done.')
+
+    # Current recommendation: the first unfinished step becomes highlighted.
+    if not cv_done:
+        current_key = 'cv'
+    elif resume_score < 75 or ats_score < 75 or not improved_done:
+        current_key = 'improve'
+    elif not job_done:
+        current_key = 'job'
+    elif not prep_done:
+        current_key = 'prepare'
+    else:
+        current_key = 'done'
+
     progress_items = [
-        ('1. CV added', cv_exists, current_step == 0, 'Upload or create CV' if not cv_exists else 'Completed', 'Edit CV', 'cv_documents', {'document_tools_mode':'Improve / Update CV'}),
-        ('2. Job analyzed', job_exists, current_step == 2, 'Paste or analyze one job' if not job_exists else 'Completed', 'Analyze job', 'job_assist', {'job_assist_mode_key':'understand'}),
-        ('3. CV improved', improved_ready, current_step == 3 or (score_checked and not improved_ready), 'Tailor CV to selected job' if not improved_ready else 'Completed', 'Improve CV', 'cv_documents', {'document_tools_mode':'Improve CV for a Job' if job_exists else 'Improve / Update CV'}),
-        ('4. Prepared to apply', prepared_ready, current_step == 4 or (improved_ready and not prepared_ready), 'Cover letter / prep pending' if not prepared_ready else 'Completed', 'Prepare', 'job_assist', {'job_assist_mode_key':'prepare'}),
+        ('cv', '1. CV uploaded', cv_done, 'CV added' if cv_done else 'Upload or create your CV', 'Edit onboarding', 'onboarding', {}),
+        ('improve', '2. CV improved', improved_done, 'Improved / tailored' if improved_done else 'Improve Resume + ATS score', 'Improve CV', 'cv_documents', {'document_tools_mode':'Improve / Update CV'}),
+        ('job', '3. Job matched', job_done, 'Job found or analyzed' if job_done else 'Find jobs or analyze one JD', 'Job Match', 'job_assist', {'job_assist_mode_key':'find'}),
+        ('prepare', '4. Prepared for job', prep_done, 'Cover letter / prep done' if prep_done else 'Prepare cover letter and interview notes', 'Prepare', 'job_assist', {'job_assist_mode_key':'prepare'}),
     ]
+
     cols = st.columns(4)
-    for idx, (label, done, current, note, button_label, target, extra_state) in enumerate(progress_items):
+    for idx, (step_key, label, done, note, button_label, target, extra_state) in enumerate(progress_items):
         with cols[idx]:
-            st.markdown(_wz32_flow_step(label, done, current, note), unsafe_allow_html=True)
-            if st.button(button_label, key=f'wz32_progress_{idx}_{target}', use_container_width=True):
+            st.markdown(_wz32_flow_step(label, done, current_key == step_key, note), unsafe_allow_html=True)
+            if st.button(button_label, key=f'wz49_progress_{step_key}_{idx}', use_container_width=True):
                 if isinstance(extra_state, dict):
                     for k, v in extra_state.items():
                         st.session_state[k] = v
-                _wz28_go(target)
+                if target == 'onboarding':
+                    try:
+                        reset_onboarding()
+                    except Exception:
+                        st.session_state['page'] = 'onboarding'
+                        st.session_state['nav_page'] = 'onboarding'
+                    try:
+                        request_scroll_to_top()
+                    except Exception:
+                        pass
+                    st.rerun()
+                else:
+                    _wz28_go(target)
+
+    try:
+        readiness = int(round((sum([cv_done, improved_done, job_done, prep_done]) / 4) * 100))
+        st.session_state['application_readiness_value'] = max(int(st.session_state.get('application_readiness_value') or 0), readiness)
+    except Exception:
+        pass
+
     st.caption('Scores are guidance only. WorkZo should not invent skills, company facts, language level, salary, or experience.')
     _wz32_remember_best_scores()
+    try:
+        if callable(globals().get('workzo_save_light_memory')):
+            workzo_save_light_memory()
+    except Exception:
+        pass
 
 # Replace dashboard home with v32 smart version.
 _wz28_dashboard_home = _wz32_dashboard_home
@@ -4417,3 +4471,427 @@ try:
     """, unsafe_allow_html=True)
 except Exception:
     pass
+
+
+# =========================================================
+# WorkZo v49 memory + progress stabilization wrapper
+# Keeps safe dashboard progress after refresh and saves status flags continuously.
+# =========================================================
+def _wz49_detect_and_save_progress_flags():
+    try:
+        if st.session_state.get('cv_text') or st.session_state.get('structured_cv_json') or st.session_state.get('approved_structured_cv_json'):
+            st.session_state['_wz_has_cv'] = True
+        if st.session_state.get('improved_cv_text') or st.session_state.get('latest_improved_cv') or st.session_state.get('final_cv_text'):
+            st.session_state['_wz_cv_improved'] = True
+        if st.session_state.get('latest_curated_jobs') or st.session_state.get('latest_job_query_expansion'):
+            st.session_state['_wz_job_found'] = True
+        if st.session_state.get('latest_job_analysis') or st.session_state.get('last_understand_job_description') or st.session_state.get('current_job_description'):
+            st.session_state['_wz_job_analyzed'] = True
+        if st.session_state.get('latest_application_prep') or st.session_state.get('latest_cover_letter') or st.session_state.get('cover_letter_text'):
+            st.session_state['_wz_prepared'] = True
+        for a, b in [('cv_score_value','_best_cv_score_value'), ('ats_score_value','_best_ats_score_value'), ('job_fit_score_value','_best_job_fit_score_value')]:
+            try:
+                cur = int(float(st.session_state.get(a) or 0))
+                best = int(float(st.session_state.get(b) or 0))
+                if cur > best:
+                    st.session_state[b] = cur
+                elif best > 0 and cur <= 0:
+                    st.session_state[a] = best
+            except Exception:
+                pass
+        if callable(globals().get('workzo_save_light_memory')):
+            workzo_save_light_memory()
+    except Exception:
+        pass
+
+try:
+    _wz49_previous_show_dashboard = show_dashboard
+    def show_dashboard():
+        try:
+            if callable(globals().get('workzo_load_light_memory')):
+                workzo_load_light_memory()
+        except Exception:
+            pass
+        _wz49_detect_and_save_progress_flags()
+        result = _wz49_previous_show_dashboard()
+        _wz49_detect_and_save_progress_flags()
+        return result
+except Exception:
+    pass
+
+# =========================================================
+# WorkZo v50 FINAL PROGRESS + FOUNDER ANALYTICS PATCH
+# Fixes false green checks by using explicit completion conditions:
+# 1 CV uploaded, 2 CV improved, 3 Job matched, 4 Prepared for job.
+# Adds founder tracking events for each progress transition.
+# =========================================================
+
+def _wz50_bool_text(*keys):
+    try:
+        return any(bool(str(st.session_state.get(k, '') or '').strip()) for k in keys)
+    except Exception:
+        return False
+
+
+def _wz50_has_list(key):
+    try:
+        v = st.session_state.get(key)
+        return isinstance(v, list) and len(v) > 0
+    except Exception:
+        return False
+
+
+def _wz50_progress_state():
+    """Return strict progress state. Do not mark steps done merely because a score exists."""
+    cv_uploaded = bool(
+        str(st.session_state.get('cv_text', '') or '').strip()
+        or st.session_state.get('structured_cv_json')
+        or st.session_state.get('approved_structured_cv_json')
+        or st.session_state.get('_workzo_has_cv')
+        or st.session_state.get('_wz_progress_cv_uploaded')
+    )
+    if cv_uploaded:
+        st.session_state['_wz_progress_cv_uploaded'] = True
+        st.session_state['_workzo_has_cv'] = True
+
+    cv_improved = bool(
+        _wz50_bool_text('improved_cv_text', 'latest_improved_cv', 'final_cv_text', 'workzo_latest_tailored_cv')
+        or st.session_state.get('_wz_progress_cv_improved')
+    )
+    if _wz50_bool_text('improved_cv_text', 'latest_improved_cv', 'final_cv_text', 'workzo_latest_tailored_cv'):
+        st.session_state['_wz_progress_cv_improved'] = True
+        cv_improved = True
+
+    # Job match/finding is NOT the same as merely having a pasted job description.
+    # It becomes complete only after live job search/curation exists, or an explicit progress flag was set.
+    job_matched = bool(
+        _wz50_has_list('latest_curated_jobs')
+        or _wz50_has_list('latest_live_jobs')
+        or _wz50_has_list('job_search_results')
+        or bool(st.session_state.get('latest_job_query_expansion'))
+        or st.session_state.get('_wz_progress_job_matched')
+    )
+    if _wz50_has_list('latest_curated_jobs') or _wz50_has_list('latest_live_jobs') or _wz50_has_list('job_search_results') or bool(st.session_state.get('latest_job_query_expansion')):
+        st.session_state['_wz_progress_job_matched'] = True
+        job_matched = True
+
+    prepared = bool(
+        _wz50_bool_text('latest_application_prep', 'latest_cover_letter', 'cover_letter_text', 'generated_cover_letter', 'saved_application_prep')
+        or st.session_state.get('_wz_progress_prepared')
+    )
+    if _wz50_bool_text('latest_application_prep', 'latest_cover_letter', 'cover_letter_text', 'generated_cover_letter', 'saved_application_prep'):
+        st.session_state['_wz_progress_prepared'] = True
+        prepared = True
+
+    return {
+        'cv_uploaded': bool(cv_uploaded),
+        'cv_improved': bool(cv_improved),
+        'job_matched': bool(job_matched),
+        'prepared': bool(prepared),
+    }
+
+
+def _wz50_track_progress(progress):
+    """Founder-safe analytics: track progress flags only, no CV/job text."""
+    try:
+        previous = st.session_state.get('_wz50_last_progress_snapshot') or {}
+        if not isinstance(previous, dict):
+            previous = {}
+        for key, done in progress.items():
+            if done and not previous.get(key):
+                if callable(globals().get('track_event')):
+                    track_event('progress_step_completed', 'Application Progress', {'step': key})
+        if previous != progress and callable(globals().get('track_event')):
+            track_event('progress_snapshot', 'Application Progress', progress)
+        st.session_state['_wz50_last_progress_snapshot'] = dict(progress)
+    except Exception:
+        pass
+
+
+def _wz50_save_state():
+    """Save safe UI memory. Do not persist CV text, job descriptions, or generated documents."""
+    try:
+        keys = [
+            'cv_score_value', 'ats_score_value', 'application_readiness_value',
+            'job_fit_score_value', 'interview_score', 'country', 'preferred_language',
+            'ui_language', 'response_language', 'language', 'target_company_website',
+            'target_company', 'prepare_target_company', 'nav_page', 'page',
+            '_workzo_has_cv', '_wz_progress_cv_uploaded', '_wz_progress_cv_improved',
+            '_wz_progress_job_matched', '_wz_progress_prepared',
+            '_best_cv_score_value', '_best_ats_score_value', '_best_application_readiness_value',
+        ]
+        data = {}
+        for k in keys:
+            v = st.session_state.get(k)
+            if isinstance(v, (str, int, float, bool)) or v is None:
+                data[k] = v
+        progress = _wz50_progress_state()
+        data.update({
+            '_wz_progress_cv_uploaded': progress['cv_uploaded'],
+            '_wz_progress_cv_improved': progress['cv_improved'],
+            '_wz_progress_job_matched': progress['job_matched'],
+            '_wz_progress_prepared': progress['prepared'],
+        })
+        with open(_wz35_state_file(), 'w', encoding='utf-8') as f:
+            _wz35_json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
+def _wz50_load_state():
+    """Load safe UI memory. Ignore old false-progress flags from earlier builds."""
+    try:
+        path = _wz35_state_file()
+        if not _wz35_os.path.exists(path):
+            return
+        with open(path, 'r', encoding='utf-8') as f:
+            data = _wz35_json.load(f)
+        if not isinstance(data, dict):
+            return
+        allowed = {
+            'cv_score_value', 'ats_score_value', 'application_readiness_value',
+            'job_fit_score_value', 'interview_score', 'country', 'preferred_language',
+            'ui_language', 'response_language', 'language', 'target_company_website',
+            'target_company', 'prepare_target_company', 'nav_page', 'page',
+            '_workzo_has_cv', '_wz_progress_cv_uploaded', '_wz_progress_cv_improved',
+            '_wz_progress_job_matched', '_wz_progress_prepared',
+            '_best_cv_score_value', '_best_ats_score_value', '_best_application_readiness_value',
+        }
+        for k, v in data.items():
+            if k in allowed and (k not in st.session_state or st.session_state.get(k) in [None, '', 0, False]):
+                st.session_state[k] = v
+        for key in ['cv_score_value', 'ats_score_value', 'application_readiness_value']:
+            try:
+                best = int(st.session_state.get('_best_' + key) or 0)
+                cur = int(st.session_state.get(key) or 0)
+                if best > cur:
+                    st.session_state[key] = best
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+# Rebind the older helper names so the rest of the file uses v50 memory.
+_wz35_save_state = _wz50_save_state
+_wz35_load_state = _wz50_load_state
+
+
+def _wz50_sidebar(page_key):
+    with st.sidebar:
+        try:
+            logo_src = image_to_data_uri(ICON_PATH) or image_to_data_uri(LOGO_PATH)
+        except Exception:
+            logo_src = None
+        if logo_src:
+            st.markdown(f"""
+            <div class='workzo-sidebar-brand-wrap'>
+              <img src='{logo_src}' class='workzo-sidebar-logo' alt='WorkZo AI logo'>
+              <div><div class='workzo-sidebar-brand'>WORKZO AI</div><div class='workzo-sidebar-version'>Beta · guided workspace</div></div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown('### WorkZo AI')
+
+        navs = [('dashboard', txt('dashboard')), ('cv_documents', txt('cv_documents')), ('job_assist', txt('job_assist')), ('workobot', 'Work-O-Bot')]
+        for key, label in navs:
+            text = str(label) + ('  ✓' if page_key == key else '')
+            if st.button(text, key=f'wz50_nav_{key}', use_container_width=True):
+                _wz35_go(key)
+
+        st.markdown(f"<div class='workzo-sidebar-section-label'>{html.escape(txt('company_context'))}</div>", unsafe_allow_html=True)
+        with st.expander('🏢 ' + txt('company_website'), expanded=False):
+            company_url = st.text_input(txt('company_website'), key='target_company_website', placeholder='https://company.com')
+            if company_url:
+                st.caption(ui_label('Used for cover letters and job/interview preparation context.'))
+
+        st.markdown(f"<div class='workzo-sidebar-section-label'>{html.escape(txt('language'))}</div>", unsafe_allow_html=True)
+        try:
+            langs = language_options if 'language_options' in globals() and language_options else ['English', 'German', 'Dutch', 'French', 'Spanish', 'Portuguese']
+        except Exception:
+            langs = ['English', 'German', 'Dutch', 'French', 'Spanish', 'Portuguese']
+        cur = st.session_state.get('preferred_language') or st.session_state.get('language') or 'English'
+        if cur not in langs:
+            cur = 'English' if 'English' in langs else langs[0]
+        chosen = st.selectbox(txt('preferred_language'), langs, index=langs.index(cur), key='wz50_preferred_language')
+        _wz35_sync_language(chosen)
+
+        st.markdown('---')
+        if st.button(txt('edit_setup'), key='wz50_edit_setup', use_container_width=True):
+            st.session_state['onboarding_complete'] = False
+            st.session_state['page'] = 'onboarding'
+            st.session_state['nav_page'] = 'onboarding'
+            try:
+                st.query_params['page'] = 'onboarding'
+            except Exception:
+                pass
+            _wz50_save_state()
+            st.rerun()
+
+        with st.expander('Founder analytics', expanded=False):
+            founder_pin = None
+            try:
+                founder_pin = (os.getenv('FOUNDER_PIN') or get_streamlit_secret('FOUNDER_PIN'))
+            except Exception:
+                founder_pin = os.getenv('FOUNDER_PIN') if 'os' in globals() else None
+            if founder_pin:
+                pin = st.text_input('Founder PIN', type='password', key='wz50_founder_pin')
+                if pin == founder_pin:
+                    st.session_state['founder_unlocked'] = True
+                    st.success('Founder mode unlocked.')
+            else:
+                st.caption('FOUNDER_PIN not configured. Temporary founder access for local testing.')
+                if st.text_input('Temporary founder PIN', type='password', key='wz50_temp_pin'):
+                    st.session_state['founder_unlocked'] = True
+            if st.session_state.get('founder_unlocked'):
+                if st.button('Open founder analytics', key='wz50_founder_nav', use_container_width=True):
+                    _wz35_go('founder_dashboard')
+
+
+def _wz50_current_step(progress):
+    if not progress['cv_uploaded']:
+        return 0
+    if not progress['cv_improved']:
+        return 1
+    if not progress['job_matched']:
+        return 2
+    if not progress['prepared']:
+        return 3
+    return 4
+
+
+def _wz50_dashboard_home():
+    _wz50_load_state()
+    _wz35_remember_scores()
+    _wz35_force_scroll_top()
+    _wz35_css()
+
+    progress = _wz50_progress_state()
+    _wz50_track_progress(progress)
+
+    cv_exists = progress['cv_uploaded']
+    resume_score = _wz35_score('cv_score_value', 'resume_score', 'resume_quality_score', '_best_cv_score_value', default=76 if cv_exists else 0)
+    ats_score = _wz35_score('ats_score_value', 'ats_score', '_best_ats_score_value', default=70 if cv_exists else 0)
+    interview_score = _wz35_score('interview_score', 'interview_readiness', '_best_interview_score', default=40 if cv_exists else 0)
+    country = st.session_state.get('country') or st.session_state.get('target_country') or 'Not set'
+    language = st.session_state.get('preferred_language') or st.session_state.get('language') or 'English'
+
+    # Smart next action uses strict progress, not accidental score presence.
+    if not progress['cv_uploaded']:
+        next_action = {'title':'Start with your CV', 'copy':'Upload or create your CV first so WorkZo can guide the next steps.', 'button':'Add CV', 'target':'onboarding', 'extra':{}}
+    elif not progress['cv_improved']:
+        next_action = {'title':'Improve your CV', 'copy':'Make your CV stronger before job matching. Tailor structure, keywords, and achievements.', 'button':'Improve CV', 'target':'cv_documents', 'extra':{'document_tools_mode':'Improve / Update CV'}}
+    elif not progress['job_matched']:
+        next_action = {'title':'Find matching jobs', 'copy':'Search jobs for your selected country and choose one role to analyze.', 'button':'Open Job Match', 'target':'job_assist', 'extra':{'job_assist_mode_key':'find'}}
+    elif not progress['prepared']:
+        next_action = {'title':'Prepare for this job', 'copy':'Create cover letter/application prep and practice your strongest answers.', 'button':'Prepare this job', 'target':'job_assist', 'extra':{'job_assist_mode_key':'prepare'}}
+    else:
+        next_action = {'title':'Ready to apply', 'copy':'Your core application flow is complete. Apply, track the result, and practice with Work-O-Bot.', 'button':'Practice with Work-O-Bot', 'target':'workobot', 'extra':{}}
+
+    st.markdown(f"""
+    <div class='wz35-hero'>
+      <div class='wz35-kicker'>{_wz35_escape(txt('workzo_command_center'))}</div>
+      <div class='wz35-title'>{_wz35_escape(txt('next_best_move_clear'))}</div>
+      <div class='wz35-sub'>{_wz35_escape(txt('next_best_move_copy'))}</div>
+      <div class='wz35-chip-row'>
+        <span class='wz35-chip'>{_wz35_escape(country)}</span>
+        <span class='wz35-chip'>{_wz35_escape(language)}</span>
+        <span class='wz35-chip'>{_wz35_escape(ui_label('CV ready') if progress['cv_uploaded'] else ui_label('CV missing'))}</span>
+        <span class='wz35-chip'>{_wz35_escape(ui_label('CV improved') if progress['cv_improved'] else ui_label('CV not improved'))}</span>
+        <span class='wz35-chip'>{_wz35_escape(ui_label('Job matched') if progress['job_matched'] else ui_label('Job not matched'))}</span>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class='wz35-next'>
+      <div class='wz35-next-label'>{_wz35_escape(txt('recommended_next_step'))}</div>
+      <div class='wz35-next-title'>{_wz35_escape(next_action['title'])}</div>
+      <div class='wz35-next-copy'>{_wz35_escape(next_action['copy'])}</div>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button(next_action['button'], key='wz50_primary_action', use_container_width=True):
+        _wz35_go(next_action['target'], next_action.get('extra'))
+
+    st.markdown('### ' + txt('readiness_overview'))
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        _wz35_rate_card(txt('resume_score'), resume_score, ui_label('Clarity, structure, achievements, and overall CV quality.'), missing=not cv_exists)
+    with c2:
+        _wz35_rate_card(txt('ats_score'), ats_score, ui_label('Scanner-friendly formatting, role keywords, sections, and parsing safety.'), missing=not cv_exists)
+    with c3:
+        _wz35_rate_card(txt('interview_readiness'), interview_score, ui_label('How ready you are to explain your CV and job fit clearly.'), missing=not cv_exists)
+
+    st.markdown('### ' + txt('smart_actions'))
+    a1, a2, a3, a4 = st.columns(4)
+    with a1:
+        _wz35_action_card(txt('improve_cv'), ui_label('Use this to improve your CV or tailor it to a specific job.'), txt('open_cv_tools'), 'cv_documents', 'wz50_action_cv', {'document_tools_mode':'Improve / Update CV'})
+    with a2:
+        _wz35_action_card(txt('job_match'), ui_label('Search jobs for the selected country, then analyze one job description for fit.'), txt('open_job_assist'), 'job_assist', 'wz50_action_jobs', {'job_assist_mode_key':'find'})
+    with a3:
+        _wz35_action_card(txt('cover_letter'), ui_label('Use CV, job description, and company context to create a focused cover letter.'), txt('create_cover_letter'), 'cv_documents', 'wz50_action_cover', {'document_tools_mode':'Cover Letter Generator + Language'})
+    with a4:
+        _wz35_action_card('Work-O-Bot', ui_label('Ask career questions or practice interview answers in your selected language.'), txt('ask_workobot'), 'workobot', 'wz50_action_bot')
+
+    st.markdown("### " + txt("application_progress"))
+    st.caption(ui_label("Visual tracker only. Use Smart actions above to continue."))
+    current = _wz50_current_step(progress)
+    flow = [
+        ("1. CV uploaded", progress["cv_uploaded"], txt("completed") if progress["cv_uploaded"] else ui_label("Upload or create CV")),
+        ("2. CV improved", progress["cv_improved"], txt("completed") if progress["cv_improved"] else ui_label("Improve or tailor your CV")),
+        ("3. Job matched", progress["job_matched"], txt("completed") if progress["job_matched"] else ui_label("Find matching jobs")),
+        ("4. Prepared for job", progress["prepared"], txt("completed") if progress["prepared"] else ui_label("Prepare cover letter and interview notes")),
+    ]
+    cols = st.columns(4)
+    for i, (label, done, note) in enumerate(flow):
+        with cols[i]:
+            _wz35_flow_card(label, done, current == i, note)
+    st.caption(ui_label('Scores are guidance only. WorkZo should not invent skills, company facts, language level, salary, or experience.'))
+    _wz35_remember_scores()
+    _wz50_save_state()
+
+
+def show_dashboard():
+    _wz50_load_state()
+    _wz35_sync_language()
+    _wz35_force_scroll_top()
+    page_key = st.session_state.get('nav_page') or st.session_state.get('page') or 'dashboard'
+    page_key = {'landing':'dashboard', 'bot':'workobot', 'interview':'workobot', 'jobs':'job_assist', 'improve_cv':'cv_documents'}.get(page_key, page_key)
+    if page_key == 'interview_practice':
+        page_key = 'workobot'
+    if page_key not in {'dashboard', 'cv_documents', 'job_assist', 'workobot', 'founder_dashboard'}:
+        page_key = 'dashboard'
+    st.session_state['page'] = page_key
+    st.session_state['nav_page'] = page_key
+    try:
+        _wz28_top(True)
+    except Exception:
+        pass
+    _wz50_sidebar(page_key)
+
+    if page_key == 'dashboard':
+        _wz50_dashboard_home()
+    elif page_key == 'cv_documents':
+        _wz35_css()
+        show_document_tools()
+    elif page_key == 'job_assist':
+        _wz35_css()
+        try:
+            _wz28_job_assist_page()
+        except Exception:
+            st.subheader(txt('job_assist'))
+            tab1, tab2, tab3 = st.tabs([txt('find_jobs'), txt('understand_job'), txt('prepare_this_job')])
+            with tab1: st.info('Job search module could not be loaded.')
+            with tab2: st.info('Understand Job module could not be loaded.')
+            with tab3: st.info('Prepare module could not be loaded.')
+    elif page_key == 'workobot':
+        _wz35_css()
+        show_workobot()
+    elif page_key == 'founder_dashboard':
+        _wz35_css()
+        if st.session_state.get('founder_unlocked') and callable(globals().get('render_founder_dashboard')):
+            render_founder_dashboard()
+        else:
+            st.warning('Founder mode is locked. Enter the Founder PIN in the sidebar.')
+
+    _wz35_remember_scores()
+    _wz50_save_state()
