@@ -6,8 +6,43 @@
 # =========================================================
 import os
 import base64
+import html
 import streamlit as st
 # components removed: no deprecated st.components.v1.html
+
+
+# =========================================================
+# WorkZo v37 - Work-O-Bot request limiter fallbacks
+# Keeps Work-O-Bot working even if bootstrap rate-limit helpers are not loaded.
+# =========================================================
+if "can_make_request" not in globals():
+    def can_make_request() -> bool:
+        try:
+            import time as _time
+            max_requests = int(globals().get("MAX_REQUESTS_PER_HOUR", 25) or 25)
+            if "request_count" not in st.session_state:
+                st.session_state.request_count = 0
+            if "first_request_time" not in st.session_state:
+                st.session_state.first_request_time = _time.time()
+            if _time.time() - float(st.session_state.first_request_time or _time.time()) > 3600:
+                st.session_state.request_count = 0
+                st.session_state.first_request_time = _time.time()
+            return int(st.session_state.request_count or 0) < max_requests
+        except Exception:
+            return True
+
+if "register_request" not in globals():
+    def register_request() -> None:
+        try:
+            import time as _time
+            if "request_count" not in st.session_state:
+                st.session_state.request_count = 0
+            if "first_request_time" not in st.session_state:
+                st.session_state.first_request_time = _time.time()
+            st.session_state.request_count = int(st.session_state.request_count or 0) + 1
+        except Exception:
+            pass
+
 
 def strip_markdown_for_resume(text):
     """
@@ -192,6 +227,63 @@ def maybe_scroll_to_top():
         pass
 ICON_PATH = os.path.join(BASE_DIR, "workzo_icon.png")
 LOGO_PATH = os.path.join(BASE_DIR, "logo.png")
+
+# =========================================================
+# WorkZo v39 GLOBAL RATE LIMIT FALLBACKS
+# Must exist before Work-O-Bot or any AI helper is called.
+# =========================================================
+def workzo_safe_can_make_request() -> bool:
+    try:
+        fn = globals().get("_original_can_make_request")
+        if callable(fn):
+            return bool(fn())
+    except Exception:
+        pass
+    try:
+        import time as _time
+        max_requests = int(globals().get("MAX_REQUESTS_PER_HOUR", 25) or 25)
+        if "request_count" not in st.session_state:
+            st.session_state.request_count = 0
+        if "first_request_time" not in st.session_state:
+            st.session_state.first_request_time = _time.time()
+        if _time.time() - float(st.session_state.first_request_time or _time.time()) > 3600:
+            st.session_state.request_count = 0
+            st.session_state.first_request_time = _time.time()
+        return int(st.session_state.request_count or 0) < max_requests
+    except Exception:
+        return True
+
+def workzo_safe_register_request() -> None:
+    try:
+        fn = globals().get("_original_register_request")
+        if callable(fn):
+            fn()
+            return
+    except Exception:
+        pass
+    try:
+        import time as _time
+        if "request_count" not in st.session_state:
+            st.session_state.request_count = 0
+        if "first_request_time" not in st.session_state:
+            st.session_state.first_request_time = _time.time()
+        st.session_state.request_count = int(st.session_state.request_count or 0) + 1
+    except Exception:
+        pass
+
+try:
+    if callable(globals().get("register_request")):
+        _original_register_request = globals().get("register_request")
+except Exception:
+    pass
+try:
+    if callable(globals().get("can_make_request")):
+        _original_can_make_request = globals().get("can_make_request")
+except Exception:
+    pass
+register_request = workzo_safe_register_request
+can_make_request = workzo_safe_can_make_request
+
 def render_workzo_header() -> None:
     """Premium SaaS-style product header for WorkZo.
 
@@ -283,9 +375,11 @@ def load_workzo_sample_data() -> None:
     """Load a complete demo profile so testers can understand the product before uploading private data."""
     st.session_state.country = "Germany"
     st.session_state.migration_country = "Germany"
-    st.session_state.preferred_language = "English"
-    st.session_state.ui_language = "English"
-    st.session_state.response_language = "English"
+    _sample_lang = st.session_state.get("preferred_language") or st.session_state.get("language") or "English"
+    st.session_state.preferred_language = _sample_lang
+    st.session_state.language = _sample_lang
+    st.session_state.ui_language = _sample_lang
+    st.session_state.response_language = _sample_lang
     st.session_state.user_status = "Career changer"
     st.session_state.career_goal = "Move from IT Support into Data Analyst / IT Support Analyst roles in Germany."
 
@@ -374,19 +468,19 @@ Improve the CV for this job, then prepare interview stories around SQL troublesh
 
 def render_sample_data_button(location: str = "top") -> None:
     """Clean demo CTA for testers who do not want to upload a CV first."""
-    st.markdown("#### Just exploring?")
-    st.caption("Load a generic sample CV and job description to see the full WorkZo workflow instantly. No private data needed.")
+    st.markdown("#### " + txt("just_exploring"))
+    st.caption(txt("sample_mode_intro") if "sample_mode_intro" in globals().get("UI_TEXT", {}).get(ui_lang(), {}) else ui_label("Load a generic sample CV and job description to see the full WorkZo workflow instantly. No private data needed."))
     c1, c2 = st.columns([1.6, 1])
     with c1:
-        st.markdown("<div class=\"workzo-demo-note\"><b>Sample mode uses fictional data.</b><br>Good for first-time testers, Reddit, Product Hunt, and quick demos.</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class=\"workzo-demo-note\"><b>{html.escape(txt('sample_mode_title'))}</b><br>{html.escape(txt('sample_mode_copy'))}</div>", unsafe_allow_html=True)
     with c2:
-        if st.button("Try with Sample Resume", type="primary", use_container_width=True, key=f"sample_resume_{location}"):
-            with st.status("Loading sample career workspace...", expanded=True) as status:
-                st.write("Adding sample CV...")
-                st.write("Adding sample job description...")
-                st.write("Preparing dashboard, ATS audit, job fit, and interview context...")
+        if st.button(txt("try_sample_resume"), type="primary", use_container_width=True, key=f"sample_resume_{location}"):
+            with st.status(txt("loading_sample"), expanded=True) as status:
+                st.write(txt("adding_sample_cv"))
+                st.write(txt("adding_sample_job"))
+                st.write(txt("preparing_dashboard"))
                 load_workzo_sample_data()
-                status.update(label="Sample workspace ready", state="complete")
+                status.update(label=txt("sample_ready"), state="complete")
             st.rerun()
 
 
@@ -449,7 +543,16 @@ def render_resume_choice_card(icon: str, title: str, desc: str, active: bool = F
 
 def show_onboarding():
     maybe_scroll_to_top()
-    st.subheader(txt("onboarding_title"), help=txt("app_info_help"))
+    # WorkZo v36: sync language BEFORE rendering labels, so onboarding never shows mixed languages.
+    try:
+        _chosen_lang = st.session_state.get("onboarding_preferred_language") or st.session_state.get("preferred_language") or "English"
+        if callable(globals().get("workzo_set_language_everywhere")):
+            workzo_set_language_everywhere(_chosen_lang)
+        elif callable(globals().get("set_single_preferred_language")):
+            set_single_preferred_language(_chosen_lang)
+    except Exception:
+        pass
+    st.subheader(txt("welcome_workzo"), help=txt("app_info_help"))
     st.caption(txt("onboarding_subtitle"))
     render_sample_data_button("onboarding")
 
@@ -465,7 +568,17 @@ def show_onboarding():
         key="onboarding_preferred_language",
         help=txt("language_help")
     )
-    set_single_preferred_language(preferred_language)
+    _old_lang = st.session_state.get("preferred_language") or st.session_state.get("language") or "English"
+    if callable(globals().get("workzo_set_language_everywhere")):
+        workzo_set_language_everywhere(preferred_language)
+    else:
+        set_single_preferred_language(preferred_language)
+    if preferred_language != _old_lang:
+        try:
+            st.query_params["wz_lang"] = preferred_language
+        except Exception:
+            pass
+        st.rerun()
 
     country_index = country_options.index(st.session_state.country) if st.session_state.country in country_options else 0
     country = st.selectbox(
@@ -541,21 +654,21 @@ def show_onboarding():
 
     c_upload, c_create, c_linkedin = st.columns(3, gap="large")
 
-    def _cv_mode_card(col, mode_label: str, copy: str, key: str):
+    def _cv_mode_card(col, mode_value: str, display_label: str, copy: str, key: str):
         with col:
-            active = st.session_state.get("cv_mode") == mode_label
-            label = ("✓ " if active else "") + mode_label
+            active = st.session_state.get("cv_mode") == mode_value
+            label = ("✓ " if active else "") + display_label
             with st.container(border=True):
                 st.markdown(f"**{label}**")
                 st.caption(copy)
-                if st.button(mode_label, key=key, use_container_width=True):
-                    st.session_state.cv_mode = mode_label
+                if st.button(display_label, key=key, use_container_width=True):
+                    st.session_state.cv_mode = mode_value
                     request_scroll_to_top()
                     st.rerun()
 
-    _cv_mode_card(c_upload, "Upload CV", "Upload an existing PDF or TXT resume.", "choose_upload_cv")
-    _cv_mode_card(c_create, "Create CV", "Enter rough notes and WorkZo builds a professional CV.", "choose_create_cv")
-    _cv_mode_card(c_linkedin, "Import LinkedIn", "Paste your LinkedIn link and add extra notes.", "choose_linkedin_cv")
+    _cv_mode_card(c_upload, "Upload CV", txt("upload_cv"), txt("upload_cv_copy"), "choose_upload_cv")
+    _cv_mode_card(c_create, "Create CV", txt("create_cv"), txt("create_cv_copy"), "choose_create_cv")
+    _cv_mode_card(c_linkedin, "Import LinkedIn", txt("import_linkedin"), txt("import_linkedin_copy"), "choose_linkedin_cv")
 
     cv_mode = st.session_state.get("cv_mode", "")
 
@@ -573,7 +686,7 @@ def show_onboarding():
         )
         if uploaded_direct is not None:
             st.session_state.uploaded_file_direct = uploaded_direct
-            st.success(ui_label("CV uploaded successfully. You can continue to the dashboard."))
+            st.success(txt("cv_uploaded_success"))
 
     with st.form("onboarding_form_v49"):
         cv_text_input = ""
@@ -609,9 +722,9 @@ def show_onboarding():
                 else:
                     st.error(txt("unsupported_file"))
             else:
-                st.caption(ui_label("Choose a PDF or TXT file above to continue."))
+                st.caption(txt("choose_pdf_txt"))
 
-        elif cv_mode == "LinkedIn":
+        elif cv_mode == "Import LinkedIn":
             st.markdown(f"#### {txt('linkedin_cv_title')}")
             st.caption(txt("linkedin_instruction"))
             linkedin_url = st.text_input(txt("linkedin_profile_link"), placeholder="https://www.linkedin.com/in/your-profile")
@@ -682,10 +795,10 @@ LinkedIn / Profile Notes:
                     st.warning(txt("warn_full_name"))
                     return
                 if not cv_text_input.strip():
-                    st.warning("Please enter at least a few details so WorkZo can build your CV.")
+                    st.warning(txt("warn_enter_details"))
                     return
 
-                with st.spinner("Creating your CV draft with AI..."):
+                with st.spinner(txt("creating_cv_draft")):
                     ai_cv = generate_cv_from_user_details(cv_text_input, migration_country if migration_country else country, user_status)
                     if ai_cv and not ai_cv.startswith("ERROR:"):
                         st.session_state.created_cv_ai_output = ai_cv
@@ -720,7 +833,7 @@ LinkedIn / Profile Notes:
             st.session_state.onboarding_complete = True
             sync_navigation_state("dashboard")
 
-            with st.spinner("Reading your resume and preparing dashboard..."):
+            with st.spinner(txt("reading_resume_dashboard")):
                 analyze_resume_dashboard_stable(st.session_state.cv_text, force_refresh=True)
 
             request_scroll_to_top()
@@ -790,10 +903,50 @@ def infer_workobot_intent(user_message: str) -> str:
 
 
 def run_workobot(user_message: str, mode: str = "Auto"):
-    if not can_make_request():
-        return "I'm sorry, the hourly AI usage limit has been reached. Please try again later."
+    """Run Work-O-Bot with local rate-limit fallbacks so it never crashes if helpers are missing."""
+    def _local_can_make_request() -> bool:
+        fn = globals().get("can_make_request")
+        if callable(fn):
+            try:
+                return bool(fn())
+            except Exception:
+                pass
+        try:
+            import time as _time
+            max_requests = int(globals().get("MAX_REQUESTS_PER_HOUR", 25) or 25)
+            if "request_count" not in st.session_state:
+                st.session_state.request_count = 0
+            if "first_request_time" not in st.session_state:
+                st.session_state.first_request_time = _time.time()
+            if _time.time() - float(st.session_state.first_request_time or _time.time()) > 3600:
+                st.session_state.request_count = 0
+                st.session_state.first_request_time = _time.time()
+            return int(st.session_state.request_count or 0) < max_requests
+        except Exception:
+            return True
 
-    register_request()
+    def _local_register_request() -> None:
+        fn = globals().get("register_request")
+        if callable(fn):
+            try:
+                fn()
+                return
+            except Exception:
+                pass
+        try:
+            import time as _time
+            if "request_count" not in st.session_state:
+                st.session_state.request_count = 0
+            if "first_request_time" not in st.session_state:
+                st.session_state.first_request_time = _time.time()
+            st.session_state.request_count = int(st.session_state.request_count or 0) + 1
+        except Exception:
+            pass
+
+    if not _local_can_make_request():
+        return ui_label("I'm sorry, the hourly AI usage limit has been reached. Please try again later.") if callable(globals().get("ui_label")) else "I'm sorry, the hourly AI usage limit has been reached. Please try again later."
+
+    _local_register_request()
     answer_lang = normalize_answer_language(st.session_state.get("preferred_language", "English"))
     intent = infer_workobot_intent(user_message)
     model_name = os.getenv("WORKZO_AI_MODEL") or get_streamlit_secret("WORKZO_AI_MODEL", "gpt-4o-mini")
@@ -804,49 +957,44 @@ You are Work-O-Bot, the AI career coach inside WorkZo AI.
 Your role: {intent}
 
 You help users with:
-- job search strategy
-- CV and ATS improvement
-- interview preparation and mock interview feedback
-- career change planning
+- CV improvement
+- ATS and resume strategy
+- job search decisions
+- cover letter and recruiter messages
+- interview preparation
 - language practice for work
-- skill gap analysis
-- HR, recruiter, LinkedIn, and professional communication
+- skill gap planning
+- career roadmap decisions
 
 User context:
-{workobot_context_snapshot()}
+- Country: {st.session_state.get('country', 'Not specified')}
+- Target market: {st.session_state.get('migration_country') or st.session_state.get('country', 'Not specified')}
+- Career status: {st.session_state.get('user_status', 'Not specified')}
+- Preferred language: {answer_lang}
+- Resume score: {st.session_state.get('cv_score_value', st.session_state.get('resume_score', 'Not scored'))}
+- ATS score: {st.session_state.get('ats_score_value', st.session_state.get('ats_score', 'Not scored'))}
+- Company website/context: {st.session_state.get('target_company_website', 'Not provided')}
 
 Rules:
-1. Be honest, practical, and supportive.
-2. Use the user's CV/profile context when relevant.
-3. Never invent experience, employers, dates, degrees, certifications, achievements, or language level.
-4. If the user asks something vague, answer with a best first step and ask only one useful follow-up question.
-5. Give structured answers with short headings and bullets.
-6. When relevant, include exact examples the user can copy.
-7. If the user practices an interview or language answer, give: corrected version, stronger version, and one practice task.
-8. If the user asks about jobs, mention realistic role level, target-country fit, and risks.
-9. If the user asks about CV, give safe-to-use wording and mark anything that should be used only if true.
-10. End with one clear next best action.
-11. Answer fully in {answer_lang}. Do not mix languages unless the user asks for translation or language practice.
-""".strip()
-
-    history = []
-    for msg in st.session_state.get("workobot_messages", [])[-10:]:
-        role = msg.get("role", "assistant")
-        content = msg.get("content", "")
-        if role in ["user", "assistant"] and content:
-            history.append({"role": role, "content": content})
-
-    messages = [{"role": "system", "content": system_prompt}] + history + [{"role": "user", "content": user_message}]
-
+1. Answer in {answer_lang}.
+2. Be practical and specific.
+3. Be honest. Do not invent experience, employers, dates, degrees, certifications, achievements, salary, company facts, or language level.
+4. If company-specific information is missing, say what to verify instead of pretending.
+5. If the user's CV or job description is missing, ask for it or explain the limitation.
+6. Give concise steps and copy-ready examples when useful.
+"""
     try:
-        res = client.chat.completions.create(
+        response = client.chat.completions.create(
             model=model_name,
-            temperature=0.25,
-            messages=messages,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": str(user_message or "")},
+            ],
+            temperature=0.45,
         )
-        return (res.choices[0].message.content or "").strip()
-    except Exception as e:
-        return f"I couldn't answer right now because the AI service is unavailable. ({type(e).__name__})"
+        return response.choices[0].message.content.strip()
+    except Exception as exc:
+        return f"Work-O-Bot error: {exc}"
 
 
 def show_workobot():
@@ -2100,3 +2248,50 @@ def render_cv_template_preview(template_name: str, target_country: str, user_sta
             st.markdown(get_template_instructions(template_name, target_country))
     except Exception:
         pass
+
+# =========================================================
+# WorkZo v20 - Work-O-Bot safety patch
+# =========================================================
+if "register_request" not in globals():
+    def register_request():
+        return None
+
+
+# =========================================================
+# WorkZo v38 onboarding translation support
+# =========================================================
+try:
+    if "UI_TEXT" in globals():
+        UI_TEXT.setdefault("German", {}).update({
+            "sample_mode_intro": "Lade einen generischen Beispiel-Lebenslauf und eine Stellenbeschreibung, um den kompletten WorkZo-Workflow sofort zu testen. Keine privaten Daten nötig.",
+        })
+        UI_TEXT.setdefault("French", {}).update({"sample_mode_intro": "Chargez un CV et une offre d’emploi exemples pour voir tout le workflow WorkZo instantanément. Aucune donnée privée nécessaire."})
+        UI_TEXT.setdefault("Spanish", {}).update({"sample_mode_intro": "Carga un CV y una descripción de empleo de ejemplo para ver todo el flujo de WorkZo al instante. No se necesitan datos privados."})
+        UI_TEXT.setdefault("Portuguese", {}).update({"sample_mode_intro": "Carregue um currículo e uma descrição de vaga de exemplo para ver todo o fluxo do WorkZo instantaneamente. Nenhum dado privado necessário."})
+        UI_TEXT.setdefault("Dutch", {}).update({"sample_mode_intro": "Laad een voorbeeld-cv en vacaturetekst om direct de volledige WorkZo-workflow te zien. Geen privégegevens nodig."})
+except Exception:
+    pass
+
+
+# =========================================================
+# WorkZo v39 onboarding literal translation patch
+# =========================================================
+try:
+    if "UI_TEXT" in globals():
+        UI_TEXT.setdefault("English", {}).update({
+            "warn_enter_details": "Please enter at least a few details so WorkZo can build your CV.",
+            "creating_cv_draft": "Creating your CV draft with AI...",
+            "reading_resume_dashboard": "Reading your resume and preparing dashboard...",
+        })
+        UI_TEXT.setdefault("German", {}).update({
+            "warn_enter_details": "Bitte gib mindestens ein paar Details ein, damit WorkZo deinen Lebenslauf erstellen kann.",
+            "creating_cv_draft": "Dein CV-Entwurf wird mit KI erstellt...",
+            "reading_resume_dashboard": "Dein Lebenslauf wird gelesen und das Dashboard vorbereitet...",
+        })
+        UI_TEXT.setdefault("Dutch", {}).update({
+            "warn_enter_details": "Voer minstens enkele details in zodat WorkZo je cv kan maken.",
+            "creating_cv_draft": "Je cv-concept wordt met AI gemaakt...",
+            "reading_resume_dashboard": "Je cv wordt gelezen en het dashboard wordt voorbereid...",
+        })
+except Exception:
+    pass

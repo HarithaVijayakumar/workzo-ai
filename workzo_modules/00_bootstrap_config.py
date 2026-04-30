@@ -2378,3 +2378,44 @@ div[data-testid="stLinkButton"] > a {
 .workzo-progress-done { color:#22c55e !important; font-weight:900 !important; margin-left:8px !important; }
 </style>
 """, unsafe_allow_html=True)
+
+
+# =========================================================
+# WorkZo v27 - founder analytics hidden for public/beta UX
+# =========================================================
+def maybe_render_founder_access():
+    return None
+
+def render_founder_dashboard():
+    try:
+        import streamlit as st
+        st.info('Founder analytics is disabled in this build.')
+    except Exception:
+        pass
+
+# =========================================================
+# WorkZo sidebar visibility guard
+# Keeps the toolbox visible even when Streamlit auto-collapses at narrow widths.
+# =========================================================
+st.markdown("""
+<style>
+section[data-testid="stSidebar"] {
+    display: block !important; visibility: visible !important; opacity: 1 !important;
+    min-width: 300px !important; max-width: 330px !important; width: 310px !important;
+    transform: translateX(0) !important; margin-left: 0 !important; left: 0 !important; z-index: 999999 !important;
+}
+section[data-testid="stSidebar"][aria-expanded="false"] {
+    display: block !important; visibility: visible !important; opacity: 1 !important;
+    min-width: 300px !important; max-width: 330px !important; width: 310px !important;
+    transform: translateX(0) !important; margin-left: 0 !important; left: 0 !important;
+}
+section[data-testid="stSidebar"] .block-container { padding-top: 1rem !important; }
+@media (max-width: 900px) {
+    section[data-testid="stSidebar"] {
+        position: fixed !important; top: 0 !important; bottom: 0 !important; overflow-y: auto !important;
+        background: #0f172a !important; box-shadow: 10px 0 32px rgba(0,0,0,.35) !important;
+    }
+    .main .block-container, div[data-testid="stMainBlockContainer"] { padding-left: 330px !important; }
+}
+</style>
+""", unsafe_allow_html=True)
