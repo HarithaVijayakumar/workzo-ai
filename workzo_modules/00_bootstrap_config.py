@@ -2471,18 +2471,30 @@ div[data-testid="stLinkButton"] > a {
 
 
 # =========================================================
-# WorkZo v27 - founder analytics hidden for public/beta UX
+# WorkZo v27 - founder analytics enabled
 # =========================================================
+# Preserve the real founder analytics dashboard defined earlier in this module.
+# Do not replace it with the public/beta disabled message.
+try:
+    _workzo_enabled_founder_dashboard = render_founder_dashboard
+except Exception:
+    _workzo_enabled_founder_dashboard = None
+
 def maybe_render_founder_access():
     return None
 
 def render_founder_dashboard():
     try:
+        if callable(_workzo_enabled_founder_dashboard):
+            return _workzo_enabled_founder_dashboard()
         import streamlit as st
-        st.info('Founder analytics is disabled in this build.')
-    except Exception:
-        pass
-
+        st.warning('Founder analytics could not be loaded. Please check analytics files.')
+    except Exception as e:
+        try:
+            import streamlit as st
+            st.error(f'Founder analytics error: {e}')
+        except Exception:
+            pass
 
 
 # =========================================================
