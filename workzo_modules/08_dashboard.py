@@ -17013,3 +17013,406 @@ Rules:
             analysis = {}
     if isinstance(analysis, dict) and analysis:
         _wz57_render_job_analysis_cards(analysis, jd, country_iso, bbox_data)
+
+# =========================================================
+# WorkZo v57 - founder analytics + mobile toolbox visibility fix
+# Scope: only restores Founder Analytics access in the toolbox/sidebar
+# and makes the mobile toolbox visible/usable on mobile screens.
+# No Job Assist, CV, dashboard, scoring, or AI logic is changed.
+# =========================================================
+
+def _wz57_apply_page_query_param():
+    """Allow the mobile toolbox links (?page=...) to update Streamlit state."""
+    try:
+        params = getattr(st, "query_params", {})
+        page = params.get("page", "") if params is not None else ""
+        if isinstance(page, list):
+            page = page[0] if page else ""
+        page = str(page or "").strip()
+        aliases = {
+            "home": "dashboard",
+            "landing": "dashboard",
+            "dashboard": "dashboard",
+            "cv": "cv_documents",
+            "my_cv": "cv_documents",
+            "cv_documents": "cv_documents",
+            "jobs": "job_assist",
+            "job_assist": "job_assist",
+            "bot": "workobot",
+            "workobot": "workobot",
+            "work-o-bot": "workobot",
+            "founder": "founder_dashboard",
+            "founder_dashboard": "founder_dashboard",
+        }
+        if page in aliases:
+            st.session_state["page"] = aliases[page]
+            st.session_state["nav_page"] = aliases[page]
+    except Exception:
+        pass
+
+
+def _wz57_render_mobile_toolbox():
+    """Show a compact top toolbox on mobile only; desktop sidebar stays unchanged."""
+    try:
+        import time as _time
+        import html as _html
+        nonce = str(int(_time.time() * 1000))
+        founder_link = ""
+        if st.session_state.get("founder_unlocked"):
+            founder_link = f"<a class='wz57-mobile-link' href='?page=founder_dashboard&wz_top={nonce}'>📊 Founder</a>"
+        st.markdown(f"""
+        <style>
+        .wz57-mobile-toolbox {{ display: none !important; }}
+        @media (max-width: 700px) {{
+            .wz57-mobile-toolbox {{
+                display: block !important;
+                position: sticky !important;
+                top: 0 !important;
+                z-index: 9999 !important;
+                margin: 0 0 0.8rem 0 !important;
+                padding: 0.75rem !important;
+                border: 1px solid rgba(20,184,166,0.28) !important;
+                border-radius: 18px !important;
+                background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(8,47,73,0.94)) !important;
+                box-shadow: 0 12px 30px rgba(2,6,23,0.34) !important;
+            }}
+            .wz57-mobile-title {{
+                color: #f8fafc !important;
+                font-weight: 850 !important;
+                font-size: 0.95rem !important;
+                margin-bottom: 0.55rem !important;
+            }}
+            .wz57-mobile-grid {{
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 0.45rem !important;
+            }}
+            .wz57-mobile-link {{
+                display: block !important;
+                text-align: center !important;
+                color: #e0f2fe !important;
+                text-decoration: none !important;
+                border: 1px solid rgba(96,165,250,0.30) !important;
+                background: rgba(37,99,235,0.18) !important;
+                border-radius: 999px !important;
+                padding: 0.52rem 0.58rem !important;
+                font-weight: 750 !important;
+                font-size: 0.86rem !important;
+                white-space: nowrap !important;
+            }}
+        }}
+        </style>
+        <div class="wz57-mobile-toolbox">
+            <div class="wz57-mobile-title">☰ Tools</div>
+            <div class="wz57-mobile-grid">
+                <a class='wz57-mobile-link' href='?page=dashboard&wz_top={nonce}'>🏠 Dashboard</a>
+                <a class='wz57-mobile-link' href='?page=cv_documents&wz_top={nonce}'>📄 CV</a>
+                <a class='wz57-mobile-link' href='?page=job_assist&wz_top={nonce}'>🎯 Job Assist</a>
+                <a class='wz57-mobile-link' href='?page=workobot&wz_top={nonce}'>🤖 Work-O-Bot</a>
+                {founder_link}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz57_render_founder_access_block():
+    """Founder Analytics access restored inside the existing left toolbox/sidebar."""
+    try:
+        st.markdown("<div class='workzo-sidebar-section-label'>Founder</div>", unsafe_allow_html=True)
+        with st.expander("📊 Founder analytics", expanded=False):
+            founder_pin = None
+            try:
+                founder_pin = (os.getenv("FOUNDER_PIN") or get_streamlit_secret("FOUNDER_PIN"))
+            except Exception:
+                try:
+                    founder_pin = os.getenv("FOUNDER_PIN")
+                except Exception:
+                    founder_pin = None
+
+            if founder_pin:
+                pin = st.text_input("Founder PIN", type="password", key="wz57_founder_pin")
+                if pin == founder_pin:
+                    st.session_state["founder_unlocked"] = True
+                    st.success("Founder mode unlocked.")
+            else:
+                st.caption("FOUNDER_PIN is not configured. Temporary founder access is available for local testing.")
+                temp_pin = st.text_input("Temporary founder PIN", type="password", key="wz57_temp_founder_pin")
+                if temp_pin:
+                    st.session_state["founder_unlocked"] = True
+                    st.success("Founder mode unlocked for this session.")
+
+            if st.session_state.get("founder_unlocked"):
+                if st.button("Open founder analytics", key="wz57_open_founder_analytics", use_container_width=True):
+                    st.session_state["page"] = "founder_dashboard"
+                    st.session_state["nav_page"] = "founder_dashboard"
+                    try:
+                        st.query_params["page"] = "founder_dashboard"
+                    except Exception:
+                        pass
+                    st.rerun()
+    except Exception:
+        pass
+
+
+try:
+    _wz57_previous_sidebar = _wz35_sidebar
+    def _wz35_sidebar(page_key):
+        _wz57_previous_sidebar(page_key)
+        with st.sidebar:
+            _wz57_render_founder_access_block()
+except Exception:
+    pass
+
+
+try:
+    _wz57_previous_show_dashboard = show_dashboard
+    def show_dashboard():
+        _wz57_apply_page_query_param()
+        _wz57_render_mobile_toolbox()
+        return _wz57_previous_show_dashboard()
+except Exception:
+    pass
+
+# =========================================================
+# WorkZo v52 - Cleaner Cover Letter Generator UI only
+# Scope: replaces only the Cover Letter Generator + Language view.
+# Other document tools continue to use the existing implementation.
+# Adds PDF download for generated cover letter/email.
+# =========================================================
+try:
+    _wz52_previous_show_document_tools = show_document_tools
+except Exception:
+    _wz52_previous_show_document_tools = None
+
+
+def _wz52_label(text: str) -> str:
+    try:
+        return ui_label(text)
+    except Exception:
+        return text
+
+
+def _wz52_safe_json(raw):
+    try:
+        if isinstance(raw, dict):
+            return raw
+        fn = globals().get("safe_json_loads")
+        if callable(fn):
+            data = fn(raw)
+            if isinstance(data, dict):
+                return data
+        return json.loads(str(raw or "{}"))
+    except Exception:
+        return {}
+
+
+def _wz52_pdf_bytes(title: str, body: str):
+    """Create a simple ATS-friendly PDF. Returns None if reportlab is unavailable."""
+    try:
+        from io import BytesIO
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import mm
+        from reportlab.lib.enums import TA_LEFT
+        from reportlab.lib import colors
+
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=22 * mm,
+            leftMargin=22 * mm,
+            topMargin=20 * mm,
+            bottomMargin=20 * mm,
+        )
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            "WorkZoTitle",
+            parent=styles["Heading1"],
+            fontName="Helvetica-Bold",
+            fontSize=16,
+            leading=20,
+            textColor=colors.HexColor("#111827"),
+            spaceAfter=12,
+            alignment=TA_LEFT,
+        )
+        body_style = ParagraphStyle(
+            "WorkZoBody",
+            parent=styles["BodyText"],
+            fontName="Helvetica",
+            fontSize=10.5,
+            leading=15,
+            textColor=colors.HexColor("#111827"),
+            spaceAfter=8,
+        )
+        story = [Paragraph(html.escape(str(title or "Cover Letter")), title_style), Spacer(1, 6)]
+        for block in str(body or "").split("\n"):
+            if block.strip():
+                story.append(Paragraph(html.escape(block.strip()), body_style))
+            else:
+                story.append(Spacer(1, 6))
+        doc.build(story)
+        buffer.seek(0)
+        return buffer.getvalue()
+    except Exception:
+        return None
+
+
+def _wz52_render_downloads(prefix: str, text: str, filename_base: str):
+    c1, c2 = st.columns(2)
+    with c1:
+        st.download_button(
+            f"⬇️ Download {prefix} as TXT",
+            data=str(text or ""),
+            file_name=f"{filename_base}.txt",
+            mime="text/plain",
+            use_container_width=True,
+            key=f"wz52_{filename_base}_txt",
+        )
+    with c2:
+        pdf_data = _wz52_pdf_bytes(prefix, text)
+        if pdf_data:
+            st.download_button(
+                f"⬇️ Download {prefix} as PDF",
+                data=pdf_data,
+                file_name=f"{filename_base}.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key=f"wz52_{filename_base}_pdf",
+            )
+        else:
+            st.caption("PDF export is unavailable because ReportLab is not installed.")
+
+
+def _wz52_generate_cover_letter(company_name: str, target_role: str, language: str, job_description: str):
+    cv_text = str(st.session_state.get("cv_text") or st.session_state.get("clean_structured_cv_text") or "").strip()
+    prompt = f"""
+You are WorkZo AI. Create practical, honest application documents using ONLY the candidate CV and job description.
+Do not invent companies, achievements, skills, degrees, salaries, language levels, or personal details.
+If company name is missing, use [Company Name]. If hiring manager is unknown, use [Hiring Manager's Name].
+
+Return ONLY valid JSON with this schema:
+{{
+  "cover_letter": "full professional cover letter, ready to paste",
+  "short_email": "short email version, ready to paste",
+  "tips": ["tip 1", "tip 2", "tip 3"]
+}}
+
+Language: {language or 'English'}
+Company name: {company_name or '[Company Name]'}
+Target role: {target_role or '[Target Role]'}
+
+Candidate CV:
+{cv_text or 'No CV text available.'}
+
+Job description:
+{job_description or 'No job description provided.'}
+"""
+    try:
+        result = run_ai_prompt(prompt, json_mode=True)
+    except TypeError:
+        result = run_ai_prompt(prompt)
+    data = _wz52_safe_json(result)
+    if not data:
+        data = {
+            "cover_letter": str(result or "").strip(),
+            "short_email": "",
+            "tips": [],
+        }
+    return data
+
+
+def _wz52_render_cover_letter_tool():
+    st.markdown("""
+    <style>
+    .wz52-cover-hero{border:1px solid rgba(20,184,166,.30);border-radius:24px;padding:24px;background:linear-gradient(135deg,rgba(8,47,73,.72),rgba(15,23,42,.72));margin:8px 0 22px 0;box-shadow:0 18px 42px rgba(2,6,23,.28)}
+    .wz52-cover-kicker{color:#67e8f9;font-size:.78rem;font-weight:850;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+    .wz52-cover-title{color:#f8fafc;font-size:1.75rem;font-weight:900;line-height:1.18;margin-bottom:8px}
+    .wz52-cover-copy{color:#cbd5e1;font-size:.98rem;line-height:1.5;max-width:860px}
+    .wz52-panel{border:1px solid rgba(148,163,184,.18);border-radius:22px;padding:18px;background:rgba(15,23,42,.58);margin-bottom:14px}
+    .wz52-panel-title{color:#f8fafc;font-size:1.05rem;font-weight:850;margin-bottom:4px}
+    .wz52-panel-copy{color:#94a3b8;font-size:.88rem;margin-bottom:12px}
+    .wz52-doc-preview{border:1px solid rgba(148,163,184,.20);border-radius:18px;background:rgba(2,6,23,.34);padding:24px;color:#f8fafc;line-height:1.72;font-size:1rem;white-space:pre-wrap;min-height:360px}
+    .wz52-empty{border:1px dashed rgba(148,163,184,.32);border-radius:18px;padding:26px;color:#94a3b8;background:rgba(15,23,42,.34);text-align:center}
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class='wz52-cover-hero'>
+      <div class='wz52-cover-kicker'>AI document writer</div>
+      <div class='wz52-cover-title'>✉️ Cover Letter Generator</div>
+      <div class='wz52-cover-copy'>Generate a focused cover letter and a short email from your CV and one job description. Keep it honest, tailored, and ready to download.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    left, right = st.columns([0.88, 1.35], gap="large")
+
+    with left:
+        st.markdown("<div class='wz52-panel'><div class='wz52-panel-title'>1. Job details</div><div class='wz52-panel-copy'>Paste the essentials. Leave unknown fields blank.</div>", unsafe_allow_html=True)
+        company_name = st.text_input("Company name", value="", placeholder="Example: Siemens, SAP, HubSpot", key="wz52_cover_company")
+        target_role = st.text_input("Target role", value=str(st.session_state.get("target_role") or ""), placeholder="Example: Customer Success Manager", key="wz52_cover_role")
+        language_options_local = globals().get("language_options") or ["English", "German", "French", "Dutch"]
+        current_lang = st.session_state.get("preferred_language", "English")
+        lang_index = language_options_local.index(current_lang) if current_lang in language_options_local else 0
+        cover_language = st.selectbox("Cover letter language", language_options_local, index=lang_index, key="wz52_cover_language")
+        default_jd = str(st.session_state.get("last_understand_job_description") or st.session_state.get("improve_cv_for_job_desc") or st.session_state.get("last_prepare_job_description") or "")
+        job_description = st.text_area("Paste the job description", value=default_jd, height=240, key="wz52_cover_job_description")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        generate = st.button("✨ Generate documents", key="wz52_generate_cover_letter", use_container_width=True)
+        if generate:
+            if not job_description.strip():
+                st.warning("Please paste a job description first.")
+            elif not str(st.session_state.get("cv_text") or st.session_state.get("clean_structured_cv_text") or "").strip():
+                st.warning("Please upload or create your CV first.")
+            else:
+                with st.spinner("Writing your cover letter..."):
+                    data = _wz52_generate_cover_letter(company_name, target_role, cover_language, job_description)
+                    st.session_state["wz52_cover_outputs"] = data
+                    st.session_state["latest_cover_letter"] = data.get("cover_letter", "")
+                    st.session_state["cover_letter_job_desc"] = job_description
+                st.success("Cover letter generated.")
+
+    with right:
+        data = st.session_state.get("wz52_cover_outputs") or {}
+        if not data:
+            st.markdown("<div class='wz52-empty'>Your generated cover letter, short email, and tips will appear here.</div>", unsafe_allow_html=True)
+            return
+
+        cover_letter = str(data.get("cover_letter") or "").strip()
+        short_email = str(data.get("short_email") or "").strip()
+        tips = data.get("tips") or []
+        if isinstance(tips, str):
+            tips = [tips]
+
+        tab1, tab2, tab3 = st.tabs(["📄 Full letter", "✉️ Short email", "✅ Tips"])
+        with tab1:
+            st.markdown("<div class='wz52-panel-title'>Cover letter preview</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='wz52-doc-preview'>{html.escape(cover_letter)}</div>", unsafe_allow_html=True)
+            _wz52_render_downloads("Cover Letter", cover_letter, "workzo_cover_letter")
+        with tab2:
+            st.markdown("<div class='wz52-panel-title'>Short email preview</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='wz52-doc-preview'>{html.escape(short_email)}</div>", unsafe_allow_html=True)
+            _wz52_render_downloads("Short Email", short_email, "workzo_short_email")
+        with tab3:
+            st.markdown("<div class='wz52-panel'><div class='wz52-panel-title'>Customization tips</div>", unsafe_allow_html=True)
+            if tips:
+                for tip in tips[:5]:
+                    st.markdown(f"- {html.escape(str(tip))}")
+            else:
+                st.markdown("- Add the real company name before sending.\n- Replace placeholder hiring manager details if known.\n- Check every claim against your real CV before applying.")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+
+def show_document_tools():
+    mode = st.session_state.get("document_tools_mode", "Improve / Update CV")
+    cover_modes = {"Cover Letter Generator + Language", "Cover Letter", "cover_letter"}
+    if mode in cover_modes:
+        _wz52_render_cover_letter_tool()
+    elif callable(_wz52_previous_show_document_tools):
+        _wz52_previous_show_document_tools()
+    else:
+        st.warning("Document tools are not available in this build.")
