@@ -1440,9 +1440,12 @@ def _wz19_render_sidebar(page_key: str):
             ("dashboard", "Dashboard"),
             ("cv_documents", "My CV"),
             ("job_assist", "Job Match"),
-            ("workobot", "Work-O-Bot"),
+            ("workobot", "Interview Practice"),
         ]
-        # Founder analytics hidden in v26.
+
+        if st.session_state.get("founder_unlocked"):
+            nav.append(("founder_dashboard", "Founder Analytics"))
+
         for key, label in nav:
             shown = label + ("  ✓" if page_key == key else "")
             if st.button(shown, key=f"wz19_sidebar_{key}", use_container_width=True):
@@ -4118,33 +4121,24 @@ def _wz35_dashboard_home():
         _wz35_action_card("Work-O-Bot", ui_label("Ask career questions or practice interview answers in your selected language."), txt("ask_workobot"), "workobot", "wz35_action_bot")
 
     st.markdown("### " + txt("application_progress"))
-    st.caption(ui_label("Move step by step, or jump to the part you want to work on."))
-    score_checked = bool(cv_exists and resume_score > 0 and ats_score > 0)
-    if not cv_exists:
-        current = 0
-    elif not score_checked or resume_score < 75 or ats_score < 75:
-        current = 1
-    elif not job_exists:
-        current = 2
-    elif not improved_ready:
-        current = 3
-    elif not prepared_ready:
-        current = 4
-    else:
-        current = 5
+    st.caption(ui_label("Visual tracker only. Use Smart actions above to continue."))
+
     flow = [
-        ("1. " + txt("cv_added"), cv_exists, txt("completed") if cv_exists else ui_label("Upload or create CV"), txt("edit_setup"), "cv_documents", {"document_tools_mode":"Improve / Update CV"}),
-        ("2. " + txt("resume_ats_checked"), score_checked and resume_score >= 75 and ats_score >= 75, ui_label("Good") if score_checked and resume_score >= 75 and ats_score >= 75 else ui_label("Improve scores above 75"), txt("improve_cv"), "cv_documents", {"document_tools_mode":"Improve / Update CV"}),
-        ("3. " + txt("job_analyzed"), job_exists, txt("completed") if job_exists else ui_label("Paste/analyze one job"), txt("understand_job"), "job_assist", {"job_assist_mode_key":"understand"}),
-        ("4. " + txt("cv_improved"), improved_ready, txt("completed") if improved_ready else ui_label("Tailor CV to the job"), txt("improve_cv"), "cv_documents", {"document_tools_mode":"Improve CV for a Job" if job_exists else "Improve / Update CV"}),
-        ("5. " + txt("prepared_to_apply"), prepared_ready, txt("completed") if prepared_ready else ui_label("Prepare application"), txt("prepare_this_job"), "job_assist", {"job_assist_mode_key":"prepare"}),
+        ("1. CV uploaded", cv_exists, txt("completed") if cv_exists else ui_label("Upload or create your CV")),
+        ("2. CV improved", improved_ready, txt("completed") if improved_ready else ui_label("Improve or tailor your CV")),
+        ("3. Job matched", job_exists, txt("completed") if job_exists else ui_label("Find matching jobs")),
+        ("4. Prepared for job", prepared_ready, txt("completed") if prepared_ready else ui_label("Prepare cover letter and interview notes")),
     ]
-    cols = st.columns(5)
-    for i, (label, done, note, button, target, extra) in enumerate(flow):
+    try:
+        current = next((i for i, (_, done, _) in enumerate(flow) if not done), len(flow) - 1)
+    except Exception:
+        current = 0
+
+    cols = st.columns(4)
+    for i, (label, done, note) in enumerate(flow):
         with cols[i]:
-            _wz35_flow_card(label, done, current == i, note)
-            if st.button(button, key=f"wz35_flow_btn_{i}", use_container_width=True):
-                _wz35_go(target, extra)
+            _wz35_flow_card(label, done, (not done and current == i), note)
+
     st.caption(ui_label("Scores are guidance only. WorkZo should not invent skills, company facts, language level, salary, or experience."))
     _wz35_remember_scores()
     _wz35_save_state()
@@ -9433,33 +9427,24 @@ def _wz35_dashboard_home():
         _wz35_action_card("Work-O-Bot", ui_label("Ask career questions or practice interview answers in your selected language."), txt("ask_workobot"), "workobot", "wz35_action_bot")
 
     st.markdown("### " + txt("application_progress"))
-    st.caption(ui_label("Move step by step, or jump to the part you want to work on."))
-    score_checked = bool(cv_exists and resume_score > 0 and ats_score > 0)
-    if not cv_exists:
-        current = 0
-    elif not score_checked or resume_score < 75 or ats_score < 75:
-        current = 1
-    elif not job_exists:
-        current = 2
-    elif not improved_ready:
-        current = 3
-    elif not prepared_ready:
-        current = 4
-    else:
-        current = 5
+    st.caption(ui_label("Visual tracker only. Use Smart actions above to continue."))
+
     flow = [
-        ("1. " + txt("cv_added"), cv_exists, txt("completed") if cv_exists else ui_label("Upload or create CV"), txt("edit_setup"), "cv_documents", {"document_tools_mode":"Improve / Update CV"}),
-        ("2. " + txt("resume_ats_checked"), score_checked and resume_score >= 75 and ats_score >= 75, ui_label("Good") if score_checked and resume_score >= 75 and ats_score >= 75 else ui_label("Improve scores above 75"), txt("improve_cv"), "cv_documents", {"document_tools_mode":"Improve / Update CV"}),
-        ("3. " + txt("job_analyzed"), job_exists, txt("completed") if job_exists else ui_label("Paste/analyze one job"), txt("understand_job"), "job_assist", {"job_assist_mode_key":"understand"}),
-        ("4. " + txt("cv_improved"), improved_ready, txt("completed") if improved_ready else ui_label("Tailor CV to the job"), txt("improve_cv"), "cv_documents", {"document_tools_mode":"Improve CV for a Job" if job_exists else "Improve / Update CV"}),
-        ("5. " + txt("prepared_to_apply"), prepared_ready, txt("completed") if prepared_ready else ui_label("Prepare application"), txt("prepare_this_job"), "job_assist", {"job_assist_mode_key":"prepare"}),
+        ("1. CV uploaded", cv_exists, txt("completed") if cv_exists else ui_label("Upload or create your CV")),
+        ("2. CV improved", improved_ready, txt("completed") if improved_ready else ui_label("Improve or tailor your CV")),
+        ("3. Job matched", job_exists, txt("completed") if job_exists else ui_label("Find matching jobs")),
+        ("4. Prepared for job", prepared_ready, txt("completed") if prepared_ready else ui_label("Prepare cover letter and interview notes")),
     ]
-    cols = st.columns(5)
-    for i, (label, done, note, button, target, extra) in enumerate(flow):
+    try:
+        current = next((i for i, (_, done, _) in enumerate(flow) if not done), len(flow) - 1)
+    except Exception:
+        current = 0
+
+    cols = st.columns(4)
+    for i, (label, done, note) in enumerate(flow):
         with cols[i]:
-            _wz35_flow_card(label, done, current == i, note)
-            if st.button(button, key=f"wz35_flow_btn_{i}", use_container_width=True):
-                _wz35_go(target, extra)
+            _wz35_flow_card(label, done, (not done and current == i), note)
+
     st.caption(ui_label("Scores are guidance only. WorkZo should not invent skills, company facts, language level, salary, or experience."))
     _wz35_remember_scores()
     _wz35_save_state()
@@ -14851,33 +14836,24 @@ def _wz35_dashboard_home():
         _wz35_action_card("Work-O-Bot", ui_label("Ask career questions or practice interview answers in your selected language."), txt("ask_workobot"), "workobot", "wz35_action_bot")
 
     st.markdown("### " + txt("application_progress"))
-    st.caption(ui_label("Move step by step, or jump to the part you want to work on."))
-    score_checked = bool(cv_exists and resume_score > 0 and ats_score > 0)
-    if not cv_exists:
-        current = 0
-    elif not score_checked or resume_score < 75 or ats_score < 75:
-        current = 1
-    elif not job_exists:
-        current = 2
-    elif not improved_ready:
-        current = 3
-    elif not prepared_ready:
-        current = 4
-    else:
-        current = 5
+    st.caption(ui_label("Visual tracker only. Use Smart actions above to continue."))
+
     flow = [
-        ("1. " + txt("cv_added"), cv_exists, txt("completed") if cv_exists else ui_label("Upload or create CV"), txt("edit_setup"), "cv_documents", {"document_tools_mode":"Improve / Update CV"}),
-        ("2. " + txt("resume_ats_checked"), score_checked and resume_score >= 75 and ats_score >= 75, ui_label("Good") if score_checked and resume_score >= 75 and ats_score >= 75 else ui_label("Improve scores above 75"), txt("improve_cv"), "cv_documents", {"document_tools_mode":"Improve / Update CV"}),
-        ("3. " + txt("job_analyzed"), job_exists, txt("completed") if job_exists else ui_label("Paste/analyze one job"), txt("understand_job"), "job_assist", {"job_assist_mode_key":"understand"}),
-        ("4. " + txt("cv_improved"), improved_ready, txt("completed") if improved_ready else ui_label("Tailor CV to the job"), txt("improve_cv"), "cv_documents", {"document_tools_mode":"Improve CV for a Job" if job_exists else "Improve / Update CV"}),
-        ("5. " + txt("prepared_to_apply"), prepared_ready, txt("completed") if prepared_ready else ui_label("Prepare application"), txt("prepare_this_job"), "job_assist", {"job_assist_mode_key":"prepare"}),
+        ("1. CV uploaded", cv_exists, txt("completed") if cv_exists else ui_label("Upload or create your CV")),
+        ("2. CV improved", improved_ready, txt("completed") if improved_ready else ui_label("Improve or tailor your CV")),
+        ("3. Job matched", job_exists, txt("completed") if job_exists else ui_label("Find matching jobs")),
+        ("4. Prepared for job", prepared_ready, txt("completed") if prepared_ready else ui_label("Prepare cover letter and interview notes")),
     ]
-    cols = st.columns(5)
-    for i, (label, done, note, button, target, extra) in enumerate(flow):
+    try:
+        current = next((i for i, (_, done, _) in enumerate(flow) if not done), len(flow) - 1)
+    except Exception:
+        current = 0
+
+    cols = st.columns(4)
+    for i, (label, done, note) in enumerate(flow):
         with cols[i]:
-            _wz35_flow_card(label, done, current == i, note)
-            if st.button(button, key=f"wz35_flow_btn_{i}", use_container_width=True):
-                _wz35_go(target, extra)
+            _wz35_flow_card(label, done, (not done and current == i), note)
+
     st.caption(ui_label("Scores are guidance only. WorkZo should not invent skills, company facts, language level, salary, or experience."))
     _wz35_remember_scores()
     _wz35_save_state()
@@ -16157,191 +16133,3 @@ def show_dashboard():
         _wz35_save_state()
     except Exception:
         pass
-
-# =========================================================
-# WorkZo v60 - Beta feedback footer + AI founder feedback insights
-# =========================================================
-def _wz60_feedback_file_path():
-    try:
-        path = globals().get("FEEDBACK_FILE")
-        if path:
-            return path
-        base = globals().get("BASE_DIR") or os.getcwd()
-        return os.path.join(base, "workzo_beta_feedback.csv")
-    except Exception:
-        return "workzo_beta_feedback.csv"
-
-def _wz60_safe_text(value, limit=4000):
-    try:
-        value = str(value or "").replace("\r", " ").strip()
-        value = re.sub(r"\s+", " ", value)
-        return value[:limit]
-    except Exception:
-        return ""
-
-def _wz60_read_feedback_entries(limit=120):
-    entries = []
-    path = _wz60_feedback_file_path()
-    if not path or not os.path.exists(path):
-        return entries
-    try:
-        with open(path, "r", encoding="utf-8", errors="ignore") as f:
-            rows = f.readlines()
-        for raw in rows[-max(1, int(limit)):]:
-            line = raw.strip()
-            if not line:
-                continue
-            if "|" in line and not line.lower().startswith("timestamp,"):
-                parts = [p.strip() for p in line.split("|", 3)]
-                if len(parts) >= 2:
-                    entries.append({"timestamp": parts[0], "page": parts[1] if len(parts) > 2 else "Dashboard", "feedback": parts[-1]})
-                continue
-            if "," in line:
-                parts = [p.strip().strip('"') for p in line.split(",")]
-                if parts and parts[-1].lower() not in {"feedback", "message", "comment"}:
-                    entries.append({"timestamp": parts[0] if parts else "", "page": parts[1] if len(parts) > 2 else "", "feedback": parts[-1]})
-                continue
-            entries.append({"timestamp": "", "page": "", "feedback": line})
-    except Exception:
-        return []
-    cleaned = []
-    for e in entries:
-        fb = _wz60_safe_text(e.get("feedback", ""), 1000)
-        if fb:
-            cleaned.append({"timestamp": _wz60_safe_text(e.get("timestamp", ""), 80), "page": _wz60_safe_text(e.get("page", ""), 80), "feedback": fb})
-    return cleaned[-limit:]
-
-def _wz60_rule_based_feedback_summary(entries):
-    text = " ".join([str(e.get("feedback", "")) for e in entries]).lower()
-    categories = [
-        ("Mobile navigation/toolbox", ["mobile", "toolbox", "button", "kick", "landing", "phone", "responsive", "</div>"]),
-        ("Job Assist clarity", ["job assist", "find job", "understand job", "job search", "job match", "location", "city"]),
-        ("Resume/ATS scoring trust", ["score", "ats", "resume score", "honest", "accurate", "truth", "fake"]),
-        ("Cover letter/document tools", ["cover letter", "pdf", "email", "template", "download", "translator"]),
-        ("Speed/loading", ["slow", "loading", "faster", "time", "rerun", "performance"]),
-        ("UI confusion", ["clumsy", "confusing", "too much", "layout", "not clear", "messy", "duplicate"]),
-        ("Founder analytics", ["analytics", "users", "session", "returning", "founder", "feedback"]),
-    ]
-    scored = []
-    for label, words in categories:
-        count = sum(text.count(w) for w in words)
-        if count:
-            scored.append((count, label))
-    scored.sort(reverse=True)
-    top = [label for _, label in scored[:5]] or ["Not enough feedback yet"]
-    recent = [e.get("feedback", "") for e in entries[-5:]][::-1]
-    next_priority = top[0] if top else "Collect more feedback"
-    return {"top_pain_points": top, "recent_feedback": recent, "next_priority": next_priority, "suggested_decision": f"Focus next on: {next_priority}. Fix repeated friction before adding new features."}
-
-def _wz60_render_beta_feedback_footer(page_name="Dashboard"):
-    try:
-        st.markdown("---")
-        st.markdown("""
-        <div style="border:1px solid rgba(20,184,166,0.25);border-radius:18px;padding:16px 18px;background:linear-gradient(135deg, rgba(15,23,42,0.78), rgba(8,47,73,0.45));margin-top:20px;">
-            <div style="font-weight:800; font-size:15px; margin-bottom:6px; color:#f8fafc;">⚠️ WorkZo AI Beta Notice</div>
-            <div style="font-size:13px; color:#cbd5e1; line-height:1.45;">WorkZo AI is currently in beta. Results may be imperfect. Please review CVs, cover letters, job-fit analysis, and interview guidance before using them in real applications.</div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.markdown("### 💬 Help improve WorkZo")
-        st.caption("One honest sentence is enough. Example: ‘Job Assist felt confusing’ or ‘Cover letter download worked well.’")
-        feedback_key = f"wz60_feedback_text_{str(page_name).lower().replace(' ', '_')}"
-        feedback_text = st.text_area("What worked? What felt confusing?", placeholder="Tell me what you liked, what broke, or what felt unclear...", key=feedback_key, height=110)
-        if st.button("Submit feedback", key=f"wz60_submit_feedback_{str(page_name).lower().replace(' ', '_')}", use_container_width=True):
-            feedback_clean = _wz60_safe_text(feedback_text, 1200)
-            if not feedback_clean:
-                st.warning("Please write a short feedback note first.")
-            else:
-                try:
-                    path = _wz60_feedback_file_path()
-                    if os.path.dirname(path):
-                        os.makedirs(os.path.dirname(path), exist_ok=True)
-                    with open(path, "a", encoding="utf-8") as f:
-                        f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} | {page_name} | {feedback_clean}\n")
-                    try:
-                        if callable(globals().get("track_event")):
-                            track_event("feedback_submitted", "Feedback", {"page": page_name})
-                    except Exception:
-                        pass
-                    st.success("Thank you — feedback saved.")
-                except Exception as exc:
-                    st.warning(f"Feedback could not be saved: {exc}")
-    except Exception:
-        pass
-
-def _wz60_render_founder_feedback_insights():
-    try:
-        st.markdown("## Founder insights from feedback")
-        entries = _wz60_read_feedback_entries(limit=150)
-        if not entries:
-            st.info("No written feedback found yet. Once users submit feedback from the dashboard, insights will appear here.")
-            return
-        summary = _wz60_rule_based_feedback_summary(entries)
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Feedback notes", len(entries))
-        c2.metric("Top theme", summary.get("next_priority", "—"))
-        c3.metric("Recent notes", min(5, len(entries)))
-        st.markdown("### Product decision summary")
-        st.success(summary.get("suggested_decision", "Collect more feedback before making a decision."))
-        left, right = st.columns([1, 1])
-        with left:
-            st.markdown("#### Top pain points / themes")
-            for item in summary.get("top_pain_points", []):
-                st.markdown(f"- {html.escape(str(item))}")
-        with right:
-            st.markdown("#### Latest feedback")
-            for item in summary.get("recent_feedback", [])[:5]:
-                st.markdown(f"- {html.escape(str(item))}")
-        with st.expander("AI feedback summary", expanded=False):
-            cached = st.session_state.get("wz60_ai_feedback_summary", "")
-            if st.button("Generate / refresh AI summary", key="wz60_refresh_ai_feedback_summary"):
-                joined = "\n".join([f"- {e.get('feedback','')}" for e in entries[-80:]])
-                prompt = f"""You are summarizing beta feedback for the founder of WorkZo AI.
-Return concise, practical founder insights with these headings only:
-1. Top user pain points
-2. Most useful features mentioned
-3. Urgent bugs or UX issues
-4. Feature requests
-5. Next product decision
-
-Feedback:
-{joined[:9000]}
-"""
-                result = ""
-                try:
-                    if callable(globals().get("run_ai_prompt")):
-                        result = run_ai_prompt(prompt)
-                except Exception as exc:
-                    result = f"AI summary unavailable right now. Rule-based priority: {summary.get('suggested_decision','')}. Error: {exc}"
-                if not result:
-                    result = summary.get("suggested_decision", "Collect more feedback.")
-                st.session_state["wz60_ai_feedback_summary"] = result
-                cached = result
-            if cached:
-                st.markdown(cached)
-            else:
-                st.caption("Click the button to create a founder-ready AI summary from saved feedback.")
-    except Exception as exc:
-        st.warning(f"Feedback insights could not be loaded: {exc}")
-
-try:
-    _wz60_previous_dashboard_home = _wz35_dashboard_home
-    def _wz35_dashboard_home():
-        _wz60_previous_dashboard_home()
-        _wz60_render_beta_feedback_footer("Dashboard")
-except Exception:
-    pass
-
-try:
-    if callable(globals().get("render_founder_dashboard")):
-        _wz60_previous_founder_dashboard = render_founder_dashboard
-        def render_founder_dashboard():
-            _wz60_previous_founder_dashboard()
-            st.markdown("---")
-            _wz60_render_founder_feedback_insights()
-    else:
-        def render_founder_dashboard():
-            st.markdown("# Founder Analytics Dashboard")
-            st.caption("Private beta metrics and feedback insights.")
-            _wz60_render_founder_feedback_insights()
-except Exception:
-    pass

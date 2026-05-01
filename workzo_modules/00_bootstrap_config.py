@@ -330,6 +330,13 @@ def workzo_save_light_memory() -> None:
 
 workzo_load_light_memory()
 
+# Activate analytics test mode early when URL contains ?test=1.
+try:
+    if _query_param_value("test", "").strip().lower() in {"1", "true", "yes", "on"}:
+        st.session_state["test_mode"] = True
+except Exception:
+    pass
+
 # =========================================================
 # LOAD ENV
 # =========================================================
@@ -485,6 +492,40 @@ def _query_param_value(key: str, default: str = "") -> str:
         return default
 
 
+
+def workzo_analytics_test_mode() -> bool:
+    """Return True when founder/test activity should be excluded from analytics.
+
+    Use your app link with ?test=1 while testing.
+    This prevents your own clicks, sessions, and feature views from being saved
+    into Founder Analytics. It does not affect normal users.
+    """
+    try:
+        test_param = str(_query_param_value("test", "")).strip().lower()
+        if test_param in {"1", "true", "yes", "on"}:
+            st.session_state["test_mode"] = True
+        elif test_param in {"0", "false", "no", "off"}:
+            st.session_state["test_mode"] = False
+    except Exception:
+        pass
+
+    try:
+        return bool(
+            st.session_state.get("test_mode")
+            or st.session_state.get("founder_unlocked")
+            or st.session_state.get("founder_mode")
+        )
+    except Exception:
+        return False
+
+
+def workzo_show_test_mode_badge() -> None:
+    try:
+        if workzo_analytics_test_mode():
+            st.caption("🧪 Test mode active — your activity is excluded from Founder Analytics.")
+    except Exception:
+        pass
+
 def get_or_create_anonymous_user_id() -> str:
     """Return one stable anonymous browser id.
 
@@ -555,6 +596,9 @@ def send_analytics_to_webhook(event: Dict):
         pass
 
 def track_event(event_name: str, feature: str = "", metadata: Optional[Dict] = None):
+    # Do not count founder/testing activity in Founder Analytics.
+    if workzo_analytics_test_mode():
+        return
     init_beta_analytics()
     metadata = metadata or {}
     session_duration_seconds = int(time.time() - st.session_state.get("session_started_at", time.time()))
@@ -593,11 +637,15 @@ def track_event(event_name: str, feature: str = "", metadata: Optional[Dict] = N
     send_analytics_to_webhook(event)
 
 def track_feature_view(feature_name: str):
+    if workzo_analytics_test_mode():
+        return
     if st.session_state.get("last_tracked_page") != feature_name:
         track_event("feature_view", feature_name)
         st.session_state.last_tracked_page = feature_name
 
 def track_button_click(button_name: str, feature: str = "", metadata: Optional[Dict] = None):
+    if workzo_analytics_test_mode():
+        return
     meta = {"button": button_name}
     if metadata:
         meta.update(metadata)
@@ -617,6 +665,7 @@ def read_csv_rows(file_path: str) -> List[Dict]:
 def render_founder_dashboard():
     st.markdown("### Founder Analytics Dashboard")
     st.caption("Private beta metrics for Reddit/testing. Numbers are privacy-safe and approximate, but now focused on product decisions.")
+    workzo_show_test_mode_badge()
 
     rows = read_csv_rows(ANALYTICS_FILE)
     feedback_rows = read_csv_rows(FEEDBACK_FILE)

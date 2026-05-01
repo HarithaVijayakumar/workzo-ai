@@ -1,3 +1,35 @@
+
+
+def _wz26_company_context_for_docs(company_name: str = "", company_website: str = "") -> str:
+    """Fast optional company context for cover letters/CV tailoring."""
+    company_name = str(company_name or "").strip()
+    company_website = str(company_website or "").strip()
+    cache_key = f"_wz26_doc_company_context::{company_name}::{company_website}"
+    if st is not None and cache_key in st.session_state:
+        return st.session_state.get(cache_key, "")
+    context = ""
+    if company_website:
+        url = company_website if company_website.startswith(("http://", "https://")) else "https://" + company_website
+        try:
+            import requests, re as _re
+            r = requests.get(url, timeout=3, headers={"User-Agent": "WorkZoAI/1.0"})
+            if r.ok:
+                txt0 = _re.sub(r"<script[\s\S]*?</script>|<style[\s\S]*?</style>", " ", r.text, flags=_re.I)
+                txt0 = _re.sub(r"<[^>]+>", " ", txt0)
+                txt0 = _re.sub(r"\s+", " ", txt0).strip()
+                context = txt0[:1800]
+        except Exception:
+            context = ""
+    if not context and st is not None:
+        context = st.session_state.get("company_context", "")
+    if not context and company_name:
+        context = f"Company name provided by user: {company_name}. Do not invent company facts; use only the job description and CV unless the user provides more company details."
+    if st is not None:
+        st.session_state[cache_key] = context
+        if context:
+            st.session_state["company_context"] = context
+    return context
+
 # WorkZo modular split v138
 # Source: app_workzo_v137_stable_no_feature_change.py, lines 9297-9819
 def get_clean_cv_source_for_tools() -> str:
@@ -101,6 +133,11 @@ def show_document_tools():
             placeholder=ui_label("Paste the job description here. If you came from Understand Job, it should already be filled."),
         )
 
+        # If the user clicked an ATS suggestion button on the previous run, prefill notes before the widget is created.
+        pending_ats_notes = st.session_state.pop("workzo_pending_ats_notes_v92", "") if st.session_state.get("workzo_pending_ats_notes_v92") else ""
+        if pending_ats_notes and not str(st.session_state.get("improve_update_cv_notes_v92", "")).strip():
+            st.session_state["improve_update_cv_notes_v92"] = pending_ats_notes
+
         update_notes = st.text_area(
             ui_label("Optional updates to include"),
             height=120,
@@ -108,7 +145,9 @@ def show_document_tools():
             placeholder=ui_label("Example: Add B1 German, new certificate, new project, updated phone number, or career break note."),
         )
 
-        if st.button(ui_label("Generate Improved CV"), key="btn_generate_improved_cv_v92"):
+        st.markdown("#### " + ui_label("Step 1 — Generate or regenerate your improved CV"))
+        st.caption(ui_label("Use this button after changing the job description or optional notes."))
+        if st.button(ui_label("Generate Improved CV"), key="btn_generate_improved_cv_v92", type="primary", use_container_width=True):
             job_desc_combined = (job_desc_cv or "").strip()
             notes_combined = (update_notes or "").strip()
             if not current_cv.strip():
@@ -158,6 +197,8 @@ def show_document_tools():
                     st.success(ui_label("Improved CV generated. Review and edit it below."))
 
         if st.session_state.get("improved_cv_text_v92"):
+            st.markdown("### " + ui_label("Step 2 — Result summary"))
+            st.caption(ui_label("Review the score and only use suggestions that are true for your experience."))
             result = st.session_state.get("improved_cv_result_v92", "")
             with st.expander(ui_label("Tailoring summary"), expanded=False):
                 summary = get_section_text(result, ["Tailoring Summary", "Changes Made", "Details to Confirm"], fallback_to_full=False)
@@ -181,7 +222,7 @@ def show_document_tools():
                             st.markdown(f"- {html.escape(str(item))}")
 
             audit = build_honesty_impact_audit(current_cv, st.session_state.get("improved_cv_text_v92", ""), job_desc_cv)
-            with st.expander(ui_label("Honesty & ATS impact check"), expanded=True):
+            with st.expander(ui_label("ATS score details"), expanded=False):
                 ats_match = audit.get("ats_match", {}) or {}
                 if ats_match:
                     st.metric(ui_label("Deterministic ATS match for this job"), f"{ats_match.get('ats_match_score', 0)}%")
@@ -199,6 +240,24 @@ def show_document_tools():
                 else:
                     st.success(ui_label("No obvious unsupported metrics or risky added claims were detected."))
 
+            # Friendly guidance: what the user can do when the ATS score is still low.
+            ats_match_for_help = audit.get("ats_match", {}) or {}
+            missing_for_help = _as_list(ats_match_for_help.get("missing_keywords"))[:8]
+            if ats_match_for_help:
+                st.markdown("### " + ui_label("How to improve this ATS score"))
+                score_value = int(ats_match_for_help.get("ats_match_score", 0) or 0)
+                if score_value < 70:
+                    st.info(ui_label("Your CV can improve for this job. Add only truthful keywords and examples you can explain in an interview."))
+                else:
+                    st.success(ui_label("Good match. You can still improve it by adding truthful role-specific wording."))
+                if missing_for_help:
+                    st.markdown("**" + ui_label("Missing keywords to consider only if true:") + "** " + ", ".join([html.escape(str(x)) for x in missing_for_help]))
+                    st.markdown("**" + ui_label("Suggested honest next step:") + "** " + ui_label("Add short examples under Optional updates, then generate the CV again."))
+                    if st.button(ui_label("Use these keywords as honest update notes"), key="btn_use_ats_keywords_v92", use_container_width=True):
+                        st.session_state["workzo_pending_ats_notes_v92"] = "Consider these job keywords only if truthful: " + ", ".join([str(x) for x in missing_for_help])
+                        st.success(ui_label("I added these as optional notes. Review them, remove anything untrue, then regenerate."))
+                        st.rerun()
+
             render_country_specific_honesty_audit(
                 st.session_state.get("improved_cv_text_v92", ""),
                 st.session_state.get("improved_cv_country_v92", selected_country_for_cv),
@@ -206,7 +265,7 @@ def show_document_tools():
                 expanded=False
             )
 
-            st.markdown(f"### {ui_label('Preview Improved CV')}")
+            st.markdown(f"### {ui_label('Step 3 — Edit, preview, and download')}")
             preview_template = st.session_state.get("improved_cv_template_v92", selected_template)
             preview_country = st.session_state.get("improved_cv_country_v92", selected_country_for_cv)
 
@@ -235,7 +294,8 @@ def show_document_tools():
             st.session_state.improved_cv_edit_buffer_v92 = preview_cv
             st.session_state["prepare_cv_tailored"] = True
 
-            if st.button(ui_label("Update Preview"), key="btn_update_improved_cv_preview_v92"):
+            st.markdown("#### " + ui_label("After editing"))
+            if st.button(ui_label("Update Preview & Use These Edits"), key="btn_update_improved_cv_preview_v92", type="primary", use_container_width=True):
                 # Force-sync current editor widgets to every source older code might read.
                 st.session_state["workzo_live_cv_structured"] = preview_structured
                 st.session_state["workzo_live_cv_text"] = preview_cv
@@ -300,6 +360,7 @@ def show_document_tools():
                     file_name=f"{safe_file_base}.pdf",
                     mime="application/pdf",
                     key="download_improved_cv_pdf_v92",
+                    use_container_width=True,
                     on_click=track_event,
                     args=("cv_downloaded", "CV & Documents", {"format": "pdf"})
                 )
@@ -310,11 +371,12 @@ def show_document_tools():
                     file_name=f"{safe_file_base}.txt",
                     mime="text/plain",
                     key="download_improved_cv_txt_v92",
+                    use_container_width=True,
                     on_click=track_event,
                     args=("cv_downloaded", "CV & Documents", {"format": "txt"})
                 )
             with dl_col3:
-                if st.button(ui_label("Save Resume"), key="save_improved_cv_dashboard_v92"):
+                if st.button(ui_label("Save Resume"), key="save_improved_cv_dashboard_v92", use_container_width=True):
                     set_new_resume_and_refresh(clean_download_cv)
                     st.success(ui_label("Saved as your dashboard resume."))
                     st.rerun()
@@ -535,13 +597,13 @@ def show_document_tools():
             with dl_col4:
                 if rendercv_pdf:
                     st.download_button(label=ui_label("Download RenderCV PDF"), data=rendercv_pdf, file_name=f"{safe_file_base}_rendercv.pdf", mime="application/pdf", key="download_country_cv_rendercv_pdf_v1")
-
     # -----------------------------------------------------
     # 3. Cover Letter Generator
     # -----------------------------------------------------
     with cover_tab:
-        company_name = st.text_input(ui_label("Company Name"), key="doc_tools_company_name")
-        role_name = st.text_input(txt("target_role"), key="doc_tools_role_name")
+        company_name = st.text_input(ui_label("Company Name"), value=st.session_state.get("target_company", "") or "", key="doc_tools_company_name")
+        company_website = st.text_input(ui_label("Company website / careers page (optional)"), value=st.session_state.get("doc_tools_latest_company_website", "") or "", key="doc_tools_company_website")
+        role_name = st.text_input(txt("target_role"), value=st.session_state.get("target_job_title", "") or "", key="doc_tools_role_name")
         cover_letter_language = st.selectbox(
             ui_label("Cover letter language"),
             language_options,
@@ -552,69 +614,87 @@ def show_document_tools():
 
         if st.button(txt("generate"), key="btn_cover_letter_v49"):
             track_button_click("Generate Cover Letter", "Document Tools")
-            job_desc_letter_combined = (job_desc_letter or "").strip()
-            if not role_name.strip() or not job_desc_letter_combined.strip():
+
+            company_name = str(company_name or "").strip()
+            company_website = str(company_website or "").strip()
+            role_name = str(role_name or "").strip()
+            job_desc_letter_combined = str(job_desc_letter or "").strip()
+            cv_text_for_letter = str(st.session_state.get("cv_text", "") or "").strip()
+
+            if not role_name or not job_desc_letter_combined:
                 st.warning(ui_label("Please enter a target role and paste the job description."))
-            elif not st.session_state.cv_text.strip():
+            elif not cv_text_for_letter:
                 st.warning(ui_label("Please upload or create a CV first."))
             else:
                 with st.spinner(ui_label("Generating cover letter...")):
+                    company_context = _wz26_company_context_for_docs(company_name, company_website)
+                    st.session_state["target_company"] = company_name
+                    st.session_state["doc_tools_latest_company_website"] = company_website
+
                     prompt = f"""
 {txt('country_label')}: {st.session_state.country}
 Target role: {role_name}
-Company: {company_name if company_name.strip() else "Not specified"}
+Company: {company_name or "Not specified"}
+Company website: {company_website or "Not specified"}
+Company context from website/user input:
+{company_context or "Not available. Do not invent company facts."}
 
 Candidate CV:
-{st.session_state.cv_text}
+{cv_text_for_letter}
 
 Job description:
 {job_desc_letter_combined}
 
 Write a strong, personalized professional cover letter in {cover_letter_language}.
 
-Quality requirements:
-- Use the candidate's actual CV details.
-- Connect 3 to 5 specific candidate strengths to the job description.
-- Avoid generic sentences.
-- Sound natural, confident, and human.
-- Keep it suitable for the selected country and role level.
-- Write the final cover letter and email version fully in {cover_letter_language}.
-
 Return in this exact structure:
-
 1. Full Cover Letter
 2. Short Email Version
 3. 3 Customization Tips
-
-Important:
-- Do not leave any section empty.
-- Write complete content for each section.
 """
                     result = run_ai_prompt(prompt, force_language=cover_letter_language)
+
                     if render_error_or_success(result):
-                        if not result.strip():
-                            st.error(ui_label("Cover letter generation returned an empty response. Please try again."))
-                        else:
-                            st.session_state.latest_cover_letter = result
-                            render_section_cards(result, default_expand=True)
+                        st.session_state.latest_cover_letter = result
+                        sections = numbered_sections_to_markdown(result)
+                        full_letter = sections.get("Full Cover Letter", "").strip()
+                        short_email = sections.get("Short Email Version", "").strip()
 
-                            sections = numbered_sections_to_markdown(result)
-                            full_letter = sections.get("Full Cover Letter", "").strip()
-                            short_email = sections.get("Short Email Version", "").strip()
+                        if full_letter:
+                            st.markdown(f"### {ui_label('Full Cover Letter')}")
+                            st.text_area(ui_label("Generated Cover Letter"), value=full_letter, height=320)
 
-                            if full_letter:
-                                st.markdown(f"### {ui_label('Full Cover Letter')}")
-                                st.text_area(ui_label("Generated Cover Letter"), value=full_letter, height=320)
-                                st.download_button(
-                                    ui_label("Download Cover Letter as TXT"),
-                                    data=full_letter,
-                                    file_name="cover_letter.txt",
-                                    mime="text/plain",
-                                    key="download_cover_letter_txt_v49"
-                                )
-                            if short_email:
-                                st.markdown(f"### {ui_label('Short Email Version')}")
-                                st.text_area(ui_label("Generated Short Email"), value=short_email, height=180)
+                            c1, c2 = st.columns(2)
+                            with c1:
+                                st.download_button(ui_label("Download Cover Letter as TXT"), full_letter, "cover_letter.txt", "text/plain", key="download_cover_letter_txt_v49", use_container_width=True)
+
+                            with c2:
+                                try:
+                                    from io import BytesIO
+                                    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+                                    from reportlab.lib.pagesizes import A4
+                                    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+                                    from reportlab.lib.units import mm
+                                    import html as _html
+
+                                    buffer = BytesIO()
+                                    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=22*mm, leftMargin=22*mm, topMargin=20*mm, bottomMargin=20*mm)
+                                    styles = getSampleStyleSheet()
+                                    title_style = ParagraphStyle("CoverTitle", parent=styles["Heading1"], fontSize=16, leading=20, spaceAfter=12)
+                                    body_style = ParagraphStyle("CoverBody", parent=styles["BodyText"], fontSize=10.5, leading=15, spaceAfter=8)
+
+                                    story = [Paragraph(_html.escape(ui_label("Cover Letter")), title_style), Spacer(1, 6)]
+                                    for para in [p.strip() for p in full_letter.split("\n\n") if p.strip()]:
+                                        story.append(Paragraph(_html.escape(para).replace("\n", "<br/>"), body_style))
+
+                                    doc.build(story)
+                                    st.download_button(ui_label("Download Cover Letter as PDF"), buffer.getvalue(), "cover_letter.pdf", "application/pdf", key="download_cover_letter_pdf_v49", use_container_width=True)
+                                except Exception:
+                                    st.caption(ui_label("PDF download is unavailable because the PDF library is not installed."))
+
+                        if short_email:
+                            st.markdown(f"### {ui_label('Short Email Version')}")
+                            st.text_area(ui_label("Generated Short Email"), value=short_email, height=180)
 
 
 
@@ -657,3 +737,10 @@ def render_country_fit_cards(country_text: str):
 # =========================================================
 # DASHBOARD
 # =========================================================
+
+# WorkZo v30 note:
+# Cover Letter, CV, Job Match and Interview pages share these session keys:
+# target_company, target_role / target_job_title, target_company_website,
+# current_job_description / last_understand_job_description.
+# The existing widgets in this file already read these values. Job Match and
+# Interview Practice now keep them updated so users do not re-enter details.
