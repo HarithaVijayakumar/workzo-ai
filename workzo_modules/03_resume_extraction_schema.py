@@ -1552,3 +1552,30 @@ try:
         return data
 except Exception:
     pass
+
+# =========================================================
+# WorkZo speed patch: cache PDF extraction by file bytes
+# =========================================================
+from io import BytesIO as _WorkZoBytesIO
+_workzo_uncached_extract_pdf_text = extract_pdf_text
+
+@st.cache_data(show_spinner=False, ttl=3600, max_entries=30)
+def _workzo_cached_extract_pdf_text_bytes(pdf_bytes: bytes) -> str:
+    return _workzo_uncached_extract_pdf_text(_WorkZoBytesIO(pdf_bytes or b""))
+
+def extract_pdf_text(uploaded_file) -> str:
+    """Cached wrapper to prevent repeated PDF parsing on Streamlit reruns."""
+    try:
+        pos = uploaded_file.tell() if hasattr(uploaded_file, "tell") else None
+    except Exception:
+        pos = None
+    try:
+        pdf_bytes = uploaded_file.getvalue() if hasattr(uploaded_file, "getvalue") else uploaded_file.read()
+    except Exception:
+        pdf_bytes = b""
+    try:
+        if pos is not None and hasattr(uploaded_file, "seek"):
+            uploaded_file.seek(pos)
+    except Exception:
+        pass
+    return _workzo_cached_extract_pdf_text_bytes(bytes(pdf_bytes or b""))

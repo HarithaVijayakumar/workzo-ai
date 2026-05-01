@@ -873,6 +873,7 @@ def fetch_adzuna_jobs(query: str, country_name: str, location: str = "", limit: 
 
     return results[:limit]
 
+@st.cache_data(show_spinner=False, ttl=900, max_entries=60)
 def fetch_live_jobs_global(country_name: str, roles: List[str], location: str = "", user_status: str = "") -> List[Dict]:
     results: List[Dict] = []
     country_lower = (country_name or "").strip().lower()
@@ -953,6 +954,7 @@ def fallback_job_search_plan(country_name: str, location: str, roles: List[str],
         ]
     }
 
+@st.cache_data(show_spinner=False, ttl=1800, max_entries=40)
 def generate_job_search_plan(country_name: str, location: str, roles: List[str], cv_text: str, live_jobs: List[Dict]) -> Dict:
     prompt = f"""
 Return ONLY valid JSON. Do not use markdown.
@@ -1348,6 +1350,7 @@ def estimate_curated_job_alignment(job: Dict, cv_text: str, expansion: Dict, cou
     }
 
 
+@st.cache_data(show_spinner=False, ttl=900, max_entries=60)
 def curate_job_matches(jobs: List[Dict], cv_text: str, expansion: Dict, country_name: str, user_status: str, limit: int = 18) -> List[Dict]:
     enriched = []
     for job in jobs or []:
