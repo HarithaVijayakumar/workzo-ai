@@ -337,7 +337,7 @@ def show_dashboard():
                 key="target_company_website_sidebar",
             )
             if _sidebar_company_url.strip() != _current_company_url.strip():
-                st.session_state["target_company_website"] = _sidebar_company_url.strip()
+                st.session_state["company_website"] = _sidebar_company_url.strip()
                 st.session_state["company_website"] = _sidebar_company_url.strip()
             if st.session_state.get("target_company_website"):
                 st.caption("Saved for AI outputs in this session.")
@@ -387,6 +387,55 @@ def show_dashboard():
         target_country_plan = st.session_state.get("migration_country") or st.session_state.get("country", "Not specified")
         target_role_plan = st.session_state.get("target_role") or st.session_state.get("detected_target_role") or st.session_state.get("current_role_detected") or ui_label("your target role")
         company_context = st.session_state.get("target_company_website", "")
+        # =========================
+        # WORKZO FOOTER (BETA + FEEDBACK)
+        # =========================
+
+        st.markdown("---")
+
+        st.markdown("""
+        <div style="
+            border:1px solid rgba(148,163,184,0.2);
+            border-radius:16px;
+            padding:16px;
+            background:rgba(15,23,42,0.6);
+            margin-top:20px;
+        ">
+            <div style="font-weight:700; font-size:14px; margin-bottom:6px;">
+                ⚠️ Beta Notice
+            </div>
+            <div style="font-size:13px; color:#cbd5e1;">
+                WorkZo AI is in beta. Results may not always be accurate. 
+                Do not rely solely on AI-generated outputs for job applications.
+                Always review and verify before using.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+        # =========================
+        # FEEDBACK BOX
+        # =========================
+
+        st.markdown("### 💬 Share feedback")
+
+        feedback = st.text_area(
+            "What worked? What felt confusing?",
+            placeholder="Your feedback helps improve WorkZo...",
+            key="workzo_feedback_input"
+        )
+
+        if st.button("Submit Feedback", key="workzo_feedback_submit"):
+            try:
+                with open(FEEDBACK_FILE, "a", encoding="utf-8") as f:
+                    f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} | {feedback}\n")
+                st.success("Thank you! Feedback saved.")
+            except Exception:
+                st.warning("Feedback could not be saved.")
+                st.caption("💡 Example: 'Job Assist is confusing' or 'Resume score not clear'")
+
+
+        
 
         # Decide one clear next action. This replaces long feature lists.
         if not cv_ready:
@@ -417,6 +466,20 @@ def show_dashboard():
 
         st.markdown(f"""
         <style>
+        /* WorkZo v65: keep sidebar/toolbox buttons in original dark style, not red */
+        section[data-testid="stSidebar"] div[data-testid="stButton"] > button {
+            background: transparent !important;
+            border: 1px solid rgba(59,130,246,.35) !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            border-radius: 12px !important;
+        }
+        section[data-testid="stSidebar"] div[data-testid="stButton"] > button:hover {
+            background: rgba(37,99,235,.16) !important;
+            border-color: rgba(96,165,250,.55) !important;
+            color: #ffffff !important;
+        }
+
         .wz-command-hero {{
             border: 1px solid rgba(20,184,166,0.28);
             border-radius: 24px;
@@ -1440,12 +1503,9 @@ def _wz19_render_sidebar(page_key: str):
             ("dashboard", "Dashboard"),
             ("cv_documents", "My CV"),
             ("job_assist", "Job Match"),
-            ("workobot", "Interview Practice"),
+            ("workobot", "Work-O-Bot"),
         ]
-
-        if st.session_state.get("founder_unlocked"):
-            nav.append(("founder_dashboard", "Founder Analytics"))
-
+        # Founder analytics hidden in v26.
         for key, label in nav:
             shown = label + ("  ✓" if page_key == key else "")
             if st.button(shown, key=f"wz19_sidebar_{key}", use_container_width=True):
@@ -1669,7 +1729,7 @@ def _wz20_render_job_assist_page():
     if st.button("Analyze job match", key="wz20_analyze_job_match", use_container_width=True):
         st.session_state["target_company"] = target_company
         st.session_state["target_job_title"] = target_title
-        st.session_state["target_company_website"] = company_website
+        st.session_state["company_website"] = company_website
         st.session_state["company_context"] = _wz26_fetch_company_context(target_company, company_website)
         st.session_state["last_prepare_job_description"] = jd
         st.session_state["last_understand_job_description"] = jd
@@ -1722,7 +1782,7 @@ def _wz20_render_job_assist_page():
                 st.session_state["cv_documents_mode"] = "cover_letter"
                 st.session_state["cover_letter_job_desc"] = jd
                 st.session_state["target_company"] = target_company
-                st.session_state["target_company_website"] = company_website
+                st.session_state["company_website"] = company_website
                 st.session_state["company_context"] = _wz26_fetch_company_context(target_company, company_website)
                 _wz19_go("cv_documents")
         with c:
@@ -1730,7 +1790,7 @@ def _wz20_render_job_assist_page():
                 st.session_state["workobot_mode"] = "real_interview_simulation"
                 st.session_state["real_interview_jd"] = jd
                 st.session_state["real_interview_company"] = target_company
-                st.session_state["target_company_website"] = company_website
+                st.session_state["company_website"] = company_website
                 st.session_state["company_context"] = _wz26_fetch_company_context(target_company, company_website)
                 _wz21_go("workobot")
 
@@ -2066,6 +2126,169 @@ def _wz24_dashboard_home():
     st.markdown(f"<div class='wz19-reco'>{html.escape(reco)}</div>", unsafe_allow_html=True)
     if st.button(btn, key="wz24_reco_button", use_container_width=True):
         _wz21_go(target)
+
+    st.divider()
+
+    # Application progress tracker only. No navigation or other dashboard logic changed.
+    cv_ready = bool(str(st.session_state.get("cv_text", "")).strip())
+    improved_ready = bool(str(
+        st.session_state.get("improved_cv_text", "")
+        or st.session_state.get("latest_improved_cv", "")
+        or st.session_state.get("final_cv_text", "")
+        or st.session_state.get("prepare_cv_tailored", "")
+        or st.session_state.get("improved_cv_text_v92", "")
+    ).strip())
+    job_ready = bool(str(
+        st.session_state.get("last_understand_job_description", "")
+        or st.session_state.get("improve_cv_for_job_desc", "")
+        or st.session_state.get("last_prepare_job_description", "")
+        or st.session_state.get("latest_job_analysis", "")
+        or st.session_state.get("latest_curated_jobs", "")
+    ).strip())
+    prepared_ready = bool(str(
+        st.session_state.get("latest_application_prep", "")
+        or st.session_state.get("latest_cover_letter", "")
+        or st.session_state.get("cover_letter_job_desc", "")
+        or st.session_state.get("application_ready_flag", "")
+    ).strip())
+
+    progress_steps = [
+        {"title": "1. CV uploaded", "desc_done": "completed", "desc_next": "Upload or create your CV", "done": cv_ready, "icon_done": "✅", "icon_next": "○"},
+        {"title": "2. CV improved", "desc_done": "completed", "desc_next": "Improve or tailor your CV", "done": improved_ready, "icon_done": "✅", "icon_next": "➜"},
+        {"title": "3. Job matched", "desc_done": "completed", "desc_next": "Find matching jobs", "done": job_ready, "icon_done": "✅", "icon_next": "○"},
+        {"title": "4. Prepared for job", "desc_done": "completed", "desc_next": "Prepare cover letter and interview notes", "done": prepared_ready, "icon_done": "✅", "icon_next": "○"},
+    ]
+    next_index = 0
+    for i, step in enumerate(progress_steps):
+        if not step["done"]:
+            next_index = i
+            break
+    else:
+        next_index = len(progress_steps) - 1
+
+    st.markdown("""
+    <style>
+    .wz-progress-wrap {
+        margin-top: 4px;
+        padding: 2px 0 8px 0;
+    }
+    .wz-progress-title {
+        color: #f8fafc;
+        font-size: 1.55rem;
+        font-weight: 900;
+        line-height: 1.15;
+        margin-bottom: 16px;
+        text-transform: lowercase;
+    }
+    .wz-progress-sub {
+        color: #9ca3af;
+        font-size: .94rem;
+        font-weight: 650;
+        margin-bottom: 24px;
+    }
+    .wz-progress-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 20px;
+        margin-bottom: 10px;
+    }
+    .wz-progress-card {
+        min-height: 112px;
+        border-radius: 22px;
+        border: 1px solid rgba(148,163,184,.18);
+        background: rgba(15,23,42,.34);
+        padding: 24px 24px 18px 24px;
+    }
+    .wz-progress-card.done {
+        border-color: rgba(52,211,153,.70);
+        background: linear-gradient(135deg, rgba(20,184,166,.23), rgba(15,23,42,.42));
+    }
+    .wz-progress-card.active {
+        border-color: rgba(59,130,246,.82);
+        background: linear-gradient(135deg, rgba(37,99,235,.23), rgba(15,23,42,.42));
+    }
+    .wz-progress-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #f8fafc;
+        font-size: 1rem;
+        font-weight: 900;
+        margin-bottom: 18px;
+    }
+    .wz-progress-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        min-width: 28px;
+        color: #64748b;
+        font-size: 1.35rem;
+        line-height: 1;
+    }
+    .wz-progress-card.done .wz-progress-icon { color: #34d399; }
+    .wz-progress-card.active .wz-progress-icon { color: #3b82f6; font-size: 1.7rem; }
+    .wz-progress-desc {
+        color: #cbd5e1;
+        font-size: .95rem;
+        line-height: 1.45;
+        font-weight: 600;
+    }
+    .wz-progress-card.done .wz-progress-desc { color: #34d399; font-weight: 800; }
+    .wz-progress-card.active .wz-progress-desc { color: #93c5fd; }
+    .wz-progress-note {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #9ca3af;
+        font-size: .9rem;
+        font-weight: 700;
+        margin-top: 18px;
+    }
+    .wz-progress-info {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        border: 2px solid #64748b;
+        color: #94a3b8;
+        font-size: .78rem;
+        font-weight: 900;
+    }
+    @media (max-width: 900px) {
+        .wz-progress-grid { grid-template-columns: 1fr; gap: 12px; }
+        .wz-progress-card { min-height: auto; }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    cards_html = []
+    for i, step in enumerate(progress_steps):
+        state_class = "done" if step["done"] else ("active" if i == next_index else "")
+        icon = step["icon_done"] if step["done"] else step["icon_next"]
+        desc = step["desc_done"] if step["done"] else step["desc_next"]
+        cards_html.append(f"""
+        <div class="wz-progress-card {state_class}">
+            <div class="wz-progress-head">
+                <span class="wz-progress-icon">{html.escape(icon)}</span>
+                <span>{html.escape(step['title'])}</span>
+            </div>
+            <div class="wz-progress-desc">{html.escape(desc)}</div>
+        </div>
+        """)
+
+    st.markdown(f"""
+    <div class="wz-progress-wrap">
+        <div class="wz-progress-title">application progress</div>
+        <div class="wz-progress-sub">Visual tracker only. Use Smart actions above to continue.</div>
+        <div class="wz-progress-grid">
+            {''.join(cards_html)}
+        </div>
+        <div class="wz-progress-note"><span class="wz-progress-info">i</span><span>Scores are guidance only. WorkZo should not invent skills, company facts, language level, salary, or experience.</span></div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.divider()
     help_col, bot_col = st.columns([2, 1])
@@ -2589,7 +2812,7 @@ def _wz27_job_assist_page():
     with col2:
         st.text_input('Company website / careers page', value=st.session_state.get('target_company_website',''), key='wz27_company_website', help='Optional, but recommended for company-aware cover letters and interview questions.')
     st.session_state['target_company'] = st.session_state.get('wz27_target_company','')
-    st.session_state['target_company_website'] = st.session_state.get('wz27_company_website','')
+    st.session_state['company_website'] = st.session_state.get('wz27_company_website','')
     try:
         _wz20_render_job_assist_page()
     except Exception as exc:
@@ -2852,7 +3075,7 @@ def _wz28_job_assist_page():
     with col2:
         website = st.text_input('Company website / careers page', value=st.session_state.get('target_company_website',''), key='wz28_company_website')
     st.session_state['target_company'] = company
-    st.session_state['target_company_website'] = website
+    st.session_state['company_website'] = website
     if website:
         st.info('Company website saved. WorkZo will use it for CV advice, cover letters, and interview questions without inventing facts.')
     try:
@@ -3011,7 +3234,7 @@ def _wz30_set_job_context(company='', role='', website='', job_description='') -
     st.session_state['target_role'] = str(role or '').strip()
     st.session_state['target_job_title'] = str(role or '').strip()
     st.session_state['prepare_target_role'] = str(role or '').strip()
-    st.session_state['target_company_website'] = str(website or '').strip()
+    st.session_state['company_website'] = str(website or '').strip()
     jd = str(job_description or '').strip()
     st.session_state['current_job_description'] = jd
     st.session_state['last_understand_job_description'] = jd
@@ -3630,24 +3853,6 @@ def _wz32_dashboard_home():
     for idx, (step_key, label, done, note, button_label, target, extra_state) in enumerate(progress_items):
         with cols[idx]:
             st.markdown(_wz32_flow_step(label, done, current_key == step_key, note), unsafe_allow_html=True)
-            if st.button(button_label, key=f'wz49_progress_{step_key}_{idx}', use_container_width=True):
-                if isinstance(extra_state, dict):
-                    for k, v in extra_state.items():
-                        st.session_state[k] = v
-                if target == 'onboarding':
-                    try:
-                        reset_onboarding()
-                    except Exception:
-                        st.session_state['page'] = 'onboarding'
-                        st.session_state['nav_page'] = 'onboarding'
-                    try:
-                        request_scroll_to_top()
-                    except Exception:
-                        pass
-                    st.rerun()
-                else:
-                    _wz28_go(target)
-
     try:
         readiness = int(round((sum([cv_done, improved_done, job_done, prep_done]) / 4) * 100))
         st.session_state['application_readiness_value'] = max(int(st.session_state.get('application_readiness_value') or 0), readiness)
@@ -4121,24 +4326,31 @@ def _wz35_dashboard_home():
         _wz35_action_card("Work-O-Bot", ui_label("Ask career questions or practice interview answers in your selected language."), txt("ask_workobot"), "workobot", "wz35_action_bot")
 
     st.markdown("### " + txt("application_progress"))
-    st.caption(ui_label("Visual tracker only. Use Smart actions above to continue."))
-
-    flow = [
-        ("1. CV uploaded", cv_exists, txt("completed") if cv_exists else ui_label("Upload or create your CV")),
-        ("2. CV improved", improved_ready, txt("completed") if improved_ready else ui_label("Improve or tailor your CV")),
-        ("3. Job matched", job_exists, txt("completed") if job_exists else ui_label("Find matching jobs")),
-        ("4. Prepared for job", prepared_ready, txt("completed") if prepared_ready else ui_label("Prepare cover letter and interview notes")),
-    ]
-    try:
-        current = next((i for i, (_, done, _) in enumerate(flow) if not done), len(flow) - 1)
-    except Exception:
+    st.caption(ui_label("Move step by step, or jump to the part you want to work on."))
+    score_checked = bool(cv_exists and resume_score > 0 and ats_score > 0)
+    if not cv_exists:
         current = 0
-
-    cols = st.columns(4)
-    for i, (label, done, note) in enumerate(flow):
+    elif not score_checked or resume_score < 75 or ats_score < 75:
+        current = 1
+    elif not job_exists:
+        current = 2
+    elif not improved_ready:
+        current = 3
+    elif not prepared_ready:
+        current = 4
+    else:
+        current = 5
+    flow = [
+        ("1. " + txt("cv_added"), cv_exists, txt("completed") if cv_exists else ui_label("Upload or create CV"), txt("edit_setup"), "cv_documents", {"document_tools_mode":"Improve / Update CV"}),
+        ("2. " + txt("resume_ats_checked"), score_checked and resume_score >= 75 and ats_score >= 75, ui_label("Good") if score_checked and resume_score >= 75 and ats_score >= 75 else ui_label("Improve scores above 75"), txt("improve_cv"), "cv_documents", {"document_tools_mode":"Improve / Update CV"}),
+        ("3. " + txt("job_analyzed"), job_exists, txt("completed") if job_exists else ui_label("Paste/analyze one job"), txt("understand_job"), "job_assist", {"job_assist_mode_key":"understand"}),
+        ("4. " + txt("cv_improved"), improved_ready, txt("completed") if improved_ready else ui_label("Tailor CV to the job"), txt("improve_cv"), "cv_documents", {"document_tools_mode":"Improve CV for a Job" if job_exists else "Improve / Update CV"}),
+        ("5. " + txt("prepared_to_apply"), prepared_ready, txt("completed") if prepared_ready else ui_label("Prepare application"), txt("prepare_this_job"), "job_assist", {"job_assist_mode_key":"prepare"}),
+    ]
+    cols = st.columns(5)
+    for i, (label, done, note, button, target, extra) in enumerate(flow):
         with cols[i]:
-            _wz35_flow_card(label, done, (not done and current == i), note)
-
+            _wz35_flow_card(label, done, current == i, note)
     st.caption(ui_label("Scores are guidance only. WorkZo should not invent skills, company facts, language level, salary, or experience."))
     _wz35_remember_scores()
     _wz35_save_state()
@@ -4839,8 +5051,6 @@ def _wz50_dashboard_home():
     for i, (label, done, note, button, target, extra) in enumerate(flow):
         with cols[i]:
             _wz35_flow_card(label, done, current == i, note)
-            if st.button(button, key=f'wz50_flow_btn_{i}', use_container_width=True):
-                _wz35_go(target, extra)
     st.caption(ui_label('Scores are guidance only. WorkZo should not invent skills, company facts, language level, salary, or experience.'))
     _wz35_remember_scores()
     _wz50_save_state()
@@ -5170,15 +5380,19 @@ def _wz51_render_prepare_job():
     st.caption(_wz51_safe_label("Create a focused application and interview preparation plan from your CV and job context.", "Create a focused application and interview preparation plan from your CV and job context."))
     c1, c2 = st.columns(2)
     with c1:
-        company = st.text_input(_wz51_safe_label("Target company", "Target company"), value=st.session_state.get("target_company", ""), key="wz51_target_company")
+        company = st.text_input(_wz51_safe_label("Target company", "Target company"), value="", key="wz51_target_company_clean", placeholder=_wz51_safe_label("Example: Siemens, SAP, Google", "Example: Siemens, SAP, Google"))
     with c2:
-        role = st.text_input(_wz51_safe_label("Target role", "Target role"), value=st.session_state.get("target_job_title", ""), key="wz51_target_role")
-    website = st.text_input(_wz51_safe_label("Company website / careers page", "Company website / careers page"), value=st.session_state.get("target_company_website", ""), key="wz51_company_website")
+        role = st.text_input(_wz51_safe_label("Target role", "Target role"), value="", key="wz51_target_role_clean", placeholder=_wz51_safe_label("Example: Data Analyst, IT Support", "Example: Data Analyst, IT Support"))
+    website = st.text_input(_wz51_safe_label("Company website / careers page", "Company website / careers page"), value="", key="wz51_company_website_clean", placeholder="https://company.com")
     jd = st.text_area(_wz51_safe_label("Job description", "Job description"), value=st.session_state.get("last_understand_job_description", ""), height=220, key="wz51_prepare_jd")
     if st.button(_wz51_safe_label("Prepare application", "Prepare application"), key="wz51_prepare_application", use_container_width=True):
         st.session_state["target_company"] = company.strip()
         st.session_state["target_job_title"] = role.strip()
-        st.session_state["target_company_website"] = website.strip()
+        # Do not write to st.session_state["target_company_website"] here.
+        # That key is also used by an existing Streamlit widget elsewhere,
+        # so modifying it after widget creation causes StreamlitAPIException.
+        st.session_state["company_website"] = website.strip()
+        st.session_state["wz51_saved_company_website"] = website.strip()
         st.session_state["current_job_description"] = jd.strip()
         st.session_state["last_prepare_job_description"] = jd.strip()
         cv_text = str(st.session_state.get("cv_text") or st.session_state.get("clean_structured_cv_text") or "")
@@ -5646,7 +5860,7 @@ def show_dashboard():
                 key="target_company_website_sidebar",
             )
             if _sidebar_company_url.strip() != _current_company_url.strip():
-                st.session_state["target_company_website"] = _sidebar_company_url.strip()
+                st.session_state["company_website"] = _sidebar_company_url.strip()
                 st.session_state["company_website"] = _sidebar_company_url.strip()
             if st.session_state.get("target_company_website"):
                 st.caption("Saved for AI outputs in this session.")
@@ -6975,7 +7189,7 @@ def _wz20_render_job_assist_page():
     if st.button("Analyze job match", key="wz20_analyze_job_match", use_container_width=True):
         st.session_state["target_company"] = target_company
         st.session_state["target_job_title"] = target_title
-        st.session_state["target_company_website"] = company_website
+        st.session_state["company_website"] = company_website
         st.session_state["company_context"] = _wz26_fetch_company_context(target_company, company_website)
         st.session_state["last_prepare_job_description"] = jd
         st.session_state["last_understand_job_description"] = jd
@@ -7028,7 +7242,7 @@ def _wz20_render_job_assist_page():
                 st.session_state["cv_documents_mode"] = "cover_letter"
                 st.session_state["cover_letter_job_desc"] = jd
                 st.session_state["target_company"] = target_company
-                st.session_state["target_company_website"] = company_website
+                st.session_state["company_website"] = company_website
                 st.session_state["company_context"] = _wz26_fetch_company_context(target_company, company_website)
                 _wz19_go("cv_documents")
         with c:
@@ -7036,7 +7250,7 @@ def _wz20_render_job_assist_page():
                 st.session_state["workobot_mode"] = "real_interview_simulation"
                 st.session_state["real_interview_jd"] = jd
                 st.session_state["real_interview_company"] = target_company
-                st.session_state["target_company_website"] = company_website
+                st.session_state["company_website"] = company_website
                 st.session_state["company_context"] = _wz26_fetch_company_context(target_company, company_website)
                 _wz21_go("workobot")
 
@@ -7895,7 +8109,7 @@ def _wz27_job_assist_page():
     with col2:
         st.text_input('Company website / careers page', value=st.session_state.get('target_company_website',''), key='wz27_company_website', help='Optional, but recommended for company-aware cover letters and interview questions.')
     st.session_state['target_company'] = st.session_state.get('wz27_target_company','')
-    st.session_state['target_company_website'] = st.session_state.get('wz27_company_website','')
+    st.session_state['company_website'] = st.session_state.get('wz27_company_website','')
     try:
         _wz20_render_job_assist_page()
     except Exception as exc:
@@ -8158,7 +8372,7 @@ def _wz28_job_assist_page():
     with col2:
         website = st.text_input('Company website / careers page', value=st.session_state.get('target_company_website',''), key='wz28_company_website')
     st.session_state['target_company'] = company
-    st.session_state['target_company_website'] = website
+    st.session_state['company_website'] = website
     if website:
         st.info('Company website saved. WorkZo will use it for CV advice, cover letters, and interview questions without inventing facts.')
     try:
@@ -8317,7 +8531,7 @@ def _wz30_set_job_context(company='', role='', website='', job_description='') -
     st.session_state['target_role'] = str(role or '').strip()
     st.session_state['target_job_title'] = str(role or '').strip()
     st.session_state['prepare_target_role'] = str(role or '').strip()
-    st.session_state['target_company_website'] = str(website or '').strip()
+    st.session_state['company_website'] = str(website or '').strip()
     jd = str(job_description or '').strip()
     st.session_state['current_job_description'] = jd
     st.session_state['last_understand_job_description'] = jd
@@ -8936,24 +9150,6 @@ def _wz32_dashboard_home():
     for idx, (step_key, label, done, note, button_label, target, extra_state) in enumerate(progress_items):
         with cols[idx]:
             st.markdown(_wz32_flow_step(label, done, current_key == step_key, note), unsafe_allow_html=True)
-            if st.button(button_label, key=f'wz49_progress_{step_key}_{idx}', use_container_width=True):
-                if isinstance(extra_state, dict):
-                    for k, v in extra_state.items():
-                        st.session_state[k] = v
-                if target == 'onboarding':
-                    try:
-                        reset_onboarding()
-                    except Exception:
-                        st.session_state['page'] = 'onboarding'
-                        st.session_state['nav_page'] = 'onboarding'
-                    try:
-                        request_scroll_to_top()
-                    except Exception:
-                        pass
-                    st.rerun()
-                else:
-                    _wz28_go(target)
-
     try:
         readiness = int(round((sum([cv_done, improved_done, job_done, prep_done]) / 4) * 100))
         st.session_state['application_readiness_value'] = max(int(st.session_state.get('application_readiness_value') or 0), readiness)
@@ -9427,24 +9623,31 @@ def _wz35_dashboard_home():
         _wz35_action_card("Work-O-Bot", ui_label("Ask career questions or practice interview answers in your selected language."), txt("ask_workobot"), "workobot", "wz35_action_bot")
 
     st.markdown("### " + txt("application_progress"))
-    st.caption(ui_label("Visual tracker only. Use Smart actions above to continue."))
-
-    flow = [
-        ("1. CV uploaded", cv_exists, txt("completed") if cv_exists else ui_label("Upload or create your CV")),
-        ("2. CV improved", improved_ready, txt("completed") if improved_ready else ui_label("Improve or tailor your CV")),
-        ("3. Job matched", job_exists, txt("completed") if job_exists else ui_label("Find matching jobs")),
-        ("4. Prepared for job", prepared_ready, txt("completed") if prepared_ready else ui_label("Prepare cover letter and interview notes")),
-    ]
-    try:
-        current = next((i for i, (_, done, _) in enumerate(flow) if not done), len(flow) - 1)
-    except Exception:
+    st.caption(ui_label("Move step by step, or jump to the part you want to work on."))
+    score_checked = bool(cv_exists and resume_score > 0 and ats_score > 0)
+    if not cv_exists:
         current = 0
-
-    cols = st.columns(4)
-    for i, (label, done, note) in enumerate(flow):
+    elif not score_checked or resume_score < 75 or ats_score < 75:
+        current = 1
+    elif not job_exists:
+        current = 2
+    elif not improved_ready:
+        current = 3
+    elif not prepared_ready:
+        current = 4
+    else:
+        current = 5
+    flow = [
+        ("1. " + txt("cv_added"), cv_exists, txt("completed") if cv_exists else ui_label("Upload or create CV"), txt("edit_setup"), "cv_documents", {"document_tools_mode":"Improve / Update CV"}),
+        ("2. " + txt("resume_ats_checked"), score_checked and resume_score >= 75 and ats_score >= 75, ui_label("Good") if score_checked and resume_score >= 75 and ats_score >= 75 else ui_label("Improve scores above 75"), txt("improve_cv"), "cv_documents", {"document_tools_mode":"Improve / Update CV"}),
+        ("3. " + txt("job_analyzed"), job_exists, txt("completed") if job_exists else ui_label("Paste/analyze one job"), txt("understand_job"), "job_assist", {"job_assist_mode_key":"understand"}),
+        ("4. " + txt("cv_improved"), improved_ready, txt("completed") if improved_ready else ui_label("Tailor CV to the job"), txt("improve_cv"), "cv_documents", {"document_tools_mode":"Improve CV for a Job" if job_exists else "Improve / Update CV"}),
+        ("5. " + txt("prepared_to_apply"), prepared_ready, txt("completed") if prepared_ready else ui_label("Prepare application"), txt("prepare_this_job"), "job_assist", {"job_assist_mode_key":"prepare"}),
+    ]
+    cols = st.columns(5)
+    for i, (label, done, note, button, target, extra) in enumerate(flow):
         with cols[i]:
-            _wz35_flow_card(label, done, (not done and current == i), note)
-
+            _wz35_flow_card(label, done, current == i, note)
     st.caption(ui_label("Scores are guidance only. WorkZo should not invent skills, company facts, language level, salary, or experience."))
     _wz35_remember_scores()
     _wz35_save_state()
@@ -10579,15 +10782,15 @@ def _wz51_render_prepare_job():
     st.caption(_wz51_safe_label("Create a focused application and interview preparation plan from your CV and job context.", "Create a focused application and interview preparation plan from your CV and job context."))
     c1, c2 = st.columns(2)
     with c1:
-        company = st.text_input(_wz51_safe_label("Target company", "Target company"), value=st.session_state.get("target_company", ""), key="wz51_target_company")
+        company = st.text_input(_wz51_safe_label("Target company", "Target company"), value="", key="wz51_target_company_clean", placeholder=_wz51_safe_label("Example: Siemens, SAP, Google", "Example: Siemens, SAP, Google"))
     with c2:
-        role = st.text_input(_wz51_safe_label("Target role", "Target role"), value=st.session_state.get("target_job_title", ""), key="wz51_target_role")
-    website = st.text_input(_wz51_safe_label("Company website / careers page", "Company website / careers page"), value=st.session_state.get("target_company_website", ""), key="wz51_company_website")
+        role = st.text_input(_wz51_safe_label("Target role", "Target role"), value="", key="wz51_target_role_clean", placeholder=_wz51_safe_label("Example: Data Analyst, IT Support", "Example: Data Analyst, IT Support"))
+    website = st.text_input(_wz51_safe_label("Company website / careers page", "Company website / careers page"), value="", key="wz51_company_website_clean", placeholder="https://company.com")
     jd = st.text_area(_wz51_safe_label("Job description", "Job description"), value=st.session_state.get("last_understand_job_description", ""), height=220, key="wz51_prepare_jd")
     if st.button(_wz51_safe_label("Prepare application", "Prepare application"), key="wz51_prepare_application", use_container_width=True):
         st.session_state["target_company"] = company.strip()
         st.session_state["target_job_title"] = role.strip()
-        st.session_state["target_company_website"] = website.strip()
+        st.session_state["company_website"] = website.strip()
         st.session_state["current_job_description"] = jd.strip()
         st.session_state["last_prepare_job_description"] = jd.strip()
         cv_text = str(st.session_state.get("cv_text") or st.session_state.get("clean_structured_cv_text") or "")
@@ -11055,7 +11258,7 @@ def show_dashboard():
                 key="target_company_website_sidebar",
             )
             if _sidebar_company_url.strip() != _current_company_url.strip():
-                st.session_state["target_company_website"] = _sidebar_company_url.strip()
+                st.session_state["company_website"] = _sidebar_company_url.strip()
                 st.session_state["company_website"] = _sidebar_company_url.strip()
             if st.session_state.get("target_company_website"):
                 st.caption("Saved for AI outputs in this session.")
@@ -12384,7 +12587,7 @@ def _wz20_render_job_assist_page():
     if st.button("Analyze job match", key="wz20_analyze_job_match", use_container_width=True):
         st.session_state["target_company"] = target_company
         st.session_state["target_job_title"] = target_title
-        st.session_state["target_company_website"] = company_website
+        st.session_state["company_website"] = company_website
         st.session_state["company_context"] = _wz26_fetch_company_context(target_company, company_website)
         st.session_state["last_prepare_job_description"] = jd
         st.session_state["last_understand_job_description"] = jd
@@ -12437,7 +12640,7 @@ def _wz20_render_job_assist_page():
                 st.session_state["cv_documents_mode"] = "cover_letter"
                 st.session_state["cover_letter_job_desc"] = jd
                 st.session_state["target_company"] = target_company
-                st.session_state["target_company_website"] = company_website
+                st.session_state["company_website"] = company_website
                 st.session_state["company_context"] = _wz26_fetch_company_context(target_company, company_website)
                 _wz19_go("cv_documents")
         with c:
@@ -12445,7 +12648,7 @@ def _wz20_render_job_assist_page():
                 st.session_state["workobot_mode"] = "real_interview_simulation"
                 st.session_state["real_interview_jd"] = jd
                 st.session_state["real_interview_company"] = target_company
-                st.session_state["target_company_website"] = company_website
+                st.session_state["company_website"] = company_website
                 st.session_state["company_context"] = _wz26_fetch_company_context(target_company, company_website)
                 _wz21_go("workobot")
 
@@ -13304,7 +13507,7 @@ def _wz27_job_assist_page():
     with col2:
         st.text_input('Company website / careers page', value=st.session_state.get('target_company_website',''), key='wz27_company_website', help='Optional, but recommended for company-aware cover letters and interview questions.')
     st.session_state['target_company'] = st.session_state.get('wz27_target_company','')
-    st.session_state['target_company_website'] = st.session_state.get('wz27_company_website','')
+    st.session_state['company_website'] = st.session_state.get('wz27_company_website','')
     try:
         _wz20_render_job_assist_page()
     except Exception as exc:
@@ -13567,7 +13770,7 @@ def _wz28_job_assist_page():
     with col2:
         website = st.text_input('Company website / careers page', value=st.session_state.get('target_company_website',''), key='wz28_company_website')
     st.session_state['target_company'] = company
-    st.session_state['target_company_website'] = website
+    st.session_state['company_website'] = website
     if website:
         st.info('Company website saved. WorkZo will use it for CV advice, cover letters, and interview questions without inventing facts.')
     try:
@@ -13726,7 +13929,7 @@ def _wz30_set_job_context(company='', role='', website='', job_description='') -
     st.session_state['target_role'] = str(role or '').strip()
     st.session_state['target_job_title'] = str(role or '').strip()
     st.session_state['prepare_target_role'] = str(role or '').strip()
-    st.session_state['target_company_website'] = str(website or '').strip()
+    st.session_state['company_website'] = str(website or '').strip()
     jd = str(job_description or '').strip()
     st.session_state['current_job_description'] = jd
     st.session_state['last_understand_job_description'] = jd
@@ -14345,24 +14548,6 @@ def _wz32_dashboard_home():
     for idx, (step_key, label, done, note, button_label, target, extra_state) in enumerate(progress_items):
         with cols[idx]:
             st.markdown(_wz32_flow_step(label, done, current_key == step_key, note), unsafe_allow_html=True)
-            if st.button(button_label, key=f'wz49_progress_{step_key}_{idx}', use_container_width=True):
-                if isinstance(extra_state, dict):
-                    for k, v in extra_state.items():
-                        st.session_state[k] = v
-                if target == 'onboarding':
-                    try:
-                        reset_onboarding()
-                    except Exception:
-                        st.session_state['page'] = 'onboarding'
-                        st.session_state['nav_page'] = 'onboarding'
-                    try:
-                        request_scroll_to_top()
-                    except Exception:
-                        pass
-                    st.rerun()
-                else:
-                    _wz28_go(target)
-
     try:
         readiness = int(round((sum([cv_done, improved_done, job_done, prep_done]) / 4) * 100))
         st.session_state['application_readiness_value'] = max(int(st.session_state.get('application_readiness_value') or 0), readiness)
@@ -14838,17 +15023,23 @@ def _wz35_dashboard_home():
     st.markdown("### " + txt("application_progress"))
     st.caption(ui_label("Visual tracker only. Use Smart actions above to continue."))
 
+    # Application progress should show only the 4 real user journey steps.
+    # Default behavior: only CV uploaded gets the green tick after onboarding/CV exists.
+    progress_cv_uploaded = bool(cv_exists)
+    progress_cv_improved = bool(improved_ready or st.session_state.get("workzo_progress_cv_improved"))
+    progress_job_matched = bool(job_exists or st.session_state.get("workzo_progress_job_matched"))
+    progress_prepared = bool(prepared_ready or st.session_state.get("workzo_progress_prepared"))
+
     flow = [
-        ("1. CV uploaded", cv_exists, txt("completed") if cv_exists else ui_label("Upload or create your CV")),
-        ("2. CV improved", improved_ready, txt("completed") if improved_ready else ui_label("Improve or tailor your CV")),
-        ("3. Job matched", job_exists, txt("completed") if job_exists else ui_label("Find matching jobs")),
-        ("4. Prepared for job", prepared_ready, txt("completed") if prepared_ready else ui_label("Prepare cover letter and interview notes")),
+        ("1. CV uploaded", progress_cv_uploaded, txt("completed") if progress_cv_uploaded else ui_label("Upload or create CV")),
+        ("2. CV improved", progress_cv_improved, txt("completed") if progress_cv_improved else ui_label("Improve or tailor your CV")),
+        ("3. Job matched", progress_job_matched, txt("completed") if progress_job_matched else ui_label("Find matching jobs")),
+        ("4. Prepared for job", progress_prepared, txt("completed") if progress_prepared else ui_label("Prepare cover letter and interview notes")),
     ]
     try:
         current = next((i for i, (_, done, _) in enumerate(flow) if not done), len(flow) - 1)
     except Exception:
         current = 0
-
     cols = st.columns(4)
     for i, (label, done, note) in enumerate(flow):
         with cols[i]:
@@ -15996,15 +16187,15 @@ def _wz51_render_prepare_job():
     st.caption(_wz51_safe_label("Create a focused application and interview preparation plan from your CV and job context.", "Create a focused application and interview preparation plan from your CV and job context."))
     c1, c2 = st.columns(2)
     with c1:
-        company = st.text_input(_wz51_safe_label("Target company", "Target company"), value=st.session_state.get("target_company", ""), key="wz51_target_company")
+        company = st.text_input(_wz51_safe_label("Target company", "Target company"), value="", key="wz51_target_company_clean", placeholder=_wz51_safe_label("Example: Siemens, SAP, Google", "Example: Siemens, SAP, Google"))
     with c2:
-        role = st.text_input(_wz51_safe_label("Target role", "Target role"), value=st.session_state.get("target_job_title", ""), key="wz51_target_role")
-    website = st.text_input(_wz51_safe_label("Company website / careers page", "Company website / careers page"), value=st.session_state.get("target_company_website", ""), key="wz51_company_website")
+        role = st.text_input(_wz51_safe_label("Target role", "Target role"), value="", key="wz51_target_role_clean", placeholder=_wz51_safe_label("Example: Data Analyst, IT Support", "Example: Data Analyst, IT Support"))
+    website = st.text_input(_wz51_safe_label("Company website / careers page", "Company website / careers page"), value="", key="wz51_company_website_clean", placeholder="https://company.com")
     jd = st.text_area(_wz51_safe_label("Job description", "Job description"), value=st.session_state.get("last_understand_job_description", ""), height=220, key="wz51_prepare_jd")
     if st.button(_wz51_safe_label("Prepare application", "Prepare application"), key="wz51_prepare_application", use_container_width=True):
         st.session_state["target_company"] = company.strip()
         st.session_state["target_job_title"] = role.strip()
-        st.session_state["target_company_website"] = website.strip()
+        st.session_state["company_website"] = website.strip()
         st.session_state["current_job_description"] = jd.strip()
         st.session_state["last_prepare_job_description"] = jd.strip()
         cv_text = str(st.session_state.get("cv_text") or st.session_state.get("clean_structured_cv_text") or "")
@@ -16133,3 +16324,1769 @@ def show_dashboard():
         _wz35_save_state()
     except Exception:
         pass
+
+# =========================================================
+# WorkZo v55 - smarter Understand Job only
+# Scope: replaces only the Understand Job renderer used inside Job Assist.
+# Keeps all other dashboard/pages unchanged.
+# =========================================================
+def _wz55_country_iso(country_name: str) -> str:
+    try:
+        name = str(country_name or '').strip()
+        if not name or name.lower() == 'global':
+            return ''
+        aliases = {
+            'usa': 'US', 'united states': 'US', 'united states of america': 'US',
+            'uk': 'GB', 'united kingdom': 'GB', 'england': 'GB',
+            'germany': 'DE', 'deutschland': 'DE', 'india': 'IN', 'canada': 'CA',
+            'netherlands': 'NL', 'austria': 'AT', 'switzerland': 'CH', 'france': 'FR',
+            'australia': 'AU', 'singapore': 'SG', 'ireland': 'IE', 'spain': 'ES',
+            'italy': 'IT', 'sweden': 'SE', 'denmark': 'DK', 'norway': 'NO', 'finland': 'FI'
+        }
+        low = name.lower()
+        if low in aliases:
+            return aliases[low]
+        try:
+            import pycountry as _pycountry
+            c = _pycountry.countries.lookup(name)
+            return getattr(c, 'alpha_2', '') or ''
+        except Exception:
+            return ''
+    except Exception:
+        return ''
+
+
+def _wz55_city_bbox(city: str, country_iso: str = '') -> dict:
+    """Return a small bounding box for the city when available.
+    Uses geonamescache if installed; otherwise falls back gracefully.
+    """
+    try:
+        city_clean = str(city or '').strip()
+        if not city_clean:
+            return {}
+        try:
+            import geonamescache as _geonamescache
+            gc = _geonamescache.GeonamesCache()
+            cities = gc.get_cities()
+            city_low = city_clean.lower()
+            iso = str(country_iso or '').upper()
+            best = None
+            for item in cities.values():
+                if str(item.get('name', '')).lower() == city_low and (not iso or item.get('countrycode') == iso):
+                    best = item
+                    break
+            if not best:
+                for item in cities.values():
+                    if str(item.get('name', '')).lower().startswith(city_low) and (not iso or item.get('countrycode') == iso):
+                        best = item
+                        break
+            if best:
+                lat = float(best.get('latitude'))
+                lon = float(best.get('longitude'))
+                pad = 0.45
+                return {'city': best.get('name', city_clean), 'country_iso': best.get('countrycode', iso), 'lat': lat, 'lon': lon, 'bbox': [round(lon-pad, 4), round(lat-pad, 4), round(lon+pad, 4), round(lat+pad, 4)]}
+        except Exception:
+            pass
+        fallback = {
+            ('munich','DE'):(48.1351,11.5820), ('berlin','DE'):(52.5200,13.4050), ('frankfurt','DE'):(50.1109,8.6821),
+            ('nuremberg','DE'):(49.4521,11.0767), ('wurzburg','DE'):(49.7913,9.9534), ('würzburg','DE'):(49.7913,9.9534),
+            ('chennai','IN'):(13.0827,80.2707), ('bangalore','IN'):(12.9716,77.5946), ('bengaluru','IN'):(12.9716,77.5946),
+            ('london','GB'):(51.5072,-0.1276), ('toronto','CA'):(43.6532,-79.3832), ('amsterdam','NL'):(52.3676,4.9041)
+        }
+        point = fallback.get((city_clean.lower(), str(country_iso or '').upper())) or fallback.get((city_clean.lower(), ''))
+        if point:
+            lat, lon = point
+            pad = 0.45
+            return {'city': city_clean, 'country_iso': country_iso, 'lat': lat, 'lon': lon, 'bbox': [round(lon-pad, 4), round(lat-pad, 4), round(lon+pad, 4), round(lat+pad, 4)]}
+    except Exception:
+        pass
+    return {}
+
+
+def _wz55_clean_list(value, limit=6):
+    if isinstance(value, list):
+        items = value
+    elif isinstance(value, str):
+        items = re.split(r'[,;\n•-]+', value)
+    else:
+        items = []
+    out = []
+    for item in items:
+        text = re.sub(r'\s+', ' ', str(item or '')).strip(' -•')
+        if text and text.lower() not in [x.lower() for x in out]:
+            out.append(text)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _wz55_fallback_job_analysis(cv_text: str, jd: str, country: str, city: str) -> dict:
+    score, matched, missing = _wz51_keyword_match(cv_text, jd) if callable(globals().get('_wz51_keyword_match')) else (0, [], [])
+    score = max(0, min(100, int(score or 0)))
+    verdict = 'Strong apply' if score >= 80 else ('Apply, but tailor first' if score >= 60 else ('Possible, but improve first' if score >= 40 else 'Risky match — review before applying'))
+    return {
+        'score': score,
+        'skill_match': min(100, score + 8) if score else 0,
+        'experience_match': score,
+        'keyword_match': score,
+        'language_match': 0,
+        'verdict': verdict,
+        'main_reason': 'This is a fast rule-based review based on the CV text and the pasted job description.',
+        'matched': matched[:12],
+        'missing': missing[:12],
+        'strong_signals': matched[:5],
+        'main_gaps': missing[:5],
+        'requirement_checklist': [{'requirement': x, 'status': 'Matched' if x in matched else 'Weak/Missing', 'evidence': 'Detected in CV' if x in matched else 'Not clearly visible in CV'} for x in (matched[:3] + missing[:5])[:8]],
+        'honest_cv_actions': [f'Add proof for {x} only if it is true.' for x in missing[:3]] or ['Mirror the job language using only truthful experience.'],
+        'interview_focus': ['Explain your most relevant experience', 'Prepare examples for weak/missing requirements', 'Be honest about tools you are still learning'],
+        'apply_decision': verdict,
+        'country_market_note': f'Target market: {country or "Not specified"}. City/region: {city or "Not specified"}.',
+        'source': 'workzo_v55_fallback'
+    }
+
+
+def _wz55_render_job_analysis_cards(analysis: dict, jd: str, country_iso: str, bbox_data: dict):
+    score = int(analysis.get('score') or analysis.get('fit_score') or analysis.get('job_fit_score') or st.session_state.get('job_fit_score_value') or 0)
+    verdict = str(analysis.get('verdict') or analysis.get('apply_decision') or ('Run analysis' if not score else 'Review result'))
+    main_reason = str(analysis.get('main_reason') or analysis.get('summary') or '')
+    skill_match = int(analysis.get('skill_match') or score or 0)
+    experience_match = int(analysis.get('experience_match') or score or 0)
+    keyword_match = int(analysis.get('keyword_match') or score or 0)
+    language_match = analysis.get('language_match')
+
+    st.markdown("#### " + _wz51_safe_label('AI Job Fit Summary', 'AI Job Fit Summary'))
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric(_wz51_safe_label('Fit score', 'Fit score'), f'{score}%' if score else '—')
+    m2.metric(_wz51_safe_label('Skill match', 'Skill match'), f'{skill_match}%' if skill_match else '—')
+    m3.metric(_wz51_safe_label('Experience fit', 'Experience fit'), f'{experience_match}%' if experience_match else '—')
+    m4.metric(_wz51_safe_label('Keyword fit', 'Keyword fit'), f'{keyword_match}%' if keyword_match else '—')
+
+    status_style = 'border-color:rgba(20,184,166,.45);background:rgba(20,184,166,.12);' if score >= 70 else ('border-color:rgba(250,204,21,.45);background:rgba(250,204,21,.10);' if score >= 45 else 'border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.10);')
+    st.markdown(f"""
+    <div class='wz-smart-card active' style='{status_style} margin-top:10px;'>
+      <div class='wz-smart-label'>{html.escape(_wz51_safe_label('Decision', 'Decision'))}</div>
+      <div class='wz-smart-title'>{html.escape(verdict)}</div>
+      <div class='wz-smart-copy'>{html.escape(main_reason)}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    matched = _wz55_clean_list(analysis.get('matched') or analysis.get('strong_signals') or [], 8)
+    missing = _wz55_clean_list(analysis.get('missing') or analysis.get('main_gaps') or analysis.get('gaps_and_risks') or [], 8)
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown('##### ✅ ' + _wz51_safe_label('What already matches', 'What already matches'))
+        if matched:
+            for item in matched:
+                st.markdown(f'- {html.escape(item)}')
+        else:
+            st.caption(_wz51_safe_label('No strong match detected yet. Check if the CV was uploaded correctly.', 'No strong match detected yet. Check if the CV was uploaded correctly.'))
+    with c2:
+        st.markdown('##### ⚠️ ' + _wz51_safe_label('Gaps to handle honestly', 'Gaps to handle honestly'))
+        if missing:
+            for item in missing:
+                st.markdown(f'- {html.escape(item)}')
+        else:
+            st.caption(_wz51_safe_label('No major missing keywords detected from the rule check.', 'No major missing keywords detected from the rule check.'))
+
+    checklist = analysis.get('requirement_checklist') or []
+    if checklist:
+        st.markdown('##### ' + _wz51_safe_label('Requirement checklist', 'Requirement checklist'))
+        for item in checklist[:8]:
+            if isinstance(item, dict):
+                req = html.escape(str(item.get('requirement') or item.get('name') or 'Requirement'))
+                status = html.escape(str(item.get('status') or 'Review'))
+                evidence = html.escape(str(item.get('evidence') or item.get('note') or ''))
+                st.markdown(f"- **{req}** — {status}. {evidence}")
+            else:
+                st.markdown(f"- {html.escape(str(item))}")
+
+    actions = _wz55_clean_list(analysis.get('honest_cv_actions') or analysis.get('tailored_cv_bullets') or analysis.get('next_actions') or [], 5)
+    interview = _wz55_clean_list(analysis.get('interview_focus') or analysis.get('interview_questions') or [], 5)
+    t1, t2 = st.tabs([_wz51_safe_label('How to tailor safely', 'How to tailor safely'), _wz51_safe_label('Interview focus', 'Interview focus')])
+    with t1:
+        st.info(_wz51_safe_label('Use these only if they are true. WorkZo should not invent skills, company facts, language level, salary, or experience.', 'Use these only if they are true. WorkZo should not invent skills, company facts, language level, salary, or experience.'))
+        for item in actions or ['Rewrite 2-3 CV bullets so they clearly connect your real experience to the job requirements.']:
+            st.markdown(f'- {html.escape(str(item))}')
+    with t2:
+        for item in interview or ['Prepare one STAR example for the strongest match and one honest explanation for the biggest gap.']:
+            st.markdown(f'- {html.escape(str(item))}')
+
+    with st.expander(_wz51_safe_label('Smart location context used', 'Smart location context used'), expanded=False):
+        st.write({'country_iso': country_iso or 'Not available', 'city_bbox': bbox_data.get('bbox') if bbox_data else 'Not available'})
+
+    a, b = st.columns(2)
+    with a:
+        if st.button(_wz51_safe_label('Improve CV for this job', 'Improve CV for this job'), key='wz55_understand_improve', use_container_width=True):
+            _wz51_go('cv_documents', {'document_tools_mode': 'Improve CV for a Job', 'improve_cv_for_job_desc': jd})
+    with b:
+        if st.button(_wz51_safe_label('Prepare for this job', 'Prepare for this job'), key='wz55_understand_prepare', use_container_width=True):
+            st.session_state['job_assist_mode_key'] = 'prepare'
+            st.rerun()
+
+
+def _wz51_render_understand_job():
+    st.markdown('### ' + _wz51_safe_label('understand_job', 'Understand Job'))
+    st.caption(_wz51_safe_label('Paste one real job description. WorkZo gives a practical apply/tailor decision, honest gaps, CV actions, and interview focus.', 'Paste one real job description. WorkZo gives a practical apply/tailor decision, honest gaps, CV actions, and interview focus.'))
+
+    default_jd = st.session_state.get('last_understand_job_description') or st.session_state.get('current_job_description') or st.session_state.get('improve_cv_for_job_desc') or ''
+    ctx1, ctx2, ctx3 = st.columns([1, 1, 1])
+    with ctx1:
+        country = st.text_input(_wz51_safe_label('Target country / market', 'Target country / market'), value=st.session_state.get('job_understand_country_v55') or st.session_state.get('country', ''), key='job_understand_country_v55')
+    with ctx2:
+        city = st.text_input(_wz51_safe_label('City / region', 'City / region'), value=st.session_state.get('job_understand_city_v55', ''), placeholder='Munich, Berlin, Chennai...', key='job_understand_city_v55')
+    with ctx3:
+        company = st.text_input(_wz51_safe_label('Company / employer', 'Company / employer'), value=st.session_state.get('target_company', ''), placeholder='Optional', key='job_understand_company_v55')
+
+    country_iso = _wz55_country_iso(country)
+    bbox_data = _wz55_city_bbox(city, country_iso)
+    context_bits = []
+    if country_iso:
+        context_bits.append(f'ISO: {country_iso}')
+    if bbox_data.get('bbox'):
+        context_bits.append('city bbox ready')
+    if context_bits:
+        st.caption(' · '.join(context_bits))
+
+    jd = st.text_area(_wz51_safe_label('Paste the job description', 'Paste the job description'), value=default_jd, height=260, key='job_desc_v55_understand')
+    analyze_clicked = st.button(_wz51_safe_label('Analyze with WorkZo AI', 'Analyze with WorkZo AI'), key='btn_understand_job_v55', use_container_width=True)
+
+    if analyze_clicked:
+        if not jd.strip():
+            st.warning(_wz51_safe_label('Please paste a job description first.', 'Please paste a job description first.'))
+        else:
+            cv_text = str(st.session_state.get('cv_text') or st.session_state.get('clean_structured_cv_text') or '')
+            st.session_state['target_company'] = company.strip()
+            st.session_state['current_job_description'] = jd.strip()
+            st.session_state['last_understand_job_description'] = jd.strip()
+            st.session_state['improve_cv_for_job_desc'] = jd.strip()
+            prompt = f"""
+You are WorkZo AI, an honest job-fit decision assistant.
+Do not invent skills, company facts, language level, salary, location eligibility, or experience.
+Preferred language: {st.session_state.get('preferred_language', 'English')}
+Candidate country: {st.session_state.get('country', '')}
+Target country: {country}
+Target country ISO code: {country_iso or 'Unknown'}
+Target city/region: {city or 'Not specified'}
+City geolocation bounding box [west, south, east, north]: {bbox_data.get('bbox') if bbox_data else 'Unknown'}
+Company: {company or 'Not specified'}
+Career status: {st.session_state.get('user_status', 'Not specified')}
+
+Candidate CV:
+{cv_text[:5500]}
+
+Job description:
+{jd[:5500]}
+
+Return ONLY valid JSON with these keys:
+score, skill_match, experience_match, keyword_match, language_match, verdict, main_reason,
+matched, missing, requirement_checklist, honest_cv_actions, interview_focus, country_market_note.
+Rules:
+- score 0-100, strict and realistic.
+- verdict must be one of: Strong apply, Apply but tailor first, Possible but improve first, Risky match - consider skipping.
+- matched: max 8 real strengths already visible in the CV.
+- missing: max 8 important gaps or weak signals.
+- requirement_checklist: max 8 objects with requirement, status, evidence.
+- honest_cv_actions: max 5 actions; separate what to add only if true.
+- interview_focus: max 5 likely interview topics/questions based on gaps and strengths.
+"""
+            analysis = {}
+            with st.spinner(_wz51_safe_label('Reading CV + job description like a recruiter...', 'Reading CV + job description like a recruiter...')):
+                try:
+                    if callable(globals().get('run_ai_prompt')):
+                        raw = run_ai_prompt(prompt, json_mode=True)
+                        try:
+                            analysis = safe_json_loads(raw) if callable(globals().get('safe_json_loads')) else json.loads(raw)
+                        except Exception:
+                            analysis = {}
+                except Exception:
+                    analysis = {}
+                if not isinstance(analysis, dict) or not analysis:
+                    analysis = _wz55_fallback_job_analysis(cv_text, jd, country, city)
+
+            score = int(analysis.get('score') or analysis.get('fit_score') or 0)
+            analysis['score'] = max(0, min(100, score))
+            analysis['country_iso'] = country_iso
+            analysis['city_bbox'] = bbox_data.get('bbox') if bbox_data else []
+            analysis['source'] = analysis.get('source') or 'workzo_v55_understand_job'
+            st.session_state['latest_job_analysis'] = analysis
+            st.session_state['job_fit_score_value'] = analysis['score']
+            st.session_state['workzo_progress_job_matched'] = True
+            try:
+                if callable(globals().get('track_event')):
+                    track_event('job_analyzed', 'Job Assist', {'fit_score': analysis['score'], 'country_iso': country_iso, 'city_bbox_ready': bool(bbox_data.get('bbox'))})
+            except Exception:
+                pass
+            st.success(_wz51_safe_label('Job analyzed. Review the decision, gaps, and safe next actions below.', 'Job analyzed. Review the decision, gaps, and safe next actions below.'))
+
+    analysis = st.session_state.get('latest_job_analysis') or {}
+    if isinstance(analysis, str):
+        try:
+            analysis = safe_json_loads(analysis) if callable(globals().get('safe_json_loads')) else json.loads(analysis)
+        except Exception:
+            analysis = {}
+    if jd.strip() or analysis:
+        _wz55_render_job_analysis_cards(analysis if isinstance(analysis, dict) else {}, jd, country_iso, bbox_data)
+
+# =========================================================
+# WorkZo v56 - requested small fixes only
+# Scope:
+# 1) Find Jobs: merge city suggestions + city/region into one field.
+# 2) Find Jobs live list: make "Use in Understand Job" actually prefill and open Understand Job.
+# 3) Application Progress is handled above as 4 visual cards with no buttons.
+# =========================================================
+def _wz56_unique(values):
+    seen, out = set(), []
+    for value in values or []:
+        value = str(value or '').strip()
+        if value and value.casefold() not in seen:
+            seen.add(value.casefold())
+            out.append(value)
+    return out
+
+
+def _wz56_country_options():
+    countries = []
+    try:
+        countries.extend([str(x) for x in (globals().get('country_options') or []) if str(x).strip()])
+    except Exception:
+        pass
+    countries.extend(['Global', 'Germany', 'India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Netherlands', 'France', 'Austria', 'Switzerland', 'Singapore', 'Ireland', 'Spain', 'Italy', 'Sweden', 'Denmark', 'Norway', 'Finland'])
+    clean = _wz56_unique(countries)
+    return ['Global'] + sorted([c for c in clean if c.casefold() != 'global'], key=lambda x: x.lower())
+
+
+def _wz56_city_options(country_name):
+    if not country_name or country_name == 'Global':
+        return []
+    try:
+        fn = globals().get('fetch_country_cities')
+        if callable(fn):
+            return _wz56_unique(fn(country_name) or [])[:500]
+    except Exception:
+        pass
+    fallback = {
+        'Germany': ['Berlin', 'Munich', 'Frankfurt', 'Nuremberg', 'Würzburg', 'Hamburg', 'Cologne', 'Stuttgart', 'Düsseldorf'],
+        'India': ['Chennai', 'Bengaluru', 'Hyderabad', 'Pune', 'Mumbai', 'Delhi', 'Coimbatore'],
+        'United Kingdom': ['London', 'Manchester', 'Birmingham', 'Edinburgh'],
+        'Canada': ['Toronto', 'Vancouver', 'Montreal', 'Calgary'],
+        'Netherlands': ['Amsterdam', 'Rotterdam', 'Utrecht', 'Eindhoven'],
+    }
+    return fallback.get(str(country_name), [])
+
+
+def _wz56_location_value(selected_location, country_name):
+    selected_location = str(selected_location or '').strip()
+    country_name = str(country_name or '').strip()
+    if not selected_location or selected_location.startswith('Anywhere in '):
+        return country_name if country_name and country_name != 'Global' else 'Global'
+    if selected_location == 'Remote / hybrid':
+        return f'Remote {country_name}'.strip() if country_name and country_name != 'Global' else 'Remote'
+    return f'{selected_location}, {country_name}' if country_name and country_name != 'Global' else selected_location
+
+
+def _wz56_job_description_from_result(job):
+    title = str(job.get('title') or job.get('job_title') or 'Job opening').strip()
+    company = str(job.get('company') or job.get('employer_name') or job.get('company_name') or '').strip()
+    location = str(job.get('location') or job.get('job_location') or job.get('candidate_required_location') or '').strip()
+    source = str(job.get('source') or job.get('publisher') or '').strip()
+    description = str(job.get('description') or job.get('summary') or job.get('snippet') or job.get('assistant_note') or '').strip()
+    url = str(job.get('url') or job.get('redirect_url') or job.get('job_apply_link') or job.get('apply_url') or '').strip()
+    parts = [
+        f'Job title: {title}',
+        f'Company: {company}' if company else '',
+        f'Location: {location}' if location else '',
+        f'Source: {source}' if source else '',
+        '',
+        description or 'Full job description was not available from the live search result. Open the job link, copy the full description, and paste it here for a more accurate analysis.',
+        '',
+        f'Job link: {url}' if url else '',
+    ]
+    return '\n'.join([p for p in parts if p is not None]).strip()
+
+
+def _wz56_render_live_job_results(jobs, country):
+    st.markdown('#### ' + _wz51_safe_label('Curated job matches', 'Curated job matches'))
+    st.caption(_wz51_safe_label('Open a job, then use it in Understand Job for a real CV-to-job fit check.', 'Open a job, then use it in Understand Job for a real CV-to-job fit check.'))
+    for idx, job in enumerate((jobs or [])[:12], start=1):
+        title = str(job.get('title') or job.get('job_title') or 'Job opening').strip()
+        company = str(job.get('company') or job.get('employer_name') or job.get('company_name') or 'Company not listed').strip()
+        location = str(job.get('location') or job.get('job_location') or job.get('candidate_required_location') or country or 'Location not listed').strip()
+        source = str(job.get('source') or job.get('publisher') or 'Live source').strip()
+        score = job.get('fit_score') or job.get('score') or job.get('match_score') or ''
+        url = str(job.get('url') or job.get('redirect_url') or job.get('job_apply_link') or job.get('apply_url') or '').strip()
+        label_score = f' — {score}%' if str(score).strip() else ''
+        with st.expander(f'{idx}. {title} at {company}{label_score}', expanded=(idx == 1)):
+            c1, c2 = st.columns([2.2, 1])
+            with c1:
+                st.markdown(f'**Location / market:** {html.escape(location)}')
+                st.markdown(f'**Source:** {html.escape(source)}')
+                note = str(job.get('assistant_note') or job.get('note') or '').strip()
+                if note:
+                    st.info(note)
+                tags = job.get('tags') or job.get('keywords') or []
+                if isinstance(tags, (list, tuple)) and tags:
+                    st.caption(', '.join([str(t) for t in tags[:8]]))
+            with c2:
+                if url:
+                    st.link_button(_wz51_safe_label('Open job', 'Open job'), url, use_container_width=True)
+                if st.button(_wz51_safe_label('Use in Understand Job', 'Use in Understand Job'), key=f'wz56_use_understand_{idx}', use_container_width=True):
+                    jd_text = _wz56_job_description_from_result(job)
+                    st.session_state['current_job_description'] = jd_text
+                    st.session_state['last_understand_job_description'] = jd_text
+                    st.session_state['improve_cv_for_job_desc'] = jd_text
+                    st.session_state['job_desc_v55_understand'] = jd_text
+                    st.session_state['job_desc_v51_understand'] = jd_text
+                    st.session_state['target_company'] = '' if company == 'Company not listed' else company
+                    st.session_state['job_assist_mode_key'] = 'understand'
+                    st.rerun()
+
+
+def _wz51_render_find_jobs():
+    st.markdown('### ' + _wz51_safe_label('find_jobs', 'Find Jobs'))
+    cv_text = str(st.session_state.get('cv_text') or st.session_state.get('clean_structured_cv_text') or '')
+    user_country = str(st.session_state.get('country') or st.session_state.get('migration_country') or '').strip() or 'Global'
+    suggested_roles = _wz51_extract_roles_from_cv(cv_text)
+    default_titles = ', '.join(suggested_roles[:3])
+
+    if 'job_assist_target_titles' not in st.session_state:
+        st.session_state['job_assist_target_titles'] = default_titles
+    if 'job_assist_preferred_country_v56' not in st.session_state:
+        st.session_state['job_assist_preferred_country_v56'] = user_country
+
+    st.markdown(f"""
+    <div class='next-action-card' style='margin-top:4px;'>
+      <div class='next-action-label'>{html.escape(_wz51_safe_label('Smart job search', 'Smart job search'))}</div>
+      <div class='next-action-title'>{html.escape(_wz51_safe_label('Search by role, country, and city in one clean flow', 'Search by role, country, and city in one clean flow'))}</div>
+      <div class='next-action-copy'>{html.escape(_wz51_safe_label('Choose a country, then choose a city/region from the same location field. Open a job and send it directly to Understand Job.', 'Choose a country, then choose a city/region from the same location field. Open a job and send it directly to Understand Job.'))}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    countries = _wz56_country_options()
+    current_country = st.session_state.get('job_assist_preferred_country_v56') or user_country or 'Global'
+    if current_country not in countries:
+        countries.insert(1, current_country)
+
+    c1, c2, c3 = st.columns([1.15, 0.9, 1.05])
+    with c1:
+        target_titles = st.text_input(
+            _wz51_safe_label('Target job titles', 'Target job titles'),
+            placeholder='Data Analyst, IT Support, Customer Success',
+            key='job_assist_target_titles',
+        )
+    with c2:
+        preferred_country = st.selectbox(
+            _wz51_safe_label('Preferred country', 'Preferred country'),
+            countries,
+            index=countries.index(current_country) if current_country in countries else 0,
+            key='job_assist_preferred_country_v56',
+        )
+    with c3:
+        cities = _wz56_city_options(preferred_country)
+        location_options = []
+        if preferred_country and preferred_country != 'Global':
+            location_options.append(f'Anywhere in {preferred_country}')
+        else:
+            location_options.append('Global')
+        location_options.append('Remote / hybrid')
+        location_options.extend(cities)
+        selected_location = st.selectbox(
+            _wz51_safe_label('City / region', 'City / region'),
+            _wz56_unique(location_options),
+            index=0,
+            key='job_assist_city_region_v56',
+            help=_wz51_safe_label('This single searchable field replaces the separate city suggestions box.', 'This single searchable field replaces the separate city suggestions box.'),
+        )
+
+    search_location = _wz56_location_value(selected_location, preferred_country)
+    roles_preview = [x.strip() for x in re.split(r'[,;\n/]', target_titles or '') if x.strip()] or suggested_roles[:3]
+    role_chips = ''.join(f"<span class='workzo-dashboard-chip'>{html.escape(r)}</span>" for r in roles_preview[:4])
+    st.markdown(f"""
+    <div class='workzo-mini-note' style='margin: 8px 0 14px 0;'>
+        {_wz51_safe_label('Search context', 'Search context')}: {role_chips}
+        <span class='workzo-dashboard-chip'>📍 {html.escape(search_location)}</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    find_clicked = st.button(_wz51_safe_label('Find smart matches', 'Find smart matches'), key='btn_find_jobs_v56', use_container_width=True)
+    if find_clicked:
+        roles = [x.strip() for x in re.split(r'[,;\n/]', target_titles or '') if x.strip()] or suggested_roles
+        if not roles:
+            st.warning(_wz51_safe_label('Please add at least one target job title.', 'Please add at least one target job title.'))
+        else:
+            st.session_state['last_job_search_target_titles'] = ', '.join(roles[:6])
+            st.session_state['last_job_search_location_text'] = search_location
+            st.session_state['last_job_search_country'] = preferred_country
+            jobs = []
+            with st.status(_wz51_safe_label('Searching and ranking jobs...', 'Searching and ranking jobs...'), expanded=True) as status:
+                try:
+                    st.write(_wz51_safe_label('Searching live job sources...', 'Searching live job sources...'))
+                    if callable(globals().get('fetch_live_jobs_global')):
+                        jobs = fetch_live_jobs_global(preferred_country, roles, search_location, st.session_state.get('user_status', '')) or []
+                except Exception as exc:
+                    st.warning(f'Live job source error: {exc}')
+                try:
+                    st.write(_wz51_safe_label('Ranking matches against your CV...', 'Ranking matches against your CV...'))
+                    if jobs and callable(globals().get('curate_job_matches')):
+                        jobs = curate_job_matches(jobs, cv_text, {'job_titles': roles, 'search_queries': roles, 'location': search_location}, preferred_country, st.session_state.get('user_status', ''), limit=25)
+                except Exception:
+                    pass
+                st.session_state['latest_curated_jobs'] = jobs
+                st.session_state['workzo_progress_job_matched'] = bool(jobs)
+                status.update(label=_wz51_safe_label('Job search complete', 'Job search complete'), state='complete', expanded=False)
+
+    jobs = st.session_state.get('latest_curated_jobs') or []
+    if jobs:
+        _wz56_render_live_job_results(jobs, preferred_country)
+    else:
+        st.info(_wz51_safe_label('No saved job results yet. Search with a specific role title, country, and city/region.', 'No saved job results yet. Search with a specific role title, country, and city/region.'))
+        role_for_link = (st.session_state.get('last_job_search_target_titles') or target_titles or default_titles or 'jobs').split(',')[0].strip()
+        q = urllib.parse.quote_plus(f'{role_for_link} {search_location}')
+        c1, c2, c3, c4 = st.columns(4)
+        with c1: st.link_button('LinkedIn', f'https://www.linkedin.com/jobs/search/?keywords={q}')
+        with c2: st.link_button('Indeed', f'https://www.indeed.com/jobs?q={q}')
+        with c3: st.link_button('Google Jobs', f'https://www.google.com/search?q={q}+jobs')
+        with c4: st.link_button('RemoteOK', f'https://remoteok.com/remote-{urllib.parse.quote_plus(role_for_link)}-jobs')
+
+# =========================================================
+# WorkZo v57 - Understand Job UX + speed patch only
+# Scope: replaces only Understand Job rendering/AI prompt/output layout.
+# No changes to dashboard, CV tools, Find Jobs, or Work-O-Bot.
+# =========================================================
+def _wz57_num(value, default=0):
+    try:
+        return max(0, min(100, int(float(value or default))))
+    except Exception:
+        return default
+
+
+def _wz57_items(value, limit=5):
+    try:
+        return _wz55_clean_list(value, limit) if callable(globals().get('_wz55_clean_list')) else []
+    except Exception:
+        return []
+
+
+def _wz57_badge(text, tone='neutral'):
+    colors = {
+        'good': ('rgba(20,184,166,.16)', 'rgba(20,184,166,.45)', '#86efac'),
+        'warn': ('rgba(250,204,21,.13)', 'rgba(250,204,21,.42)', '#fde68a'),
+        'bad': ('rgba(248,113,113,.13)', 'rgba(248,113,113,.42)', '#fecaca'),
+        'neutral': ('rgba(59,130,246,.13)', 'rgba(59,130,246,.38)', '#bfdbfe'),
+    }.get(tone, ('rgba(59,130,246,.13)', 'rgba(59,130,246,.38)', '#bfdbfe'))
+    return f"<span style='display:inline-flex;align-items:center;gap:6px;border:1px solid {colors[1]};background:{colors[0]};color:{colors[2]};border-radius:999px;padding:6px 10px;font-size:.82rem;font-weight:800;margin:2px 6px 2px 0;'>{html.escape(str(text))}</span>"
+
+
+def _wz57_render_list_card(title, items, empty_text, icon='•'):
+    st.markdown(f"<div style='font-size:1rem;font-weight:900;color:#f8fafc;margin:8px 0 8px 0;'>{html.escape(str(title))}</div>", unsafe_allow_html=True)
+    items = _wz57_items(items, 6)
+    if not items:
+        st.caption(empty_text)
+        return
+    html_items = ''.join(f"<li>{html.escape(str(x))}</li>" for x in items)
+    st.markdown(f"""
+    <div style='border:1px solid rgba(148,163,184,.18);background:rgba(15,23,42,.46);border-radius:18px;padding:14px 16px;margin-bottom:12px;'>
+      <ul style='margin:0;padding-left:20px;line-height:1.75;color:#e5e7eb;'>{html_items}</ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def _wz57_render_job_analysis_cards(analysis: dict, jd: str, country_iso: str, bbox_data: dict):
+    if not isinstance(analysis, dict) or not analysis:
+        return
+
+    score = _wz57_num(analysis.get('score') or analysis.get('fit_score') or analysis.get('job_fit_score') or st.session_state.get('job_fit_score_value'))
+    skill_match = _wz57_num(analysis.get('skill_match'), score)
+    experience_match = _wz57_num(analysis.get('experience_match'), score)
+    keyword_match = _wz57_num(analysis.get('keyword_match'), score)
+    verdict = str(analysis.get('verdict') or analysis.get('apply_decision') or 'Review before applying')
+    main_reason = str(analysis.get('main_reason') or analysis.get('summary') or 'WorkZo compared the pasted job with your available CV details.')
+
+    tone = 'good' if score >= 70 else ('warn' if score >= 45 else 'bad')
+    st.markdown(f"""
+    <style>
+    .wz57-hero {{border:1px solid rgba(59,130,246,.28);background:linear-gradient(135deg,rgba(37,99,235,.16),rgba(15,23,42,.72));border-radius:22px;padding:18px 20px;margin:14px 0 16px 0;}}
+    .wz57-kicker {{color:#93c5fd;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;font-weight:900;margin-bottom:6px;}}
+    .wz57-title {{color:#f8fafc;font-size:1.35rem;font-weight:950;line-height:1.25;margin-bottom:8px;}}
+    .wz57-copy {{color:#cbd5e1;font-size:.95rem;line-height:1.5;}}
+    .wz57-score-grid {{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:12px 0 16px 0;}}
+    .wz57-score-card {{border:1px solid rgba(148,163,184,.18);background:rgba(15,23,42,.52);border-radius:18px;padding:14px;}}
+    .wz57-score-label {{color:#94a3b8;font-size:.76rem;font-weight:850;margin-bottom:6px;}}
+    .wz57-score-value {{color:#f8fafc;font-size:1.65rem;font-weight:950;}}
+    @media(max-width:900px){{.wz57-score-grid{{grid-template-columns:repeat(2,minmax(0,1fr));}}}}
+    </style>
+    <div class='wz57-hero'>
+      <div class='wz57-kicker'>AI job-fit summary</div>
+      <div class='wz57-title'>{html.escape(verdict)}</div>
+      <div class='wz57-copy'>{html.escape(main_reason)}</div>
+      <div style='margin-top:10px;'>
+        {_wz57_badge('Strict score: ' + str(score) + '%', tone)}
+        {_wz57_badge('ISO: ' + str(country_iso), 'neutral') if country_iso else ''}
+        {_wz57_badge('Location ready', 'good') if bbox_data and bbox_data.get('bbox') else ''}
+      </div>
+    </div>
+    <div class='wz57-score-grid'>
+      <div class='wz57-score-card'><div class='wz57-score-label'>Fit score</div><div class='wz57-score-value'>{score}%</div></div>
+      <div class='wz57-score-card'><div class='wz57-score-label'>Skill match</div><div class='wz57-score-value'>{skill_match}%</div></div>
+      <div class='wz57-score-card'><div class='wz57-score-label'>Experience fit</div><div class='wz57-score-value'>{experience_match}%</div></div>
+      <div class='wz57-score-card'><div class='wz57-score-label'>Keyword fit</div><div class='wz57-score-value'>{keyword_match}%</div></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    matched = analysis.get('matched') or analysis.get('strong_signals') or []
+    missing = analysis.get('missing') or analysis.get('main_gaps') or analysis.get('gaps_and_risks') or []
+    c1, c2 = st.columns(2)
+    with c1:
+        _wz57_render_list_card('✅ What already matches', matched, 'No strong match detected yet. Check whether the CV was uploaded correctly.')
+    with c2:
+        _wz57_render_list_card('⚠️ Gaps to handle honestly', missing, 'No major missing requirement detected.')
+
+    checklist = analysis.get('requirement_checklist') or []
+    if checklist:
+        st.markdown('#### Requirement check')
+        rows = []
+        for item in checklist[:7]:
+            if isinstance(item, dict):
+                rows.append((str(item.get('requirement') or item.get('name') or 'Requirement'), str(item.get('status') or 'Review'), str(item.get('evidence') or item.get('note') or '')))
+            else:
+                rows.append((str(item), 'Review', ''))
+        for req, status, evidence in rows:
+            status_low = status.lower()
+            pill_tone = 'good' if 'match' in status_low and 'missing' not in status_low and 'weak' not in status_low else ('bad' if 'missing' in status_low else 'warn')
+            st.markdown(f"""
+            <div style='border:1px solid rgba(148,163,184,.16);border-radius:15px;padding:12px 14px;margin:8px 0;background:rgba(15,23,42,.45);'>
+              <div style='font-weight:850;color:#f8fafc;'>{html.escape(req)} {_wz57_badge(status, pill_tone)}</div>
+              <div style='color:#cbd5e1;font-size:.9rem;margin-top:4px;'>{html.escape(evidence)}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    actions = analysis.get('honest_cv_actions') or analysis.get('tailored_cv_bullets') or analysis.get('next_actions') or []
+    interview = analysis.get('interview_focus') or analysis.get('interview_questions') or []
+    t1, t2 = st.tabs(['How to tailor safely', 'Interview focus'])
+    with t1:
+        st.info('Use these only if they are true. Do not invent skills, company facts, language level, salary, or experience.')
+        _wz57_render_list_card('Safe CV actions', actions, 'Rewrite 2-3 CV bullets so they clearly connect your real experience to this job.')
+    with t2:
+        _wz57_render_list_card('Likely discussion areas', interview, 'Prepare one STAR example for the strongest match and one honest explanation for the biggest gap.')
+
+    a, b = st.columns(2)
+    with a:
+        if st.button('Improve CV for this job', key='wz57_understand_improve', use_container_width=True):
+            _wz51_go('cv_documents', {'document_tools_mode': 'Improve CV for a Job', 'improve_cv_for_job_desc': jd})
+    with b:
+        if st.button('Prepare for this job', key='wz57_understand_prepare', use_container_width=True):
+            st.session_state['job_assist_mode_key'] = 'prepare'
+            st.rerun()
+
+
+def _wz51_render_understand_job():
+    st.markdown('### Understand Job')
+    st.caption('Paste one real job description. WorkZo gives a clear apply/tailor decision, honest gaps, safe CV actions, and interview focus.')
+
+    default_jd = st.session_state.get('last_understand_job_description') or st.session_state.get('current_job_description') or st.session_state.get('improve_cv_for_job_desc') or ''
+    with st.expander('Job context', expanded=True):
+        ctx1, ctx2, ctx3 = st.columns([1, 1, 1])
+        with ctx1:
+            country = st.text_input('Target country / market', value=st.session_state.get('job_understand_country_v55') or st.session_state.get('country', ''), key='job_understand_country_v55')
+        with ctx2:
+            city = st.text_input('City / region', value=st.session_state.get('job_understand_city_v55', ''), placeholder='Munich, Berlin, Chennai...', key='job_understand_city_v55')
+        with ctx3:
+            company = st.text_input('Company / employer', value=st.session_state.get('target_company', ''), placeholder='Optional', key='job_understand_company_v55')
+
+    country_iso = _wz55_country_iso(country) if callable(globals().get('_wz55_country_iso')) else ''
+    bbox_data = _wz55_city_bbox(city, country_iso) if callable(globals().get('_wz55_city_bbox')) else {}
+    context_line = []
+    if country_iso:
+        context_line.append('Country code: ' + country_iso)
+    if bbox_data.get('bbox'):
+        context_line.append('City location understood')
+    if context_line:
+        st.caption(' · '.join(context_line))
+
+    jd = st.text_area('Paste the job description', value=default_jd, height=230, key='job_desc_v55_understand')
+    col_btn, col_hint = st.columns([0.9, 2])
+    with col_btn:
+        analyze_clicked = st.button('Analyze Job Fit', key='btn_understand_job_v57', use_container_width=True)
+    with col_hint:
+        st.caption('Faster mode: concise prompt + compact recruiter-style JSON. Full CV/JD is trimmed to reduce loading time.')
+
+    if analyze_clicked:
+        if not jd.strip():
+            st.warning('Please paste a job description first.')
+        else:
+            cv_text = str(st.session_state.get('cv_text') or st.session_state.get('clean_structured_cv_text') or '')
+            st.session_state['target_company'] = company.strip()
+            st.session_state['current_job_description'] = jd.strip()
+            st.session_state['last_understand_job_description'] = jd.strip()
+            st.session_state['improve_cv_for_job_desc'] = jd.strip()
+            cache_key = 'wz57_analysis_' + str(abs(hash((cv_text[:1800], jd[:1800], country, city, company))))
+            analysis = st.session_state.get(cache_key)
+            if not isinstance(analysis, dict):
+                prompt = f"""
+You are WorkZo AI. Act like a strict recruiter + career coach.
+Return ONLY compact valid JSON. Be honest. Do not invent experience.
+
+Context: target_country={country}; country_iso={country_iso or 'Unknown'}; city={city or 'Not specified'}; bbox={bbox_data.get('bbox') if bbox_data else 'Unknown'}; company={company or 'Not specified'}; preferred_language={st.session_state.get('preferred_language', 'English')}; career_status={st.session_state.get('user_status', 'Not specified')}.
+
+CV (trimmed):
+{cv_text[:3800]}
+
+Job description (trimmed):
+{jd[:4200]}
+
+JSON keys exactly:
+score, skill_match, experience_match, keyword_match, language_match, verdict, main_reason, matched, missing, requirement_checklist, honest_cv_actions, interview_focus.
+
+Rules:
+- score/matches are 0-100 and strict.
+- verdict: Strong apply / Apply but tailor first / Possible but improve first / Risky match - consider skipping.
+- matched: max 5 CV-backed strengths.
+- missing: max 5 important gaps.
+- requirement_checklist: max 7 objects: requirement, status, evidence.
+- honest_cv_actions: max 5 practical CV improvements, only if true.
+- interview_focus: max 5 interview topics/questions.
+"""
+                with st.spinner('Analyzing like a recruiter...'):
+                    try:
+                        if callable(globals().get('run_ai_prompt')):
+                            raw = run_ai_prompt(prompt, json_mode=True)
+                            try:
+                                analysis = safe_json_loads(raw) if callable(globals().get('safe_json_loads')) else json.loads(raw)
+                            except Exception:
+                                analysis = {}
+                    except Exception:
+                        analysis = {}
+                    if not isinstance(analysis, dict) or not analysis:
+                        analysis = _wz55_fallback_job_analysis(cv_text, jd, country, city) if callable(globals().get('_wz55_fallback_job_analysis')) else {}
+                st.session_state[cache_key] = analysis
+
+            score = _wz57_num(analysis.get('score') or analysis.get('fit_score'))
+            analysis['score'] = score
+            analysis['country_iso'] = country_iso
+            analysis['city_bbox'] = bbox_data.get('bbox') if bbox_data else []
+            st.session_state['latest_job_analysis'] = analysis
+            st.session_state['job_fit_score_value'] = score
+            st.session_state['workzo_progress_job_matched'] = True
+            st.success('Job analyzed. Review the clean summary below.')
+
+    analysis = st.session_state.get('latest_job_analysis') or {}
+    if isinstance(analysis, str):
+        try:
+            analysis = safe_json_loads(analysis) if callable(globals().get('safe_json_loads')) else json.loads(analysis)
+        except Exception:
+            analysis = {}
+    if isinstance(analysis, dict) and analysis:
+        _wz57_render_job_analysis_cards(analysis, jd, country_iso, bbox_data)
+
+# =========================================================
+# WorkZo v57 - founder analytics + mobile toolbox visibility fix
+# Scope: only restores Founder Analytics access in the toolbox/sidebar
+# and makes the mobile toolbox visible/usable on mobile screens.
+# No Job Assist, CV, dashboard, scoring, or AI logic is changed.
+# =========================================================
+
+def _wz57_apply_page_query_param():
+    """Allow the mobile toolbox links (?page=...) to update Streamlit state."""
+    try:
+        params = getattr(st, "query_params", {})
+        page = params.get("page", "") if params is not None else ""
+        if isinstance(page, list):
+            page = page[0] if page else ""
+        page = str(page or "").strip()
+        aliases = {
+            "home": "dashboard",
+            "landing": "dashboard",
+            "dashboard": "dashboard",
+            "cv": "cv_documents",
+            "my_cv": "cv_documents",
+            "cv_documents": "cv_documents",
+            "jobs": "job_assist",
+            "job_assist": "job_assist",
+            "bot": "workobot",
+            "workobot": "workobot",
+            "work-o-bot": "workobot",
+            "founder": "founder_dashboard",
+            "founder_dashboard": "founder_dashboard",
+        }
+        if page in aliases:
+            st.session_state["page"] = aliases[page]
+            st.session_state["nav_page"] = aliases[page]
+    except Exception:
+        pass
+
+
+def _wz57_render_mobile_toolbox():
+    """Show a compact top toolbox on mobile only; desktop sidebar stays unchanged."""
+    try:
+        import time as _time
+        import html as _html
+        nonce = str(int(_time.time() * 1000))
+        founder_link = ""
+        if st.session_state.get("founder_unlocked"):
+            founder_link = f"<a class='wz57-mobile-link' href='?page=founder_dashboard&wz_top={nonce}'>📊 Founder</a>"
+        st.markdown(f"""
+        <style>
+        .wz57-mobile-toolbox {{ display: none !important; }}
+        @media (max-width: 700px) {{
+            .wz57-mobile-toolbox {{
+                display: block !important;
+                position: sticky !important;
+                top: 0 !important;
+                z-index: 9999 !important;
+                margin: 0 0 0.8rem 0 !important;
+                padding: 0.75rem !important;
+                border: 1px solid rgba(20,184,166,0.28) !important;
+                border-radius: 18px !important;
+                background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(8,47,73,0.94)) !important;
+                box-shadow: 0 12px 30px rgba(2,6,23,0.34) !important;
+            }}
+            .wz57-mobile-title {{
+                color: #f8fafc !important;
+                font-weight: 850 !important;
+                font-size: 0.95rem !important;
+                margin-bottom: 0.55rem !important;
+            }}
+            .wz57-mobile-grid {{
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 0.45rem !important;
+            }}
+            .wz57-mobile-link {{
+                display: block !important;
+                text-align: center !important;
+                color: #e0f2fe !important;
+                text-decoration: none !important;
+                border: 1px solid rgba(96,165,250,0.30) !important;
+                background: rgba(37,99,235,0.18) !important;
+                border-radius: 999px !important;
+                padding: 0.52rem 0.58rem !important;
+                font-weight: 750 !important;
+                font-size: 0.86rem !important;
+                white-space: nowrap !important;
+            }}
+        }}
+        </style>
+        <div class="wz57-mobile-toolbox">
+            <div class="wz57-mobile-title">☰ Tools</div>
+            <div class="wz57-mobile-grid">
+                <a class='wz57-mobile-link' href='?page=dashboard&wz_top={nonce}'>🏠 Dashboard</a>
+                <a class='wz57-mobile-link' href='?page=cv_documents&wz_top={nonce}'>📄 CV</a>
+                <a class='wz57-mobile-link' href='?page=job_assist&wz_top={nonce}'>🎯 Job Assist</a>
+                <a class='wz57-mobile-link' href='?page=workobot&wz_top={nonce}'>🤖 Work-O-Bot</a>
+                {founder_link}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz57_render_founder_access_block():
+    """Founder Analytics access restored inside the existing left toolbox/sidebar."""
+    try:
+        st.markdown("<div class='workzo-sidebar-section-label'>Founder</div>", unsafe_allow_html=True)
+        with st.expander("📊 Founder analytics", expanded=False):
+            founder_pin = None
+            try:
+                founder_pin = (os.getenv("FOUNDER_PIN") or get_streamlit_secret("FOUNDER_PIN"))
+            except Exception:
+                try:
+                    founder_pin = os.getenv("FOUNDER_PIN")
+                except Exception:
+                    founder_pin = None
+
+            if founder_pin:
+                pin = st.text_input("Founder PIN", type="password", key="wz57_founder_pin")
+                if pin == founder_pin:
+                    st.session_state["founder_unlocked"] = True
+                    st.success("Founder mode unlocked.")
+            else:
+                st.caption("FOUNDER_PIN is not configured. Temporary founder access is available for local testing.")
+                temp_pin = st.text_input("Temporary founder PIN", type="password", key="wz57_temp_founder_pin")
+                if temp_pin:
+                    st.session_state["founder_unlocked"] = True
+                    st.success("Founder mode unlocked for this session.")
+
+            if st.session_state.get("founder_unlocked"):
+                if st.button("Open founder analytics", key="wz57_open_founder_analytics", use_container_width=True):
+                    st.session_state["page"] = "founder_dashboard"
+                    st.session_state["nav_page"] = "founder_dashboard"
+                    try:
+                        st.query_params["page"] = "founder_dashboard"
+                    except Exception:
+                        pass
+                    st.rerun()
+    except Exception:
+        pass
+
+
+try:
+    _wz57_previous_sidebar = _wz35_sidebar
+    def _wz35_sidebar(page_key):
+        _wz57_previous_sidebar(page_key)
+        with st.sidebar:
+            _wz57_render_founder_access_block()
+except Exception:
+    pass
+
+
+try:
+    _wz57_previous_show_dashboard = show_dashboard
+    def show_dashboard():
+        _wz57_apply_page_query_param()
+        _wz57_render_mobile_toolbox()
+        return _wz57_previous_show_dashboard()
+except Exception:
+    pass
+
+# =========================================================
+# WorkZo v52 - Cleaner Cover Letter Generator UI only
+# Scope: replaces only the Cover Letter Generator + Language view.
+# Other document tools continue to use the existing implementation.
+# Adds PDF download for generated cover letter/email.
+# =========================================================
+try:
+    _wz52_previous_show_document_tools = show_document_tools
+except Exception:
+    _wz52_previous_show_document_tools = None
+
+
+def _wz52_label(text: str) -> str:
+    try:
+        return ui_label(text)
+    except Exception:
+        return text
+
+
+def _wz52_safe_json(raw):
+    try:
+        if isinstance(raw, dict):
+            return raw
+        fn = globals().get("safe_json_loads")
+        if callable(fn):
+            data = fn(raw)
+            if isinstance(data, dict):
+                return data
+        return json.loads(str(raw or "{}"))
+    except Exception:
+        return {}
+
+
+def _wz52_pdf_bytes(title: str, body: str):
+    """Create a simple ATS-friendly PDF. Returns None if reportlab is unavailable."""
+    try:
+        from io import BytesIO
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import mm
+        from reportlab.lib.enums import TA_LEFT
+        from reportlab.lib import colors
+
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=22 * mm,
+            leftMargin=22 * mm,
+            topMargin=20 * mm,
+            bottomMargin=20 * mm,
+        )
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            "WorkZoTitle",
+            parent=styles["Heading1"],
+            fontName="Helvetica-Bold",
+            fontSize=16,
+            leading=20,
+            textColor=colors.HexColor("#111827"),
+            spaceAfter=12,
+            alignment=TA_LEFT,
+        )
+        body_style = ParagraphStyle(
+            "WorkZoBody",
+            parent=styles["BodyText"],
+            fontName="Helvetica",
+            fontSize=10.5,
+            leading=15,
+            textColor=colors.HexColor("#111827"),
+            spaceAfter=8,
+        )
+        story = [Paragraph(html.escape(str(title or "Cover Letter")), title_style), Spacer(1, 6)]
+        for block in str(body or "").split("\n"):
+            if block.strip():
+                story.append(Paragraph(html.escape(block.strip()), body_style))
+            else:
+                story.append(Spacer(1, 6))
+        doc.build(story)
+        buffer.seek(0)
+        return buffer.getvalue()
+    except Exception:
+        return None
+
+
+def _wz52_render_downloads(prefix: str, text: str, filename_base: str):
+    c1, c2 = st.columns(2)
+    with c1:
+        st.download_button(
+            f"⬇️ Download {prefix} as TXT",
+            data=str(text or ""),
+            file_name=f"{filename_base}.txt",
+            mime="text/plain",
+            use_container_width=True,
+            key=f"wz52_{filename_base}_txt",
+        )
+    with c2:
+        pdf_data = _wz52_pdf_bytes(prefix, text)
+        if pdf_data:
+            st.download_button(
+                f"⬇️ Download {prefix} as PDF",
+                data=pdf_data,
+                file_name=f"{filename_base}.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key=f"wz52_{filename_base}_pdf",
+            )
+        else:
+            st.caption("PDF export is unavailable because ReportLab is not installed.")
+
+
+def _wz52_generate_cover_letter(company_name: str, target_role: str, language: str, job_description: str):
+    cv_text = str(st.session_state.get("cv_text") or st.session_state.get("clean_structured_cv_text") or "").strip()
+    prompt = f"""
+You are WorkZo AI. Create practical, honest application documents using ONLY the candidate CV and job description.
+Do not invent companies, achievements, skills, degrees, salaries, language levels, phone numbers, email addresses, names, addresses, or personal details.
+If company name is missing, use [Company Name]. If hiring manager is unknown, use [Hiring Manager's Name]. If candidate name/contact is missing, use [Your Name], [Your Phone], and [Your Email].
+
+Template rules:
+- Full cover letter must use a clean letter format: candidate contact, date, employer placeholder/company, greeting, 3-4 short paragraphs, closing, candidate name.
+- Short email must start with "Dear [Hiring Manager's Name]," or "Dear Hiring Team,". It must never start with broken text like "'s Name],".
+- Keep both outputs ready to copy and paste.
+
+Return ONLY valid JSON with this schema:
+{{
+  "cover_letter": "full professional cover letter in proper letter format, ready to paste",
+  "short_email": "short email version in proper email format, ready to paste",
+  "tips": ["tip 1", "tip 2", "tip 3"]
+}}
+
+Language: {language or 'English'}
+Company name: {company_name or '[Company Name]'}
+Target role: {target_role or '[Target Role]'}
+
+Candidate CV:
+{cv_text or 'No CV text available.'}
+
+Job description:
+{job_description or 'No job description provided.'}
+"""
+    try:
+        result = run_ai_prompt(prompt, json_mode=True)
+    except TypeError:
+        result = run_ai_prompt(prompt)
+    data = _wz52_safe_json(result)
+    if not data:
+        data = {
+            "cover_letter": str(result or "").strip(),
+            "short_email": "",
+            "tips": [],
+        }
+    return data
+
+
+
+def _wz59_clean_generated_text(text: str, kind: str = "letter") -> str:
+    """Light cleanup for generated application text without changing content/features."""
+    text = str(text or "").strip()
+    # Fix occasional broken greeting caused by model output such as "'s Name],".
+    if text.startswith("'s Name],") or text.startswith("[Hiring Manager") is False and text[:12].strip() in {"'s Name],", "s Name],"}:
+        text = re.sub(r"^'?s Name\],\s*", "Dear [Hiring Manager's Name],\n\n", text)
+    if kind == "email" and text and not re.match(r"(?is)^\s*(dear|hello|hi)\b", text):
+        text = "Dear [Hiring Manager's Name],\n\n" + text
+    return text
+
+def _wz52_render_cover_letter_tool():
+    st.markdown("""
+    <style>
+    .wz52-cover-hero{border:1px solid rgba(20,184,166,.30);border-radius:24px;padding:24px;background:linear-gradient(135deg,rgba(8,47,73,.72),rgba(15,23,42,.72));margin:8px 0 22px 0;box-shadow:0 18px 42px rgba(2,6,23,.28)}
+    .wz52-cover-kicker{color:#67e8f9;font-size:.78rem;font-weight:850;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+    .wz52-cover-title{color:#f8fafc;font-size:1.75rem;font-weight:900;line-height:1.18;margin-bottom:8px}
+    .wz52-cover-copy{color:#cbd5e1;font-size:.98rem;line-height:1.5;max-width:860px}
+    .wz52-panel{border:1px solid rgba(148,163,184,.18);border-radius:22px;padding:18px;background:rgba(15,23,42,.58);margin-bottom:14px}
+    .wz52-panel-title{color:#f8fafc;font-size:1.05rem;font-weight:850;margin-bottom:4px}
+    .wz52-panel-copy{color:#94a3b8;font-size:.88rem;margin-bottom:12px}
+    .wz52-doc-preview{border:1px solid rgba(148,163,184,.20);border-radius:18px;background:rgba(2,6,23,.34);padding:24px;color:#f8fafc;line-height:1.72;font-size:1rem;white-space:pre-wrap;min-height:360px}
+    .wz52-empty{border:1px dashed rgba(148,163,184,.32);border-radius:18px;padding:26px;color:#94a3b8;background:rgba(15,23,42,.34);text-align:center}
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class='wz52-cover-hero'>
+      <div class='wz52-cover-kicker'>AI document writer</div>
+      <div class='wz52-cover-title'>✉️ Cover Letter Generator</div>
+      <div class='wz52-cover-copy'>Generate a focused cover letter and a short email from your CV and one job description. Keep it honest, tailored, and ready to download.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    left, right = st.columns([0.88, 1.35], gap="large")
+
+    with left:
+        st.markdown("<div class='wz52-panel'><div class='wz52-panel-title'>1. Job details</div><div class='wz52-panel-copy'>Paste the essentials. Leave unknown fields blank.</div>", unsafe_allow_html=True)
+        company_name = st.text_input("Company name", value="", placeholder="Example: Siemens, SAP, HubSpot", key="wz52_cover_company")
+        target_role = st.text_input("Target role", value=str(st.session_state.get("target_role") or ""), placeholder="Example: Customer Success Manager", key="wz52_cover_role")
+        language_options_local = globals().get("language_options") or ["English", "German", "French", "Dutch"]
+        current_lang = st.session_state.get("preferred_language", "English")
+        lang_index = language_options_local.index(current_lang) if current_lang in language_options_local else 0
+        cover_language = st.selectbox("Cover letter language", language_options_local, index=lang_index, key="wz52_cover_language")
+        default_jd = str(st.session_state.get("last_understand_job_description") or st.session_state.get("improve_cv_for_job_desc") or st.session_state.get("last_prepare_job_description") or "")
+        job_description = st.text_area("Paste the job description", value=default_jd, height=240, key="wz52_cover_job_description")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        generate = st.button("✨ Generate documents", key="wz52_generate_cover_letter", use_container_width=True)
+        if generate:
+            if not job_description.strip():
+                st.warning("Please paste a job description first.")
+            elif not str(st.session_state.get("cv_text") or st.session_state.get("clean_structured_cv_text") or "").strip():
+                st.warning("Please upload or create your CV first.")
+            else:
+                with st.spinner("Writing your cover letter..."):
+                    data = _wz52_generate_cover_letter(company_name, target_role, cover_language, job_description)
+                    st.session_state["wz52_cover_outputs"] = data
+                    st.session_state["latest_cover_letter"] = data.get("cover_letter", "")
+                    st.session_state["cover_letter_job_desc"] = job_description
+                st.success("Cover letter generated.")
+
+    with right:
+        data = st.session_state.get("wz52_cover_outputs") or {}
+        if not data:
+            st.markdown("<div class='wz52-empty'>Your generated cover letter and short email will appear here after you click Generate.</div>", unsafe_allow_html=True)
+            return
+
+        cover_letter = _wz59_clean_generated_text(str(data.get("cover_letter") or "").strip(), "letter")
+        short_email = _wz59_clean_generated_text(str(data.get("short_email") or "").strip(), "email")
+        tips = data.get("tips") or []
+        if isinstance(tips, str):
+            tips = [tips]
+
+        # Two result boxes stay at the top. The generated documents appear below.
+        top1, top2 = st.columns(2)
+        with top1:
+            st.markdown("""
+            <div class='wz52-panel'>
+              <div class='wz52-panel-title'>Full Cover Letter</div>
+              <div class='wz52-panel-copy'>Generated Cover Letter</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with top2:
+            st.markdown("""
+            <div class='wz52-panel'>
+              <div class='wz52-panel-title'>Short Email Version</div>
+              <div class='wz52-panel-copy'>Generated Short Email</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("### Generated Full Cover Letter")
+        st.markdown(f"<div class='wz52-doc-preview'>{html.escape(cover_letter)}</div>", unsafe_allow_html=True)
+        _wz52_render_downloads("Cover Letter", cover_letter, "workzo_cover_letter")
+
+        st.markdown("### Generated Short Email")
+        st.markdown(f"<div class='wz52-doc-preview'>{html.escape(short_email)}</div>", unsafe_allow_html=True)
+        _wz52_render_downloads("Short Email", short_email, "workzo_short_email")
+
+        with st.expander("Customization Tips", expanded=False):
+            if tips:
+                for tip in tips[:5]:
+                    st.markdown(f"- {html.escape(str(tip))}")
+            else:
+                st.markdown("- Add the real company name before sending.\n- Replace placeholder hiring manager details if known.\n- Check every claim against your real CV before applying.")
+
+
+def show_document_tools():
+    mode = st.session_state.get("document_tools_mode", "Improve / Update CV")
+    cover_modes = {"Cover Letter Generator + Language", "Cover Letter", "cover_letter"}
+    if mode in cover_modes:
+        _wz52_render_cover_letter_tool()
+    elif callable(_wz52_previous_show_document_tools):
+        _wz52_previous_show_document_tools()
+    else:
+        st.warning("Document tools are not available in this build.")
+
+# =========================================================
+# WorkZo v58 - Mobile toolbox safe navigation fix
+# Scope: fixes mobile toolbox buttons/links kicking users out by preserving
+# existing query params and safe progress memory during mobile navigation.
+# No app features are changed.
+# =========================================================
+
+def _wz58_qp_items_preserved():
+    """Return current query params as a simple dict, preserving safe memory keys."""
+    try:
+        # Save safe progress memory before building mobile links.
+        # This does NOT store CV text or documents.
+        if callable(globals().get("workzo_save_light_memory")):
+            workzo_save_light_memory()
+    except Exception:
+        pass
+
+    data = {}
+    try:
+        params = getattr(st, "query_params", {})
+        if params is not None:
+            for k in list(params.keys()):
+                try:
+                    v = params.get(k)
+                    if isinstance(v, list):
+                        v = v[0] if v else ""
+                    if v not in (None, ""):
+                        data[str(k)] = str(v)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    # Keep important session values in the URL where your existing app already supports it.
+    try:
+        uid = st.session_state.get("anonymous_user_id")
+        if uid and "wz_uid" not in data:
+            data["wz_uid"] = str(uid)
+    except Exception:
+        pass
+    try:
+        lang = st.session_state.get("preferred_language") or st.session_state.get("language")
+        if lang and "wz_lang" not in data:
+            data["wz_lang"] = str(lang)
+    except Exception:
+        pass
+    return data
+
+
+def _wz58_mobile_href(page: str) -> str:
+    """Build a mobile navigation URL without dropping existing app state params."""
+    try:
+        import time as _time
+        import urllib.parse as _urlparse
+        params = _wz58_qp_items_preserved()
+        params["page"] = str(page or "dashboard")
+        params["wz_top"] = str(int(_time.time() * 1000))
+        return "?" + _urlparse.urlencode(params)
+    except Exception:
+        return "?page=" + str(page or "dashboard")
+
+
+def _wz45_render_mobile_top_nav():
+    """Mobile-only HTML toolbox with safe state-preserving links."""
+    try:
+        import html as _html
+        lang = str(st.session_state.get("preferred_language", "English") or "English")
+        labels = {
+            "English": {"tools": "Tools / Navigation", "dashboard": "Dashboard", "cv": "CV Documents", "jobs": "Job Assist", "bot": "Work-O-Bot"},
+            "German": {"tools": "Tools / Navigation", "dashboard": "Dashboard", "cv": "Lebenslauf & Dokumente", "jobs": "Job-Assistent", "bot": "Work-O-Bot"},
+            "French": {"tools": "Outils / navigation", "dashboard": "Tableau de bord", "cv": "CV & documents", "jobs": "Assistant emploi", "bot": "Work-O-Bot"},
+            "Dutch": {"tools": "Tools / navigatie", "dashboard": "Dashboard", "cv": "CV & documenten", "jobs": "Jobassistent", "bot": "Work-O-Bot"},
+            "Spanish": {"tools": "Herramientas / navegación", "dashboard": "Panel", "cv": "CV y documentos", "jobs": "Asistente de empleo", "bot": "Work-O-Bot"},
+        }
+        t = labels.get(lang, labels["English"])
+        def link(page, text):
+            return f"<a class='wz45-mobile-link' href='{_wz58_mobile_href(page)}'>{_html.escape(text)}</a>"
+        st.markdown(f"""
+        <style>
+        .wz45-mobile-topnav {{ display: none !important; }}
+        @media (max-width: 700px) {{
+            .wz45-mobile-topnav {{
+                display: block !important; position: sticky !important; top: 0 !important; z-index: 9999 !important;
+                margin: 0 0 0.75rem 0 !important; padding: 0.75rem !important;
+                border: 1px solid rgba(20,184,166,0.24) !important; border-radius: 18px !important;
+                background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(8,47,73,0.92)) !important;
+                box-shadow: 0 10px 28px rgba(2,6,23,0.30) !important;
+            }}
+            .wz45-mobile-title {{ color: #f8fafc !important; font-weight: 850 !important; font-size: 0.95rem !important; margin-bottom: 0.5rem !important; }}
+            .wz45-mobile-links {{ display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 0.45rem !important; }}
+            .wz45-mobile-link {{
+                display: block !important; text-align: center !important; color: #e0f2fe !important; text-decoration: none !important;
+                border: 1px solid rgba(96,165,250,0.26) !important; background: rgba(37,99,235,0.16) !important;
+                border-radius: 999px !important; padding: 0.48rem 0.55rem !important; font-weight: 700 !important;
+                font-size: 0.86rem !important; white-space: nowrap !important;
+            }}
+        }}
+        </style>
+        <div class="wz45-mobile-topnav">
+            <div class="wz45-mobile-title">☰ {_html.escape(t['tools'])}</div>
+            <div class="wz45-mobile-links">
+                {link('dashboard', '🏠 ' + t['dashboard'])}
+                {link('cv_documents', '📄 ' + t['cv'])}
+                {link('job_assist', '🎯 ' + t['jobs'])}
+                {link('workobot', '🤖 ' + t['bot'])}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz57_render_mobile_toolbox():
+    """Mobile-only toolbox with safe state-preserving links."""
+    try:
+        founder_link = ""
+        if st.session_state.get("founder_unlocked"):
+            founder_link = f"<a class='wz57-mobile-link' href='{_wz58_mobile_href('founder_dashboard')}'>📊 Founder</a>"
+        st.markdown(f"""
+        <style>
+        .wz57-mobile-toolbox {{ display: none !important; }}
+        @media (max-width: 700px) {{
+            .wz57-mobile-toolbox {{
+                display: block !important; position: sticky !important; top: 0 !important; z-index: 9999 !important;
+                margin: 0 0 0.8rem 0 !important; padding: 0.75rem !important;
+                border: 1px solid rgba(20,184,166,0.28) !important; border-radius: 18px !important;
+                background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(8,47,73,0.94)) !important;
+                box-shadow: 0 12px 30px rgba(2,6,23,0.34) !important;
+            }}
+            .wz57-mobile-title {{ color: #f8fafc !important; font-weight: 850 !important; font-size: 0.95rem !important; margin-bottom: 0.55rem !important; }}
+            .wz57-mobile-grid {{ display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 0.45rem !important; }}
+            .wz57-mobile-link {{
+                display: block !important; text-align: center !important; color: #e0f2fe !important; text-decoration: none !important;
+                border: 1px solid rgba(96,165,250,0.30) !important; background: rgba(37,99,235,0.18) !important;
+                border-radius: 999px !important; padding: 0.52rem 0.58rem !important; font-weight: 750 !important;
+                font-size: 0.86rem !important; white-space: nowrap !important;
+            }}
+        }}
+        </style>
+        <div class="wz57-mobile-toolbox">
+            <div class="wz57-mobile-title">☰ Tools</div>
+            <div class="wz57-mobile-grid">
+                <a class='wz57-mobile-link' href='{_wz58_mobile_href('dashboard')}'>🏠 Dashboard</a>
+                <a class='wz57-mobile-link' href='{_wz58_mobile_href('cv_documents')}'>📄 CV</a>
+                <a class='wz57-mobile-link' href='{_wz58_mobile_href('job_assist')}'>🎯 Job Assist</a>
+                <a class='wz57-mobile-link' href='{_wz58_mobile_href('workobot')}'>🤖 Work-O-Bot</a>
+                {founder_link}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+# =========================================================
+# WorkZo v59 - Mobile toolbox safe native buttons only
+# Scope: fixes mobile toolbox kicking users to landing and removes visible </div> artifact.
+# Uses Streamlit buttons instead of HTML links, so the current session is preserved.
+# =========================================================
+def _wz59_safe_mobile_go(page_key: str, extra: dict = None):
+    try:
+        page_key = str(page_key or "dashboard").strip()
+        aliases = {
+            "home": "dashboard", "landing": "dashboard", "dashboard": "dashboard",
+            "cv": "cv_documents", "my_cv": "cv_documents", "cv_documents": "cv_documents",
+            "jobs": "job_assist", "job_assist": "job_assist",
+            "bot": "workobot", "workobot": "workobot",
+            "founder": "founder_dashboard", "founder_dashboard": "founder_dashboard",
+        }
+        page_key = aliases.get(page_key, "dashboard")
+        if extra and isinstance(extra, dict):
+            for k, v in extra.items():
+                st.session_state[k] = v
+        st.session_state["page"] = page_key
+        st.session_state["nav_page"] = page_key
+        st.session_state["_workzo_scroll_to_top"] = True
+        try:
+            st.query_params["page"] = page_key
+        except Exception:
+            pass
+        st.rerun()
+    except Exception:
+        try:
+            st.session_state["page"] = page_key
+            st.session_state["nav_page"] = page_key
+            st.rerun()
+        except Exception:
+            pass
+
+
+def _wz59_render_mobile_toolbox_native():
+    """Mobile-only toolbox rendered with native Streamlit buttons, not HTML links."""
+    try:
+        st.markdown("""
+        <style>
+        .st-key-wz59_mobile_toolbox_native { display: none !important; }
+        @media (max-width: 700px) {
+            .st-key-wz59_mobile_toolbox_native {
+                display: block !important;
+                position: sticky !important;
+                top: 0 !important;
+                z-index: 9999 !important;
+                margin: 0 0 0.9rem 0 !important;
+                padding: 0.85rem !important;
+                border: 1px solid rgba(20,184,166,0.30) !important;
+                border-radius: 18px !important;
+                background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(8,47,73,0.94)) !important;
+                box-shadow: 0 12px 30px rgba(2,6,23,0.34) !important;
+            }
+            .st-key-wz59_mobile_toolbox_native div[data-testid="stMarkdownContainer"] p {
+                margin-bottom: 0.55rem !important;
+            }
+            .st-key-wz59_mobile_toolbox_native button {
+                border-radius: 999px !important;
+                min-height: 46px !important;
+                font-weight: 800 !important;
+                background: rgba(37,99,235,0.20) !important;
+                border: 1px solid rgba(96,165,250,0.34) !important;
+                color: #e0f2fe !important;
+                box-shadow: none !important;
+            }
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        with st.container(key="wz59_mobile_toolbox_native"):
+            st.markdown("**☰ Tools**")
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("🏠 Dashboard", key="wz59_mobile_dashboard", use_container_width=True):
+                    _wz59_safe_mobile_go("dashboard")
+                if st.button("🎯 Job Assist", key="wz59_mobile_job_assist", use_container_width=True):
+                    _wz59_safe_mobile_go("job_assist")
+            with c2:
+                if st.button("📄 CV", key="wz59_mobile_cv", use_container_width=True):
+                    _wz59_safe_mobile_go("cv_documents")
+                if st.button("🤖 Work-O-Bot", key="wz59_mobile_workobot", use_container_width=True):
+                    _wz59_safe_mobile_go("workobot")
+            if st.session_state.get("founder_unlocked"):
+                if st.button("📊 Founder Analytics", key="wz59_mobile_founder", use_container_width=True):
+                    _wz59_safe_mobile_go("founder_dashboard")
+    except Exception:
+        pass
+
+
+try:
+    # Bypass the older HTML-link mobile toolbox because it reloads Streamlit and can drop users to landing.
+    _wz59_base_show_dashboard = _wz57_previous_show_dashboard if callable(globals().get("_wz57_previous_show_dashboard")) else show_dashboard
+    def show_dashboard():
+        try:
+            _wz57_apply_page_query_param()
+        except Exception:
+            pass
+        _wz59_render_mobile_toolbox_native()
+        return _wz59_base_show_dashboard()
+except Exception:
+    pass
+
+
+
+# =========================================================
+# WorkZo v60 - Final toolbox cleanup + Real Interview route
+# Scope:
+# - Adds Founder Dashboard and Real Interview Simulation to the left toolbox.
+# - Removes Company Context / company website from the toolbox completely.
+# - Keeps other dashboard features unchanged.
+# =========================================================
+
+def _wz60_go(page_key: str):
+    try:
+        page_key = str(page_key or "dashboard").strip()
+        st.session_state["page"] = page_key
+        st.session_state["nav_page"] = page_key
+        try:
+            st.query_params["page"] = page_key
+        except Exception:
+            pass
+        st.rerun()
+    except Exception:
+        st.session_state["page"] = page_key
+        st.session_state["nav_page"] = page_key
+        st.rerun()
+
+
+def _wz60_render_founder_unlock():
+    """Small founder unlock panel. Does not track or expose private data."""
+    try:
+        founder_pin = None
+        try:
+            founder_pin = os.getenv("FOUNDER_PIN") or get_streamlit_secret("FOUNDER_PIN")
+        except Exception:
+            founder_pin = os.getenv("FOUNDER_PIN")
+
+        st.markdown("<div class='workzo-sidebar-section-label'>Founder</div>", unsafe_allow_html=True)
+        with st.expander("📊 Founder access", expanded=False):
+            if st.session_state.get("founder_unlocked"):
+                st.success("Founder mode unlocked.")
+                if st.button("Open Founder Dashboard", key="wz60_open_founder_dashboard", use_container_width=True):
+                    _wz60_go("founder_dashboard")
+            elif founder_pin:
+                entered_pin = st.text_input("Founder PIN", type="password", key="wz60_founder_pin")
+                if entered_pin and entered_pin == founder_pin:
+                    st.session_state["founder_unlocked"] = True
+                    st.success("Founder mode unlocked.")
+                    _wz60_go("founder_dashboard")
+            else:
+                temp_pin = st.text_input("Temporary founder PIN", type="password", key="wz60_temp_founder_pin")
+                if temp_pin and len(temp_pin) >= 4:
+                    st.session_state["founder_unlocked"] = True
+                    st.success("Founder mode unlocked for this session.")
+                    _wz60_go("founder_dashboard")
+    except Exception:
+        pass
+
+
+def _wz35_sidebar(page_key):
+    """Final sidebar/toolbox: no company context box, with Real Interview and Founder Dashboard."""
+    with st.sidebar:
+        try:
+            logo_src = image_to_data_uri(ICON_PATH) or image_to_data_uri(LOGO_PATH)
+        except Exception:
+            logo_src = None
+
+        if logo_src:
+            st.markdown(f"""
+            <div class='workzo-sidebar-brand-wrap'>
+              <img src='{logo_src}' class='workzo-sidebar-logo' alt='WorkZo AI logo'>
+              <div>
+                <div class='workzo-sidebar-brand'>WORKZO AI</div>
+                <div class='workzo-sidebar-version'>Beta · guided workspace</div>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("### WorkZo AI")
+
+        st.markdown("<div class='workzo-sidebar-section-label'>Toolbox</div>", unsafe_allow_html=True)
+
+        navs = [
+            ("dashboard", "Dashboard"),
+            ("cv_documents", "CV & Documents"),
+            ("job_assist", "Job Assist"),
+            ("real_interview", "Real Interview Simulation"),
+            ("workobot", "Work-O-Bot"),
+        ]
+
+        for key, label in navs:
+            shown = label + (" ✓" if page_key == key else "")
+            if st.button(shown, key=f"wz60_sidebar_nav_{key}", use_container_width=True):
+                _wz60_go(key)
+
+        # Company Context intentionally removed from the toolbox.
+        # Company / role / website are now entered inside Real Interview Simulation.
+
+        st.markdown("<div class='workzo-sidebar-section-label'>Language</div>", unsafe_allow_html=True)
+        try:
+            langs = language_options if "language_options" in globals() and language_options else ["English", "German", "Dutch", "French", "Spanish", "Portuguese"]
+        except Exception:
+            langs = ["English", "German", "Dutch", "French", "Spanish", "Portuguese"]
+
+        cur = st.session_state.get("preferred_language") or st.session_state.get("language") or "English"
+        if cur not in langs:
+            cur = "English" if "English" in langs else langs[0]
+
+        def _wz60_language_changed():
+            _new_lang = st.session_state.get("wz60_preferred_language", cur)
+            try:
+                if callable(globals().get("workzo_set_language_everywhere")):
+                    workzo_set_language_everywhere(_new_lang)
+                else:
+                    set_single_preferred_language(_new_lang)
+                try:
+                    st.query_params["wz_lang"] = _new_lang
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
+        if st.session_state.get("wz60_preferred_language") != cur:
+            st.session_state["wz60_preferred_language"] = cur
+
+        chosen = st.selectbox(
+            "Select a Language",
+            langs,
+            index=langs.index(cur),
+            key="wz60_preferred_language",
+            on_change=_wz60_language_changed,
+        )
+        try:
+            if callable(globals().get("_wz35_sync_language")):
+                _wz35_sync_language(chosen)
+            else:
+                set_single_preferred_language(chosen)
+        except Exception:
+            pass
+
+        _wz60_render_founder_unlock()
+
+        st.markdown("---")
+        if st.button("Edit Onboarding", key="wz60_edit_setup", use_container_width=True):
+            try:
+                reset_onboarding()
+            except Exception:
+                st.session_state["onboarding_complete"] = False
+                st.session_state["page"] = "onboarding"
+                st.session_state["nav_page"] = "onboarding"
+            try:
+                st.query_params["page"] = "onboarding"
+            except Exception:
+                pass
+            st.rerun()
+
+
+def _wz59_safe_mobile_go(page_key: str, extra: dict = None):
+    try:
+        aliases = {
+            "home": "dashboard",
+            "dashboard": "dashboard",
+            "cv": "cv_documents",
+            "my_cv": "cv_documents",
+            "cv_documents": "cv_documents",
+            "jobs": "job_assist",
+            "job_assist": "job_assist",
+            "real_interview": "real_interview",
+            "interview": "real_interview",
+            "simulation": "real_interview",
+            "bot": "workobot",
+            "workobot": "workobot",
+            "founder": "founder_dashboard",
+            "founder_dashboard": "founder_dashboard",
+        }
+        page_key = aliases.get(str(page_key or "").strip(), "dashboard")
+        if extra and isinstance(extra, dict):
+            for k, v in extra.items():
+                st.session_state[k] = v
+        st.session_state["page"] = page_key
+        st.session_state["nav_page"] = page_key
+        st.rerun()
+    except Exception:
+        pass
+
+
+def _wz59_render_mobile_toolbox_native():
+    """Mobile-only native toolbox. No HTML links, no company context box."""
+    try:
+        st.markdown("""
+        <style>
+        .st-key-wz59_mobile_toolbox_native { display: none !important; }
+        @media (max-width: 700px) {
+            .st-key-wz59_mobile_toolbox_native {
+                display: block !important;
+                position: sticky !important;
+                top: 0 !important;
+                z-index: 9999 !important;
+                margin: 0 0 0.9rem 0 !important;
+                padding: 0.85rem !important;
+                border: 1px solid rgba(20,184,166,0.28) !important;
+                border-radius: 18px !important;
+                background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(8,47,73,0.94)) !important;
+                box-shadow: 0 12px 30px rgba(2,6,23,0.34) !important;
+            }
+            .st-key-wz59_mobile_toolbox_native button {
+                border-radius: 999px !important;
+                min-height: 44px !important;
+                font-weight: 800 !important;
+                background: rgba(37,99,235,0.20) !important;
+                border: 1px solid rgba(96,165,250,0.34) !important;
+                color: #e0f2fe !important;
+            }
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        with st.container(key="wz59_mobile_toolbox_native"):
+            st.markdown("**☰ Tools**")
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("🏠 Dashboard", key="wz60_mobile_dashboard", use_container_width=True):
+                    _wz59_safe_mobile_go("dashboard")
+                if st.button("🎯 Job Assist", key="wz60_mobile_jobs", use_container_width=True):
+                    _wz59_safe_mobile_go("job_assist")
+                if st.button("🤖 Work-O-Bot", key="wz60_mobile_bot", use_container_width=True):
+                    _wz59_safe_mobile_go("workobot")
+            with c2:
+                if st.button("📄 CV", key="wz60_mobile_cv", use_container_width=True):
+                    _wz59_safe_mobile_go("cv_documents")
+                if st.button("Real Interview", key="wz60_mobile_real_interview", use_container_width=True):
+                    _wz59_safe_mobile_go("real_interview")
+                if st.button("📊 Founder", key="wz60_mobile_founder", use_container_width=True):
+                    _wz59_safe_mobile_go("founder_dashboard")
+    except Exception:
+        pass
+
+
+try:
+    _wz60_previous_show_dashboard = show_dashboard
+
+    def show_dashboard():
+        try:
+            _wz57_apply_page_query_param()
+        except Exception:
+            pass
+
+        page_key = st.session_state.get("nav_page", st.session_state.get("page", "dashboard")) or "dashboard"
+        if page_key == "real_interview":
+            try:
+                _wz59_render_mobile_toolbox_native()
+            except Exception:
+                pass
+            try:
+                _wz35_sidebar(page_key)
+            except Exception:
+                pass
+            try:
+                st.markdown("<div id='top'></div>", unsafe_allow_html=True)
+                if callable(globals().get("render_real_interview_simulation")):
+                    render_real_interview_simulation()
+                else:
+                    st.error("Real Interview Simulation is not available. Please check 09_interview_assistant.py is loaded.")
+                try:
+                    render_feedback_collector("real_interview")
+                    render_issue_reporter("real_interview")
+                except Exception:
+                    pass
+                st.divider()
+                st.caption("WORKZO AI • Beta • Real Interview Simulation")
+                return
+            except Exception as exc:
+                st.error(f"Real Interview Simulation could not load: {exc}")
+                return
+
+        return _wz60_previous_show_dashboard()
+except Exception:
+    pass
+
+
+# =========================================================
+# WorkZo v61 - top spacing + toolbox final cleanup
+# Scope: compact top spacing on every dashboard page only.
+# Does not change feature logic.
+# =========================================================
+
+def _wz61_apply_global_top_compact_css():
+    """Keep WorkZo logo/header close to the top on every in-app page."""
+    try:
+        st.markdown("""
+        <style>
+        div.block-container,
+        main .block-container,
+        [data-testid="stMainBlockContainer"] {
+            padding-top: 0.35rem !important;
+            margin-top: 0 !important;
+        }
+        [data-testid="stVerticalBlock"] {
+            gap: 0.75rem !important;
+        }
+        .wz35-hero, .wz31-hero, .wz28-hero, .wz27-hero, .wz25-hero, .wz19-hero,
+        .wz57-hero, .wz52-cover-hero, .wz-command-hero {
+            margin-top: 0 !important;
+        }
+        section[data-testid="stSidebar"] .block-container {
+            padding-top: 0.65rem !important;
+        }
+        .workzo-sidebar-brand-wrap {
+            margin-top: 0 !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+try:
+    _wz61_previous_show_dashboard = show_dashboard
+
+    def show_dashboard():
+        try:
+            _wz61_apply_global_top_compact_css()
+        except Exception:
+            pass
+        return _wz61_previous_show_dashboard()
+except Exception:
+    pass
