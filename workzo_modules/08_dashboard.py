@@ -64,34 +64,8 @@ def ensure_dashboard_analysis():
         or ""
     )
 
-    # Prefer the app's real analysis functions if they exist in the shared exec namespace.
-    try:
-        fn = globals().get("analyze_resume_dashboard_stable")
-        if callable(fn) and cv_text.strip():
-            result = fn(cv_text)
-            if isinstance(result, dict) and result:
-                st.session_state["dashboard_analysis"] = result
-                if result.get("resume_score") is not None:
-                    st.session_state["cv_score_value"] = max(int(st.session_state.get("cv_score_value") or 0), int(result.get("resume_score") or 0))
-                if result.get("ats_score") is not None:
-                    st.session_state["ats_score_value"] = max(int(st.session_state.get("ats_score_value") or 0), int(result.get("ats_score") or 0))
-                return result
-    except Exception:
-        pass
-
-    try:
-        fn = globals().get("build_rule_based_dashboard_cache")
-        if callable(fn) and cv_text.strip():
-            result = fn(cv_text)
-            if isinstance(result, dict) and result:
-                st.session_state["dashboard_analysis"] = result
-                if result.get("resume_score") is not None:
-                    st.session_state["cv_score_value"] = max(int(st.session_state.get("cv_score_value") or 0), int(result.get("resume_score") or 0))
-                if result.get("ats_score") is not None:
-                    st.session_state["ats_score_value"] = max(int(st.session_state.get("ats_score_value") or 0), int(result.get("ats_score") or 0))
-                return result
-    except Exception:
-        pass
+    # Speed fix: Dashboard/Home should NOT call heavy AI analysis on every rerun.
+    # It displays saved analysis if available, otherwise uses the lightweight fallback below.
 
     # Deterministic fallback. Conservative scores: avoids fake 90+ numbers.
     text_lower = cv_text.lower()
@@ -1245,14 +1219,14 @@ Focus on transferable experience, measurable achievements, job-specific keywords
                         st.markdown(cover_text)
 
                 with interview_tab:
-                    st.markdown("#### Real Interview Simulation")
+                    st.markdown("#### Real Interview Stimulator")
                     st.info("Use this after applying or when HR invites you for an interview. WorkZo will practice the exact interview using your CV and this job description.")
                     st.markdown(interview_text or "Prepare answers for role fit, technical skills, problem solving, communication, motivation, and country-specific expectations.")
-                    if st.button("Start Real Interview Simulation", key="real_interview_setup_from_prepare", use_container_width=True):
+                    if st.button("Start Real Interview Stimulator", key="real_interview_setup_from_prepare", use_container_width=True):
                         st.session_state["real_interview_jd"] = st.session_state.get("last_prepare_job_description", job_desc_prepare)
                         st.session_state["real_interview_company"] = target_company or ""
                         st.session_state["prepare_interview_started"] = True
-                        st.session_state["workobot_prefill"] = "Start Real Interview Simulation for my prepared job. Use my CV and the saved job description. Ask one question at a time and give specific feedback."
+                        st.session_state["workobot_prefill"] = "Start Real Interview Stimulator for my prepared job. Use my CV and the saved job description. Ask one question at a time and give specific feedback."
                         queue_navigation("workobot")
                         st.rerun()
 
@@ -1318,7 +1292,7 @@ Focus on transferable experience, measurable achievements, job-specific keywords
                     if st.button("Interview after HR reply", key="prep_to_real_interview_after_hr", use_container_width=True):
                         st.session_state["real_interview_jd"] = st.session_state.get("last_prepare_job_description", job_desc_prepare)
                         st.session_state["real_interview_company"] = target_company or ""
-                        st.session_state["workobot_prefill"] = "Start Real Interview Simulation for my prepared job. Use my CV and the saved job description."
+                        st.session_state["workobot_prefill"] = "Start Real Interview Stimulator for my prepared job. Use my CV and the saved job description."
                         st.session_state["prepare_interview_started"] = True
                         queue_navigation("workobot")
                         st.rerun()
@@ -1935,7 +1909,7 @@ def _wz21_render_sidebar(page_key: str):
 def _wz21_render_interview_practice_page():
     """Make speaking/Work-O-Bot discoverable as its own page."""
     st.markdown("<div id='top'></div>", unsafe_allow_html=True)
-    st.markdown("## 🎤 Real Interview Simulation")
+    st.markdown("## 🎤 Real Interview Stimulator")
     st.caption("Practice the exact interview for the job you are applying to — using your CV and the job description.")
     st.info("Use this after applying or when HR invites you for an interview. WorkZo asks tailored questions and gives specific feedback so you can improve and try again.")
     if "render_real_interview_simulation" in globals():
@@ -4633,6 +4607,7 @@ def _wz45_render_mobile_top_nav():
                     {link('dashboard', '🏠 ' + t['dashboard'])}
                     {link('cv_documents', '📄 ' + t['cv'])}
                     {link('job_assist', '🎯 ' + t['jobs'])}
+                    {link('real_interview', 'Real Interview Stimulator')}
                     {link('workobot', '🤖 ' + t['bot'])}
                 </div>
             </div>
@@ -6705,14 +6680,14 @@ Focus on transferable experience, measurable achievements, job-specific keywords
                         st.markdown(cover_text)
 
                 with interview_tab:
-                    st.markdown("#### Real Interview Simulation")
+                    st.markdown("#### Real Interview Stimulator")
                     st.info("Use this after applying or when HR invites you for an interview. WorkZo will practice the exact interview using your CV and this job description.")
                     st.markdown(interview_text or "Prepare answers for role fit, technical skills, problem solving, communication, motivation, and country-specific expectations.")
-                    if st.button("Start Real Interview Simulation", key="real_interview_setup_from_prepare", use_container_width=True):
+                    if st.button("Start Real Interview Stimulator", key="real_interview_setup_from_prepare", use_container_width=True):
                         st.session_state["real_interview_jd"] = st.session_state.get("last_prepare_job_description", job_desc_prepare)
                         st.session_state["real_interview_company"] = target_company or ""
                         st.session_state["prepare_interview_started"] = True
-                        st.session_state["workobot_prefill"] = "Start Real Interview Simulation for my prepared job. Use my CV and the saved job description. Ask one question at a time and give specific feedback."
+                        st.session_state["workobot_prefill"] = "Start Real Interview Stimulator for my prepared job. Use my CV and the saved job description. Ask one question at a time and give specific feedback."
                         queue_navigation("workobot")
                         st.rerun()
 
@@ -6778,7 +6753,7 @@ Focus on transferable experience, measurable achievements, job-specific keywords
                     if st.button("Interview after HR reply", key="prep_to_real_interview_after_hr", use_container_width=True):
                         st.session_state["real_interview_jd"] = st.session_state.get("last_prepare_job_description", job_desc_prepare)
                         st.session_state["real_interview_company"] = target_company or ""
-                        st.session_state["workobot_prefill"] = "Start Real Interview Simulation for my prepared job. Use my CV and the saved job description."
+                        st.session_state["workobot_prefill"] = "Start Real Interview Stimulator for my prepared job. Use my CV and the saved job description."
                         st.session_state["prepare_interview_started"] = True
                         queue_navigation("workobot")
                         st.rerun()
@@ -7395,7 +7370,7 @@ def _wz21_render_sidebar(page_key: str):
 def _wz21_render_interview_practice_page():
     """Make speaking/Work-O-Bot discoverable as its own page."""
     st.markdown("<div id='top'></div>", unsafe_allow_html=True)
-    st.markdown("## 🎤 Real Interview Simulation")
+    st.markdown("## 🎤 Real Interview Stimulator")
     st.caption("Practice the exact interview for the job you are applying to — using your CV and the job description.")
     st.info("Use this after applying or when HR invites you for an interview. WorkZo asks tailored questions and gives specific feedback so you can improve and try again.")
     if "render_real_interview_simulation" in globals():
@@ -9930,6 +9905,7 @@ def _wz45_render_mobile_top_nav():
                     {link('dashboard', '🏠 ' + t['dashboard'])}
                     {link('cv_documents', '📄 ' + t['cv'])}
                     {link('job_assist', '🎯 ' + t['jobs'])}
+                    {link('real_interview', 'Real Interview Stimulator')}
                     {link('workobot', '🤖 ' + t['bot'])}
                 </div>
             </div>
@@ -12103,14 +12079,14 @@ Focus on transferable experience, measurable achievements, job-specific keywords
                         st.markdown(cover_text)
 
                 with interview_tab:
-                    st.markdown("#### Real Interview Simulation")
+                    st.markdown("#### Real Interview Stimulator")
                     st.info("Use this after applying or when HR invites you for an interview. WorkZo will practice the exact interview using your CV and this job description.")
                     st.markdown(interview_text or "Prepare answers for role fit, technical skills, problem solving, communication, motivation, and country-specific expectations.")
-                    if st.button("Start Real Interview Simulation", key="real_interview_setup_from_prepare", use_container_width=True):
+                    if st.button("Start Real Interview Stimulator", key="real_interview_setup_from_prepare", use_container_width=True):
                         st.session_state["real_interview_jd"] = st.session_state.get("last_prepare_job_description", job_desc_prepare)
                         st.session_state["real_interview_company"] = target_company or ""
                         st.session_state["prepare_interview_started"] = True
-                        st.session_state["workobot_prefill"] = "Start Real Interview Simulation for my prepared job. Use my CV and the saved job description. Ask one question at a time and give specific feedback."
+                        st.session_state["workobot_prefill"] = "Start Real Interview Stimulator for my prepared job. Use my CV and the saved job description. Ask one question at a time and give specific feedback."
                         queue_navigation("workobot")
                         st.rerun()
 
@@ -12176,7 +12152,7 @@ Focus on transferable experience, measurable achievements, job-specific keywords
                     if st.button("Interview after HR reply", key="prep_to_real_interview_after_hr", use_container_width=True):
                         st.session_state["real_interview_jd"] = st.session_state.get("last_prepare_job_description", job_desc_prepare)
                         st.session_state["real_interview_company"] = target_company or ""
-                        st.session_state["workobot_prefill"] = "Start Real Interview Simulation for my prepared job. Use my CV and the saved job description."
+                        st.session_state["workobot_prefill"] = "Start Real Interview Stimulator for my prepared job. Use my CV and the saved job description."
                         st.session_state["prepare_interview_started"] = True
                         queue_navigation("workobot")
                         st.rerun()
@@ -12793,7 +12769,7 @@ def _wz21_render_sidebar(page_key: str):
 def _wz21_render_interview_practice_page():
     """Make speaking/Work-O-Bot discoverable as its own page."""
     st.markdown("<div id='top'></div>", unsafe_allow_html=True)
-    st.markdown("## 🎤 Real Interview Simulation")
+    st.markdown("## 🎤 Real Interview Stimulator")
     st.caption("Practice the exact interview for the job you are applying to — using your CV and the job description.")
     st.info("Use this after applying or when HR invites you for an interview. WorkZo asks tailored questions and gives specific feedback so you can improve and try again.")
     if "render_real_interview_simulation" in globals():
@@ -15327,6 +15303,7 @@ def _wz45_render_mobile_top_nav():
                     {link('dashboard', '🏠 ' + t['dashboard'])}
                     {link('cv_documents', '📄 ' + t['cv'])}
                     {link('job_assist', '🎯 ' + t['jobs'])}
+                    {link('real_interview', 'Real Interview Stimulator')}
                     {link('workobot', '🤖 ' + t['bot'])}
                 </div>
             </div>
@@ -17771,7 +17748,7 @@ except Exception:
 # =========================================================
 # WorkZo v60 - Final toolbox cleanup + Real Interview route
 # Scope:
-# - Adds Founder Dashboard and Real Interview Simulation to the left toolbox.
+# - Adds Founder Dashboard and Real Interview Stimulator to the left toolbox.
 # - Removes Company Context / company website from the toolbox completely.
 # - Keeps other dashboard features unchanged.
 # =========================================================
@@ -17850,7 +17827,7 @@ def _wz35_sidebar(page_key):
             ("dashboard", "Dashboard"),
             ("cv_documents", "CV & Documents"),
             ("job_assist", "Job Assist"),
-            ("real_interview", "Real Interview Simulation"),
+            ("real_interview", "Real Interview Stimulator"),
             ("workobot", "Work-O-Bot"),
         ]
 
@@ -17860,7 +17837,7 @@ def _wz35_sidebar(page_key):
                 _wz60_go(key)
 
         # Company Context intentionally removed from the toolbox.
-        # Company / role / website are now entered inside Real Interview Simulation.
+        # Company / role / website are now entered inside Real Interview Stimulator.
 
         st.markdown("<div class='workzo-sidebar-section-label'>Language</div>", unsafe_allow_html=True)
         try:
@@ -18026,17 +18003,17 @@ try:
                 if callable(globals().get("render_real_interview_simulation")):
                     render_real_interview_simulation()
                 else:
-                    st.error("Real Interview Simulation is not available. Please check 09_interview_assistant.py is loaded.")
+                    st.error("Real Interview Stimulator is not available. Please check 09_interview_assistant.py is loaded.")
                 try:
                     render_feedback_collector("real_interview")
                     render_issue_reporter("real_interview")
                 except Exception:
                     pass
                 st.divider()
-                st.caption("WORKZO AI • Beta • Real Interview Simulation")
+                st.caption("WORKZO AI • Beta • Real Interview Stimulator")
                 return
             except Exception as exc:
-                st.error(f"Real Interview Simulation could not load: {exc}")
+                st.error(f"Real Interview Stimulator could not load: {exc}")
                 return
 
         return _wz60_previous_show_dashboard()
@@ -18090,3 +18067,1235 @@ try:
         return _wz61_previous_show_dashboard()
 except Exception:
     pass
+
+# =========================================================
+# WorkZo v70 - Guided product upgrade (safe additive layer)
+# Scope: journey progress, hero positioning, 3-card dashboard focus,
+# sticky mobile CTA, micro feedback helpers, and funnel events.
+# This layer does not remove or rewrite existing feature logic.
+# =========================================================
+
+def _wz70_truthy_text(*keys):
+    try:
+        for key in keys:
+            value = st.session_state.get(key, "")
+            if isinstance(value, str) and value.strip():
+                return True
+            if value and not isinstance(value, str):
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def _wz70_step_state():
+    cv_done = _wz70_truthy_text(
+        "cv_text", "clean_structured_cv_text", "approved_structured_cv_text",
+        "created_cv_text", "workzo_live_cv_text"
+    )
+    job_done = _wz70_truthy_text(
+        "last_understand_job_description", "last_prepare_job_description",
+        "job_desc_prepare_v928", "job_desc_v42", "improve_cv_for_job_desc",
+        "real_interview_jd_saved", "target_job_title", "target_role"
+    )
+    tailored_done = _wz70_truthy_text(
+        "improved_cv_text_v92", "tailored_cv_text", "generated_cv_text",
+        "final_cv_text", "cv_tailoring_result"
+    ) or bool(st.session_state.get("cv_tailored_done"))
+    interview_done = bool(st.session_state.get("wz_ri_started") or st.session_state.get("wz_ri_final_score") or st.session_state.get("interview_score"))
+    return cv_done, job_done, tailored_done, interview_done
+
+
+def _wz70_go(page_key: str):
+    try:
+        st.session_state["page"] = page_key
+        st.session_state["nav_page"] = page_key
+        try:
+            st.query_params["page"] = page_key
+        except Exception:
+            pass
+        if callable(globals().get("track_event")):
+            track_event("guided_journey_step_click", "Guided Journey", {"target": page_key})
+        st.rerun()
+    except Exception:
+        pass
+
+
+def _wz70_micro_feedback(feature_key: str):
+    try:
+        st.markdown("<div class='wz70-feedback'>Was this helpful?</div>", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns([1, 1, 5])
+        with c1:
+            if st.button("👍 Helpful", key=f"wz70_helpful_{feature_key}", use_container_width=True):
+                st.session_state[f"wz70_feedback_{feature_key}"] = "helpful"
+                if callable(globals().get("track_event")):
+                    track_event("micro_feedback", feature_key, {"rating": "helpful"})
+                st.toast("Thanks — noted.")
+        with c2:
+            if st.button("👎 Not helpful", key=f"wz70_not_helpful_{feature_key}", use_container_width=True):
+                st.session_state[f"wz70_feedback_{feature_key}"] = "not_helpful"
+                if callable(globals().get("track_event")):
+                    track_event("micro_feedback", feature_key, {"rating": "not_helpful"})
+                st.toast("Thanks — this helps improve WorkZo.")
+    except Exception:
+        pass
+
+
+def _wz70_render_guided_dashboard_top():
+    try:
+        st.markdown("""
+        <style>
+        .wz70-hero {
+            margin: 0.15rem 0 1rem 0;
+            padding: 1.05rem 1.15rem;
+            border-radius: 22px;
+            border: 1px solid rgba(20,184,166,0.35);
+            background: linear-gradient(135deg, rgba(8,47,73,0.92), rgba(15,23,42,0.96));
+            box-shadow: 0 18px 45px rgba(2,6,23,0.25);
+        }
+        .wz70-kicker { color:#7dd3fc; font-weight:800; letter-spacing:.08em; text-transform:uppercase; font-size:.78rem; }
+        .wz70-title { color:#fff; font-weight:900; font-size:1.45rem; margin:.15rem 0 .2rem 0; }
+        .wz70-sub { color:#cbd5e1; font-size:.98rem; }
+        .wz70-step {
+            padding:.85rem; border-radius:18px; min-height:118px;
+            border:1px solid rgba(96,165,250,.23);
+            background:rgba(15,23,42,.62);
+        }
+        .wz70-step-done { border-color:rgba(34,197,94,.42); background:rgba(20,83,45,.20); }
+        .wz70-step-now { border-color:rgba(20,184,166,.58); background:rgba(8,145,178,.18); }
+        .wz70-step-title { font-weight:900; color:#fff; margin-bottom:.25rem; }
+        .wz70-step-small { color:#cbd5e1; font-size:.86rem; }
+        .wz70-card {
+            border-radius:20px; padding:1rem; min-height:145px;
+            border:1px solid rgba(148,163,184,.20);
+            background:rgba(15,23,42,.58);
+        }
+        .wz70-card h3 { margin:.1rem 0 .4rem 0; color:#fff; font-size:1.05rem; }
+        .wz70-card p { color:#cbd5e1; margin:0; font-size:.92rem; }
+        .wz70-wow { color:#22d3ee; font-weight:900; font-size:1.4rem; }
+        .wz70-feedback { color:#93c5fd; font-weight:800; margin:.7rem 0 .35rem 0; }
+        @media (max-width: 700px) {
+            .wz70-title { font-size:1.18rem; }
+            .wz70-hero { padding:.9rem; border-radius:18px; }
+            .stButton button { min-height:46px !important; font-size:1rem !important; }
+            .wz70-mobile-sticky {
+                position: fixed; left: 0; right: 0; bottom: 0; z-index: 99999;
+                padding: .65rem .8rem; background: rgba(2,6,23,.96);
+                border-top: 1px solid rgba(20,184,166,.35);
+            }
+            .block-container { padding-bottom: 5rem !important; }
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        cv_done, job_done, tailored_done, interview_done = _wz70_step_state()
+        steps = [
+            ("CV uploaded", cv_done, "cv_documents", "Upload or create your CV"),
+            ("Job added", job_done, "job_assist", "Add a job or role target"),
+            ("CV tailored", tailored_done, "cv_documents", "Improve CV for the job"),
+            ("Interview practiced", interview_done, "real_interview", "Practice with your CV + job"),
+        ]
+        next_idx = next((i for i, s in enumerate(steps) if not s[1]), len(steps) - 1)
+        next_label, _, next_page, next_hint = steps[next_idx]
+        readiness = int(round((sum(1 for _, done, _, _ in steps if done) / len(steps)) * 100))
+
+        st.markdown(f"""
+        <div class='wz70-hero'>
+            <div class='wz70-kicker'>Your Job Journey</div>
+            <div class='wz70-title'>Practice a real interview based on YOUR CV & job</div>
+            <div class='wz70-sub'>Next step: <strong>{next_label}</strong> — {next_hint}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        cols = st.columns(4)
+        for i, (label, done, page, hint) in enumerate(steps):
+            cls = "wz70-step-done" if done else ("wz70-step-now" if i == next_idx else "")
+            symbol = "✓" if done else ("→" if i == next_idx else "○")
+            with cols[i]:
+                st.markdown(f"""
+                <div class='wz70-step {cls}'>
+                    <div class='wz70-step-title'>{symbol} {label}</div>
+                    <div class='wz70-step-small'>{'Completed' if done else hint}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                if st.button("Open", key=f"wz70_step_{i}_{page}", use_container_width=True):
+                    _wz70_go(page)
+
+        st.markdown("### Focus for today")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown(f"""<div class='wz70-card'><h3>🎯 Next Step</h3><p>{next_label}<br>{next_hint}</p></div>""", unsafe_allow_html=True)
+            if st.button("Continue your journey", key="wz70_continue_journey", use_container_width=True):
+                _wz70_go(next_page)
+        with c2:
+            status = "CV ready" if cv_done else "CV not added yet"
+            st.markdown(f"""<div class='wz70-card'><h3>📄 Your CV Status</h3><p><span class='wz70-wow'>{readiness}%</span> journey readiness<br>{status}</p></div>""", unsafe_allow_html=True)
+            if st.button("Open CV tools", key="wz70_open_cv", use_container_width=True):
+                _wz70_go("cv_documents")
+        with c3:
+            st.markdown("""<div class='wz70-card'><h3>🎤 Interview Practice</h3><p>Real-style practice using your CV, target role and job description.</p></div>""", unsafe_allow_html=True)
+            if st.button("Practice interview", key="wz70_open_interview", use_container_width=True):
+                _wz70_go("real_interview")
+
+        st.markdown(f"""
+        <div class='wz70-mobile-sticky'>
+          <strong>Next:</strong> {next_label} — use the blue Continue button above.
+        </div>
+        """, unsafe_allow_html=True)
+
+        _wz70_micro_feedback("dashboard_journey")
+        if callable(globals().get("track_event")):
+            track_event("guided_journey_view", "Dashboard", {"readiness": readiness, "next_step": next_label})
+    except Exception:
+        pass
+
+
+try:
+    _wz70_previous_show_dashboard = show_dashboard
+
+    def show_dashboard():
+        try:
+            _wz61_apply_global_top_compact_css()
+        except Exception:
+            pass
+        page_key = st.session_state.get("nav_page", st.session_state.get("page", "dashboard")) or "dashboard"
+        if str(page_key) in ["dashboard", "home", ""]:
+            _wz70_render_guided_dashboard_top()
+        result = _wz70_previous_show_dashboard()
+        try:
+            if str(page_key) in ["job_assist", "cv_documents", "real_interview"]:
+                _wz70_micro_feedback(str(page_key))
+        except Exception:
+            pass
+        return result
+except Exception:
+    pass
+
+
+# =========================================================
+# WorkZo v71 - Guided dashboard cleanup + floating Work-O-Bot
+# =========================================================
+
+def _wz71_floating_workobot():
+    try:
+        current_page = str(st.session_state.get("nav_page", st.session_state.get("page", "dashboard")) or "dashboard")
+        if current_page == "workobot":
+            return
+        st.markdown("""
+        <style>
+        .wz71-float-bot { position: fixed; right: 18px; bottom: 22px; z-index: 99998; text-decoration: none !important; display: flex; align-items: center; gap: 10px; padding: 10px 13px 10px 10px; border-radius: 999px; border: 1px solid rgba(45,212,191,.45); background: linear-gradient(135deg, rgba(15,23,42,.96), rgba(8,47,73,.96)); box-shadow: 0 16px 40px rgba(2,6,23,.35); color: #e0f2fe !important; font-weight: 900; }
+        .wz71-bot-face { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font-size: 1.45rem; background: rgba(20,184,166,.22); border: 1px solid rgba(125,211,252,.38); }
+        .wz71-bot-text { line-height: 1.05; }
+        .wz71-bot-small { display:block; color:#bae6fd; font-size:.72rem; font-weight:700; margin-top:2px; }
+        @media (max-width: 700px) { .wz71-float-bot { right: 12px; bottom: 76px; padding: 8px; } .wz71-bot-text { display:none; } .wz71-bot-face { width:48px; height:48px; } }
+        </style>
+        <a class="wz71-float-bot" href="?page=workobot" title="Ask Work-O-Bot">
+          <span class="wz71-bot-face">🤖</span>
+          <span class="wz71-bot-text">Ask Work-O-Bot<span class="wz71-bot-small">career questions</span></span>
+        </a>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz35_sidebar(page_key):
+    with st.sidebar:
+        try:
+            logo_src = image_to_data_uri(ICON_PATH) or image_to_data_uri(LOGO_PATH)
+        except Exception:
+            logo_src = None
+        if logo_src:
+            st.markdown(f"""
+            <div class='workzo-sidebar-brand-wrap'>
+              <img src='{logo_src}' class='workzo-sidebar-logo' alt='WorkZo AI logo'>
+              <div><div class='workzo-sidebar-brand'>WORKZO AI</div><div class='workzo-sidebar-version'>Beta · guided workspace</div></div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("### WorkZo AI")
+        st.markdown("<div class='workzo-sidebar-section-label'>Toolbox</div>", unsafe_allow_html=True)
+        navs = [("dashboard", "Dashboard"), ("cv_documents", "CV & Documents"), ("job_assist", "Job Assist"), ("real_interview", "Real Interview Stimulator")]
+        for key, label in navs:
+            shown = label + (" ✓" if page_key == key else "")
+            if st.button(shown, key=f"wz71_sidebar_nav_{key}", use_container_width=True):
+                _wz60_go(key)
+        st.markdown("<div class='workzo-sidebar-section-label'>Language</div>", unsafe_allow_html=True)
+        try:
+            langs = language_options if "language_options" in globals() and language_options else ["English", "German", "Dutch", "French", "Spanish", "Portuguese"]
+        except Exception:
+            langs = ["English", "German", "Dutch", "French", "Spanish", "Portuguese"]
+        cur = st.session_state.get("preferred_language") or st.session_state.get("language") or "English"
+        if cur not in langs:
+            cur = "English" if "English" in langs else langs[0]
+        def _wz71_language_changed():
+            _new_lang = st.session_state.get("wz71_preferred_language", cur)
+            try:
+                if callable(globals().get("workzo_set_language_everywhere")):
+                    workzo_set_language_everywhere(_new_lang)
+                else:
+                    set_single_preferred_language(_new_lang)
+                try:
+                    st.query_params["wz_lang"] = _new_lang
+                except Exception:
+                    pass
+            except Exception:
+                pass
+        if st.session_state.get("wz71_preferred_language") != cur:
+            st.session_state["wz71_preferred_language"] = cur
+        chosen = st.selectbox("Select a Language", langs, index=langs.index(cur), key="wz71_preferred_language", on_change=_wz71_language_changed)
+        try:
+            if callable(globals().get("_wz35_sync_language")):
+                _wz35_sync_language(chosen)
+            else:
+                set_single_preferred_language(chosen)
+        except Exception:
+            pass
+        _wz60_render_founder_unlock()
+        st.markdown("---")
+        if st.button("Edit Onboarding", key="wz71_edit_setup", use_container_width=True):
+            try:
+                reset_onboarding()
+            except Exception:
+                st.session_state["onboarding_complete"] = False
+                st.session_state["page"] = "onboarding"
+                st.session_state["nav_page"] = "onboarding"
+            try:
+                st.query_params["page"] = "onboarding"
+            except Exception:
+                pass
+            st.rerun()
+
+
+def _wz59_render_mobile_toolbox_native():
+    try:
+        st.markdown("""
+        <style>
+        .st-key-wz59_mobile_toolbox_native { display: none !important; }
+        @media (max-width: 700px) {
+            .st-key-wz59_mobile_toolbox_native { display: block !important; position: sticky !important; top: 0 !important; z-index: 9999 !important; margin: 0 0 0.9rem 0 !important; padding: 0.85rem !important; border: 1px solid rgba(20,184,166,0.28) !important; border-radius: 18px !important; background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(8,47,73,0.94)) !important; box-shadow: 0 12px 30px rgba(2,6,23,0.34) !important; }
+            .st-key-wz59_mobile_toolbox_native button { border-radius: 999px !important; min-height: 44px !important; font-weight: 800 !important; background: rgba(37,99,235,0.20) !important; border: 1px solid rgba(96,165,250,0.34) !important; color: #e0f2fe !important; }
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        with st.container(key="wz59_mobile_toolbox_native"):
+            st.markdown("**☰ Tools**")
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("🏠 Dashboard", key="wz71_mobile_dashboard", use_container_width=True):
+                    _wz59_safe_mobile_go("dashboard")
+                if st.button("🎯 Job Assist", key="wz71_mobile_jobs", use_container_width=True):
+                    _wz59_safe_mobile_go("job_assist")
+            with c2:
+                if st.button("📄 CV", key="wz71_mobile_cv", use_container_width=True):
+                    _wz59_safe_mobile_go("cv_documents")
+                if st.button("Real Interview", key="wz71_mobile_real_interview", use_container_width=True):
+                    _wz59_safe_mobile_go("real_interview")
+    except Exception:
+        pass
+
+
+def _wz70_render_guided_dashboard_top():
+    try:
+        st.markdown("""
+        <style>
+        .wz70-hero { margin: 0.15rem 0 1rem 0; padding: 1.05rem 1.15rem; border-radius: 22px; border: 1px solid rgba(20,184,166,0.35); background: linear-gradient(135deg, rgba(8,47,73,0.92), rgba(15,23,42,0.96)); box-shadow: 0 18px 45px rgba(2,6,23,0.25); }
+        .wz70-kicker { color:#7dd3fc; font-weight:800; letter-spacing:.08em; text-transform:uppercase; font-size:.78rem; }
+        .wz70-title { color:#fff; font-weight:900; font-size:1.45rem; margin:.15rem 0 .2rem 0; }
+        .wz70-sub { color:#cbd5e1; font-size:.98rem; }
+        .wz70-step { padding:.85rem; border-radius:18px; min-height:118px; border:1px solid rgba(96,165,250,.23); background:rgba(15,23,42,.62); }
+        .wz70-step-done { border-color:rgba(34,197,94,.42); background:rgba(20,83,45,.20); }
+        .wz70-step-now { border-color:rgba(20,184,166,.58); background:rgba(8,145,178,.18); }
+        .wz70-step-title { font-weight:900; color:#fff; margin-bottom:.25rem; }
+        .wz70-step-small { color:#cbd5e1; font-size:.86rem; }
+        .wz70-card { border-radius:20px; padding:1rem; min-height:145px; border:1px solid rgba(148,163,184,.20); background:rgba(15,23,42,.58); }
+        .wz70-card h3 { margin:.1rem 0 .4rem 0; color:#fff; font-size:1.05rem; }
+        .wz70-card p { color:#cbd5e1; margin:0; font-size:.92rem; }
+        .wz70-wow { color:#22d3ee; font-weight:900; font-size:1.4rem; }
+        .wz70-feedback { color:#93c5fd; font-weight:800; margin:.7rem 0 .35rem 0; }
+        @media (max-width: 700px) { .wz70-title { font-size:1.18rem; } .wz70-hero { padding:.9rem; border-radius:18px; } .stButton button { min-height:46px !important; font-size:1rem !important; } .wz70-mobile-sticky { position: fixed; left: 0; right: 0; bottom: 0; z-index: 99997; padding: .65rem .8rem; background: rgba(2,6,23,.96); border-top: 1px solid rgba(20,184,166,.35); } .block-container { padding-bottom: 5rem !important; } }
+        </style>
+        """, unsafe_allow_html=True)
+        cv_done, job_done, tailored_done, interview_done = _wz70_step_state()
+        steps = [("CV uploaded", cv_done, "cv_documents", "Upload or create your CV"), ("CV tailored", tailored_done, "cv_documents", "Improve CV for the job"), ("Job Assist", job_done, "job_assist", "Analyze or save a target job"), ("Interview Practice", interview_done, "real_interview", "Practice with your CV + job")]
+        next_idx = next((i for i, s in enumerate(steps) if not s[1]), len(steps) - 1)
+        next_label, _, next_page, next_hint = steps[next_idx]
+        readiness = int(round((sum(1 for _, done, _, _ in steps if done) / len(steps)) * 100))
+        st.markdown(f"""<div class='wz70-hero'><div class='wz70-kicker'>Your Job Journey</div><div class='wz70-title'>Practice a real interview based on YOUR CV & job</div><div class='wz70-sub'>Next step: <strong>{next_label}</strong> — {next_hint}</div></div>""", unsafe_allow_html=True)
+        cols = st.columns(4)
+        for i, (label, done, page, hint) in enumerate(steps):
+            cls = "wz70-step-done" if done else ("wz70-step-now" if i == next_idx else "")
+            symbol = "✓" if done else "○"
+            with cols[i]:
+                st.markdown(f"""<div class='wz70-step {cls}'><div class='wz70-step-title'>{symbol} {label}</div><div class='wz70-step-small'>{'Completed' if done else hint}</div></div>""", unsafe_allow_html=True)
+                if st.button("Open", key=f"wz71_step_{i}_{page}", use_container_width=True):
+                    _wz70_go(page)
+        st.markdown("### Focus for today")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown(f"""<div class='wz70-card'><h3>🎯 Next Step</h3><p>{next_label}<br>{next_hint}</p></div>""", unsafe_allow_html=True)
+            if st.button("Continue your journey", key="wz71_continue_journey", use_container_width=True):
+                _wz70_go(next_page)
+        with c2:
+            status = "CV ready" if cv_done else "CV not added yet"
+            st.markdown(f"""<div class='wz70-card'><h3>📄 Your CV Status</h3><p><span class='wz70-wow'>{readiness}%</span> journey readiness<br>{status}</p></div>""", unsafe_allow_html=True)
+            if st.button("Open CV tools", key="wz71_open_cv", use_container_width=True):
+                _wz70_go("cv_documents")
+        with c3:
+            st.markdown("""<div class='wz70-card'><h3>🎤 Interview Practice</h3><p>Real-style practice using your CV, target role and job description.</p></div>""", unsafe_allow_html=True)
+            if st.button("Practice interview", key="wz71_open_interview", use_container_width=True):
+                _wz70_go("real_interview")
+        st.markdown(f"""<div class='wz70-mobile-sticky'><strong>Next:</strong> {next_label} — continue your journey.</div>""", unsafe_allow_html=True)
+        _wz70_micro_feedback("dashboard_journey")
+        if callable(globals().get("track_event")):
+            track_event("guided_journey_view", "Dashboard", {"readiness": readiness, "next_step": next_label})
+    except Exception:
+        pass
+
+
+try:
+    _wz71_base_show_dashboard = _wz70_previous_show_dashboard if callable(globals().get("_wz70_previous_show_dashboard")) else show_dashboard
+    def show_dashboard():
+        try:
+            _wz57_apply_page_query_param()
+        except Exception:
+            pass
+        try:
+            _wz61_apply_global_top_compact_css()
+        except Exception:
+            pass
+        page_key = str(st.session_state.get("nav_page", st.session_state.get("page", "dashboard")) or "dashboard")
+        try:
+            _wz71_floating_workobot()
+        except Exception:
+            pass
+        if page_key in ["dashboard", "home", ""]:
+            try:
+                _wz59_render_mobile_toolbox_native()
+            except Exception:
+                pass
+            try:
+                _wz35_sidebar(page_key)
+            except Exception:
+                pass
+            _wz70_render_guided_dashboard_top()
+            return
+        result = _wz71_base_show_dashboard()
+        try:
+            if page_key in ["job_assist", "cv_documents", "real_interview"]:
+                _wz70_micro_feedback(page_key)
+        except Exception:
+            pass
+        return result
+except Exception:
+    pass
+
+# =========================================================
+# WorkZo v72 - mobile UX + guided funnel final safety patch
+# =========================================================
+
+def _wz72_t(label: str) -> str:
+    try:
+        lang = str(st.session_state.get("preferred_language") or st.session_state.get("language") or "English").lower()
+    except Exception:
+        lang = "english"
+    de = {"CV & Documents":"Lebenslauf & Dokumente","Real Interview":"Echtes Interview","Real Interview Stimulator":"Echter Interview-Trainer","Toolbox":"Tools","Language":"Sprache","Select a Language":"Sprache auswählen","Exit / reupload CV":"Beenden / Lebenslauf neu hochladen","Your Job Journey":"Deine Job-Reise","Practice a real interview based on YOUR CV & job":"Übe ein echtes Interview basierend auf deinem Lebenslauf & Job","Next step":"Nächster Schritt","CV tailored":"Lebenslauf angepasst","Improve CV for the job":"Lebenslauf für den Job verbessern","Analyze your target job":"Zieljob analysieren","Interview Practice":"Interview üben","Practice with your CV + job":"Mit Lebenslauf + Job üben","Completed":"Erledigt","Open":"Öffnen","Focus for today":"Fokus für heute","Continue your journey":"Weiter machen","Your CV Status":"Dein CV-Status","CV ready":"CV bereit","CV not added yet":"CV noch nicht hinzugefügt","Open CV tools":"CV-Tools öffnen","Practice interview":"Interview üben","Ask Work-O-Bot":"Work-O-Bot fragen","career questions":"Karrierefragen"}
+    return de.get(label, label) if (lang.startswith("de") or "german" in lang) else label
+
+
+def _wz72_apply_mobile_css():
+    try:
+        st.markdown("""
+        <style>
+        @media (max-width:700px){
+          .block-container{padding-top:.7rem!important;padding-left:1rem!important;padding-right:1rem!important;max-width:100%!important;padding-bottom:5rem!important;}
+          [data-testid="stSidebar"]{display:none!important;}
+          h1,h2,h3{line-height:1.15!important;}
+          .stButton button,.stDownloadButton button{min-height:48px!important;border-radius:16px!important;white-space:normal!important;line-height:1.2!important;padding:.65rem .85rem!important;font-size:.98rem!important;}
+          .stSelectbox div[data-baseweb="select"]>div{min-height:48px!important;border-radius:14px!important;}
+          div[data-testid="column"]{width:100%!important;flex:1 1 100%!important;}
+        }
+        .wz72-brand{margin:0 0 1rem 0;padding:1rem 1.15rem;border-radius:22px;border:1px solid rgba(20,184,166,.34);background:linear-gradient(135deg,rgba(8,47,73,.92),rgba(15,23,42,.96));display:flex;align-items:center;gap:.85rem;}
+        .wz72-brand img{width:56px;height:56px;border-radius:14px;}.wz72-brand-title{color:#fff;font-weight:950;font-size:1.65rem;line-height:1.05}.wz72-brand-title span{color:#22d3ee}.wz72-brand-sub{color:#cbd5e1;font-weight:700;margin-top:.25rem}
+        @media (max-width:700px){.wz72-brand{padding:.9rem;border-radius:18px}.wz72-brand img{width:48px;height:48px}.wz72-brand-title{font-size:1.28rem}.wz72-brand-sub{font-size:.82rem}}
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz72_language_changed(new_lang: str):
+    try:
+        lang = str(new_lang or "English")
+        st.session_state["preferred_language"] = lang
+        st.session_state["language"] = lang
+        st.session_state["wz_cv_translation_requested_language"] = lang
+        st.session_state["wz_force_translate_improved_cv"] = True
+        st.session_state["wz_force_cv_translation"] = True
+        st.session_state["last_cv_translation_language"] = lang
+        if callable(globals().get("set_single_preferred_language")):
+            try: set_single_preferred_language(lang)
+            except Exception: pass
+        try: st.query_params["wz_lang"] = lang
+        except Exception: pass
+        if callable(globals().get("track_event")):
+            track_event("language_changed", "Language", {"language": lang, "force_cv_translation": True})
+    except Exception:
+        pass
+
+
+def _wz72_go_onboarding():
+    try:
+        st.session_state["onboarding_complete"] = False
+        st.session_state["page"] = "onboarding"
+        st.session_state["nav_page"] = "onboarding"
+        try: st.query_params["page"] = "onboarding"
+        except Exception: pass
+        if callable(globals().get("track_event")): track_event("exit_to_onboarding", "Navigation", {})
+        st.rerun()
+    except Exception:
+        pass
+
+
+def _wz72_render_brand_top():
+    """No-op: the global WorkZo logo/header is rendered only by the router.
+    Keeping this prevents old dashboard call sites from creating a second logo card.
+    """
+    return
+
+
+def _wz35_sidebar(page_key):
+    with st.sidebar:
+        try: logo_src = image_to_data_uri(ICON_PATH) or image_to_data_uri(LOGO_PATH)
+        except Exception: logo_src = None
+        if logo_src:
+            st.markdown(f"""<div class='workzo-sidebar-brand-wrap'><img src='{logo_src}' class='workzo-sidebar-logo' alt='WorkZo AI logo'><div><div class='workzo-sidebar-brand'>WORKZO AI</div><div class='workzo-sidebar-version'>Beta · guided workspace</div></div></div>""", unsafe_allow_html=True)
+        else: st.markdown("### WorkZo AI")
+        st.markdown(f"<div class='workzo-sidebar-section-label'>{_wz72_t('Toolbox')}</div>", unsafe_allow_html=True)
+        for key, label in [("dashboard",_wz72_t("Dashboard")),("cv_documents",_wz72_t("CV & Documents")),("job_assist",_wz72_t("Job Assist")),("real_interview",_wz72_t("Real Interview"))]:
+            if st.button(label + (" ✓" if page_key == key else ""), key=f"wz72_sidebar_nav_{key}", use_container_width=True):
+                (_wz70_go if callable(globals().get("_wz70_go")) else _wz60_go)(key)
+        st.markdown(f"<div class='workzo-sidebar-section-label'>{_wz72_t('Language')}</div>", unsafe_allow_html=True)
+        try: langs = language_options if "language_options" in globals() and language_options else ["English","German","Dutch","French","Spanish","Portuguese"]
+        except Exception: langs = ["English","German","Dutch","French","Spanish","Portuguese"]
+        cur = st.session_state.get("preferred_language") or st.session_state.get("language") or "English"
+        if cur not in langs: cur = "English" if "English" in langs else langs[0]
+        chosen = st.selectbox(_wz72_t("Select a Language"), langs, index=langs.index(cur), key="wz72_preferred_language")
+        if chosen != cur or st.session_state.get("wz72_last_language") != chosen:
+            st.session_state["wz72_last_language"] = chosen
+            _wz72_language_changed(chosen)
+        try: _wz60_render_founder_unlock()
+        except Exception: pass
+        st.markdown("---")
+        if st.button(_wz72_t("Exit / reupload CV"), key="wz72_exit_reupload_sidebar", use_container_width=True): _wz72_go_onboarding()
+
+
+def _wz59_render_mobile_toolbox_native():
+    try:
+        st.markdown("""
+        <style>.st-key-wz72_mobile_toolbox_native{display:none!important}@media(max-width:700px){.st-key-wz72_mobile_toolbox_native{display:block!important;margin:.4rem 0 1rem 0!important;padding:.85rem!important;border:1px solid rgba(20,184,166,.28)!important;border-radius:18px!important;background:linear-gradient(135deg,rgba(15,23,42,.98),rgba(8,47,73,.94))!important;box-shadow:0 12px 30px rgba(2,6,23,.34)!important}.st-key-wz72_mobile_toolbox_native button{border-radius:999px!important;min-height:46px!important;font-weight:850!important}}</style>
+        """, unsafe_allow_html=True)
+        with st.container(key="wz72_mobile_toolbox_native"):
+            st.markdown(f"**☰ {_wz72_t('Toolbox')}**")
+            c1,c2 = st.columns(2)
+            with c1:
+                if st.button("🏠 "+_wz72_t("Dashboard"), key="wz72_mobile_dashboard", use_container_width=True): _wz59_safe_mobile_go("dashboard")
+                if st.button("🎯 "+_wz72_t("Job Assist"), key="wz72_mobile_jobs", use_container_width=True): _wz59_safe_mobile_go("job_assist")
+                if st.button("↩ "+_wz72_t("Exit / reupload CV"), key="wz72_mobile_exit", use_container_width=True): _wz72_go_onboarding()
+            with c2:
+                if st.button("📄 CV", key="wz72_mobile_cv", use_container_width=True): _wz59_safe_mobile_go("cv_documents")
+                if st.button(_wz72_t("Real Interview"), key="wz72_mobile_real_interview", use_container_width=True): _wz59_safe_mobile_go("real_interview")
+    except Exception:
+        pass
+
+
+def _wz72_step_state():
+    try: cv_done, job_done, tailored_done, interview_done = _wz70_step_state()
+    except Exception:
+        cv_done = bool(st.session_state.get("cv_text") or st.session_state.get("clean_structured_cv_text")); job_done = bool(st.session_state.get("last_understand_job_description") or st.session_state.get("target_job_title")); tailored_done = bool(st.session_state.get("improved_cv_text_v92") or st.session_state.get("tailored_cv_text") or st.session_state.get("cv_tailored_done")); interview_done = bool(st.session_state.get("wz_ri_started") or st.session_state.get("wz_ri_final_score") or st.session_state.get("interview_score"))
+    return bool(tailored_done), bool(job_done), bool(interview_done), bool(cv_done)
+
+
+def _wz70_render_guided_dashboard_top():
+    try:
+        st.markdown("""<style>.wz72-hero{margin:.15rem 0 1rem 0;padding:1.05rem 1.15rem;border-radius:22px;border:1px solid rgba(20,184,166,.35);background:linear-gradient(135deg,rgba(8,47,73,.92),rgba(15,23,42,.96));box-shadow:0 18px 45px rgba(2,6,23,.25)}.wz72-kicker{color:#7dd3fc;font-weight:900;letter-spacing:.08em;text-transform:uppercase;font-size:.78rem}.wz72-title{color:#fff;font-weight:950;font-size:1.45rem;margin:.15rem 0 .2rem 0}.wz72-sub{color:#cbd5e1;font-size:.98rem}.wz72-step{padding:.85rem;border-radius:18px;min-height:112px;border:1px solid rgba(96,165,250,.23);background:rgba(15,23,42,.62)}.wz72-step-done{border-color:rgba(34,197,94,.42);background:rgba(20,83,45,.20)}.wz72-step-now{border-color:rgba(20,184,166,.58);background:rgba(8,145,178,.18)}.wz72-step-title{font-weight:950;color:#fff;margin-bottom:.25rem}.wz72-step-small{color:#cbd5e1;font-size:.86rem}.wz72-card{border-radius:20px;padding:1rem;min-height:140px;border:1px solid rgba(148,163,184,.20);background:rgba(15,23,42,.58)}.wz72-card h3{margin:.1rem 0 .4rem 0;color:#fff;font-size:1.05rem}.wz72-card p{color:#cbd5e1;margin:0;font-size:.92rem}.wz72-wow{color:#22d3ee;font-weight:950;font-size:1.35rem}@media(max-width:700px){.wz72-title{font-size:1.16rem}.wz72-hero{padding:.9rem;border-radius:18px}.wz72-step{min-height:auto;margin-bottom:.45rem}}</style>""", unsafe_allow_html=True)
+        tailored_done, job_done, interview_done, cv_done = _wz72_step_state()
+        steps = [(_wz72_t("CV tailored"), tailored_done, "cv_documents", _wz72_t("Improve CV for the job")), (_wz72_t("Job Assist"), job_done, "job_assist", _wz72_t("Analyze your target job")), (_wz72_t("Interview Practice"), interview_done, "real_interview", _wz72_t("Practice with your CV + job"))]
+        next_idx = next((i for i,s in enumerate(steps) if not s[1]), len(steps)-1)
+        next_label, _, next_page, next_hint = steps[next_idx]
+        readiness = int(round((sum(1 for _,done,_,_ in steps if done)/len(steps))*100))
+        st.markdown(f"""<div class='wz72-hero'><div class='wz72-kicker'>{_wz72_t('Your Job Journey')}</div><div class='wz72-title'>{_wz72_t('Practice a real interview based on YOUR CV & job')}</div><div class='wz72-sub'>{_wz72_t('Next step')}: <strong>{next_label}</strong> — {next_hint}</div></div>""", unsafe_allow_html=True)
+        cols = st.columns(3)
+        for i,(label,done,page,hint) in enumerate(steps):
+            cls = "wz72-step-done" if done else ("wz72-step-now" if i==next_idx else "")
+            with cols[i]:
+                st.markdown(f"""<div class='wz72-step {cls}'><div class='wz72-step-title'>{'✓' if done else '○'} {label}</div><div class='wz72-step-small'>{_wz72_t('Completed') if done else hint}</div></div>""", unsafe_allow_html=True)
+                if st.button(_wz72_t("Open"), key=f"wz72_step_{i}_{page}", use_container_width=True): _wz70_go(page)
+        st.markdown("### "+_wz72_t("Focus for today"))
+        c1,c2,c3=st.columns(3)
+        with c1:
+            st.markdown(f"""<div class='wz72-card'><h3>🎯 {_wz72_t('Next step')}</h3><p>{next_label}<br>{next_hint}</p></div>""", unsafe_allow_html=True)
+            if st.button(_wz72_t("Continue your journey"), key="wz72_continue_journey", use_container_width=True): _wz70_go(next_page)
+        with c2:
+            st.markdown(f"""<div class='wz72-card'><h3>📄 {_wz72_t('Your CV Status')}</h3><p><span class='wz72-wow'>{readiness}%</span><br>{_wz72_t('CV ready') if cv_done else _wz72_t('CV not added yet')}</p></div>""", unsafe_allow_html=True)
+            if st.button(_wz72_t("Open CV tools"), key="wz72_open_cv", use_container_width=True): _wz70_go("cv_documents")
+        with c3:
+            st.markdown(f"""<div class='wz72-card'><h3>🎤 {_wz72_t('Interview Practice')}</h3><p>{_wz72_t('Practice with your CV + job')}</p></div>""", unsafe_allow_html=True)
+            if st.button(_wz72_t("Practice interview"), key="wz72_open_interview", use_container_width=True): _wz70_go("real_interview")
+        if st.button("↩ "+_wz72_t("Exit / reupload CV"), key="wz72_exit_reupload_dashboard", use_container_width=True): _wz72_go_onboarding()
+        try: _wz70_micro_feedback("dashboard_journey")
+        except Exception: pass
+    except Exception:
+        pass
+
+
+def _wz72_render_workobot_page():
+    try: _wz59_render_mobile_toolbox_native(); _wz35_sidebar("workobot")
+    except Exception: pass
+    st.markdown("## 🤖 Work-O-Bot")
+    st.caption("Ask career-related questions, CV doubts, HR messages, job-search questions, or language-practice questions.")
+    try:
+        if callable(globals().get("show_workobot")): show_workobot()
+        elif callable(globals().get("render_workobot")): render_workobot()
+        else:
+            question = st.text_input("Ask Work-O-Bot")
+            if question: st.info("Work-O-Bot is ready for career questions. Please check the interview assistant module if responses do not appear.")
+    except Exception: st.error("Work-O-Bot could not load safely. Please check 09_interview_assistant.py.")
+
+
+def show_dashboard():
+    try: _wz57_apply_page_query_param()
+    except Exception: pass
+    try: _wz61_apply_global_top_compact_css()
+    except Exception: pass
+    _wz72_apply_mobile_css()
+    page_key = str(st.session_state.get("nav_page", st.session_state.get("page", "dashboard")) or "dashboard")
+    if page_key in ["home",""]: page_key = "dashboard"
+    try: _wz71_floating_workobot()
+    except Exception: pass
+    if page_key == "dashboard":
+        _wz72_render_brand_top(); _wz59_render_mobile_toolbox_native(); _wz35_sidebar(page_key); _wz70_render_guided_dashboard_top(); return
+    if page_key == "real_interview":
+        _wz72_render_brand_top(); _wz59_render_mobile_toolbox_native(); _wz35_sidebar(page_key)
+        if callable(globals().get("render_real_interview_simulation")): render_real_interview_simulation()
+        elif callable(globals().get("show_workobot")): show_workobot()
+        else: st.error("Real Interview Stimulator is not available. Please check 09_interview_assistant.py is loaded.")
+        try: render_feedback_collector("real_interview"); render_issue_reporter("real_interview")
+        except Exception: pass
+        return
+    if page_key == "workobot": _wz72_render_workobot_page(); return
+    try: _wz72_render_brand_top(); _wz59_render_mobile_toolbox_native(); _wz35_sidebar(page_key)
+    except Exception: pass
+    try: return _wz71_base_show_dashboard()
+    except Exception:
+        try: return _wz60_previous_show_dashboard()
+        except Exception as e: st.error(f"This page could not load safely: {e}")
+
+# =========================================================
+# WorkZo v73 - FINAL: remove old dashboard below guided dashboard
+# + remove Work-O-Bot from side/mobile toolbox; keep floating bot only
+# =========================================================
+
+def _wz73_apply_final_css():
+    try:
+        st.markdown("""
+        <style id="workzo-v73-final-cleanup">
+        /* Hide older injected mobile top navs so only the latest native toolbox shows. */
+        .wz45-mobile-topnav { display:none !important; visibility:hidden !important; height:0 !important; overflow:hidden !important; margin:0 !important; padding:0 !important; border:0 !important; }
+        @media (max-width: 700px) {
+          [data-testid="stSidebar"] { display:none !important; }
+          .block-container { padding-top:.65rem !important; padding-left:1rem !important; padding-right:1rem !important; max-width:100% !important; }
+          .stButton button, .stDownloadButton button { min-height:48px !important; border-radius:16px !important; white-space:normal !important; line-height:1.2 !important; }
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz73_go(page_key: str):
+    try:
+        st.session_state["page"] = page_key
+        st.session_state["nav_page"] = page_key
+        try:
+            st.query_params["page"] = page_key
+        except Exception:
+            pass
+        st.rerun()
+    except Exception:
+        pass
+
+
+def _wz35_sidebar(page_key):
+    """Final sidebar: no Work-O-Bot item. Work-O-Bot is reachable only through floating bot."""
+    with st.sidebar:
+        try:
+            logo_src = image_to_data_uri(ICON_PATH) or image_to_data_uri(LOGO_PATH)
+        except Exception:
+            logo_src = None
+        if logo_src:
+            st.markdown(f"""
+            <div class='workzo-sidebar-brand-wrap'>
+              <img src='{logo_src}' class='workzo-sidebar-logo' alt='WorkZo AI logo'>
+              <div><div class='workzo-sidebar-brand'>WORKZO AI</div><div class='workzo-sidebar-version'>Beta · guided workspace</div></div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("### WorkZo AI")
+
+        st.markdown(f"<div class='workzo-sidebar-section-label'>{_wz72_t('Toolbox') if callable(globals().get('_wz72_t')) else 'Toolbox'}</div>", unsafe_allow_html=True)
+        navs = [
+            ("dashboard", "Dashboard"),
+            ("cv_documents", "CV & Documents"),
+            ("job_assist", "Job Assist"),
+            ("real_interview", "Real Interview"),
+        ]
+        for key, label in navs:
+            try:
+                shown_label = _wz72_t(label) if callable(globals().get("_wz72_t")) else label
+            except Exception:
+                shown_label = label
+            if st.button(shown_label + (" ✓" if page_key == key else ""), key=f"wz73_sidebar_nav_{key}", use_container_width=True):
+                _wz73_go(key)
+
+        st.markdown(f"<div class='workzo-sidebar-section-label'>{_wz72_t('Language') if callable(globals().get('_wz72_t')) else 'Language'}</div>", unsafe_allow_html=True)
+        try:
+            langs = language_options if "language_options" in globals() and language_options else ["English", "German", "Dutch", "French", "Spanish", "Portuguese"]
+        except Exception:
+            langs = ["English", "German", "Dutch", "French", "Spanish", "Portuguese"]
+        cur = st.session_state.get("preferred_language") or st.session_state.get("language") or "English"
+        if cur not in langs:
+            cur = "English" if "English" in langs else langs[0]
+        try:
+            select_label = _wz72_t("Select a Language") if callable(globals().get("_wz72_t")) else "Select a Language"
+        except Exception:
+            select_label = "Select a Language"
+        chosen = st.selectbox(select_label, langs, index=langs.index(cur), key="wz73_preferred_language")
+        if chosen != cur or st.session_state.get("wz73_last_language") != chosen:
+            st.session_state["wz73_last_language"] = chosen
+            try:
+                if callable(globals().get("_wz72_language_changed")):
+                    _wz72_language_changed(chosen)
+                elif callable(globals().get("set_single_preferred_language")):
+                    set_single_preferred_language(chosen)
+            except Exception:
+                pass
+        try:
+            _wz60_render_founder_unlock()
+        except Exception:
+            pass
+        st.markdown("---")
+        try:
+            exit_label = _wz72_t("Exit / reupload CV") if callable(globals().get("_wz72_t")) else "Exit / reupload CV"
+        except Exception:
+            exit_label = "Exit / reupload CV"
+        if st.button("↩ " + exit_label, key="wz73_exit_reupload_sidebar", use_container_width=True):
+            try:
+                _wz72_go_onboarding()
+            except Exception:
+                st.session_state["onboarding_complete"] = False
+                _wz73_go("onboarding")
+
+
+def _wz59_render_mobile_toolbox_native():
+    """Final mobile toolbox: no Work-O-Bot item. Floating bot handles career Q&A."""
+    try:
+        st.markdown("""
+        <style id="workzo-v73-mobile-toolbox">
+        .st-key-wz73_mobile_toolbox_native{display:none!important}
+        @media(max-width:700px){
+          .st-key-wz73_mobile_toolbox_native{display:block!important;margin:.4rem 0 1rem 0!important;padding:.85rem!important;border:1px solid rgba(20,184,166,.28)!important;border-radius:18px!important;background:linear-gradient(135deg,rgba(15,23,42,.98),rgba(8,47,73,.94))!important;box-shadow:0 12px 30px rgba(2,6,23,.34)!important}
+          .st-key-wz73_mobile_toolbox_native button{border-radius:999px!important;min-height:46px!important;font-weight:850!important}
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        with st.container(key="wz73_mobile_toolbox_native"):
+            try:
+                title = _wz72_t("Toolbox") if callable(globals().get("_wz72_t")) else "Toolbox"
+            except Exception:
+                title = "Toolbox"
+            st.markdown(f"**☰ {title}**")
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("🏠 Dashboard", key="wz73_mobile_dashboard", use_container_width=True): _wz73_go("dashboard")
+                if st.button("🎯 Job Assist", key="wz73_mobile_jobs", use_container_width=True): _wz73_go("job_assist")
+                if st.button("↩ Reupload CV", key="wz73_mobile_exit", use_container_width=True):
+                    try: _wz72_go_onboarding()
+                    except Exception: _wz73_go("onboarding")
+            with c2:
+                if st.button("📄 CV", key="wz73_mobile_cv", use_container_width=True): _wz73_go("cv_documents")
+                if st.button("Real Interview", key="wz73_mobile_real_interview", use_container_width=True): _wz73_go("real_interview")
+    except Exception:
+        pass
+
+
+def _wz73_render_dashboard_only():
+    """Only the guided dashboard. This intentionally does NOT call old dashboard/home functions."""
+    try:
+        _wz72_render_brand_top()
+    except Exception:
+        pass
+    try:
+        _wz59_render_mobile_toolbox_native()
+    except Exception:
+        pass
+    try:
+        _wz35_sidebar("dashboard")
+    except Exception:
+        pass
+    try:
+        _wz70_render_guided_dashboard_top()
+    except Exception as exc:
+        st.error(f"Dashboard could not load safely: {exc}")
+
+
+def _wz73_render_workobot_page():
+    """Work-O-Bot page opened from floating robot only."""
+    try:
+        _wz72_render_brand_top()
+        _wz59_render_mobile_toolbox_native()
+        _wz35_sidebar("workobot")
+    except Exception:
+        pass
+    st.markdown("## 🤖 Work-O-Bot")
+    st.caption("Ask career-related questions, CV doubts, HR messages, job-search questions, or language-practice questions.")
+    try:
+        if callable(globals().get("show_workobot")):
+            show_workobot()
+        elif callable(globals().get("render_workobot")):
+            render_workobot()
+        else:
+            question = st.text_input("Ask Work-O-Bot")
+            if question:
+                st.info("Work-O-Bot is ready for career questions. Please check the interview assistant module if responses do not appear.")
+    except Exception:
+        st.error("Work-O-Bot could not load safely. Please check 09_interview_assistant.py.")
+
+
+def show_dashboard():
+    """Final router: clean dashboard, no duplicate old dashboard, floating Work-O-Bot only."""
+    try:
+        _wz57_apply_page_query_param()
+    except Exception:
+        pass
+    try:
+        _wz61_apply_global_top_compact_css()
+    except Exception:
+        pass
+    try:
+        _wz72_apply_mobile_css()
+    except Exception:
+        pass
+    _wz73_apply_final_css()
+
+    page_key = str(st.session_state.get("nav_page", st.session_state.get("page", "dashboard")) or "dashboard")
+    page_key = {"home":"dashboard", "":"dashboard", "bot":"workobot", "interview":"real_interview", "interview_practice":"real_interview", "jobs":"job_assist", "improve_cv":"cv_documents"}.get(page_key, page_key)
+    if page_key not in {"dashboard", "cv_documents", "job_assist", "real_interview", "workobot", "founder_dashboard", "onboarding"}:
+        page_key = "dashboard"
+    st.session_state["page"] = page_key
+    st.session_state["nav_page"] = page_key
+
+    # Floating bot is the only Work-O-Bot entry point from normal pages.
+    try:
+        if page_key != "workobot":
+            _wz71_floating_workobot()
+    except Exception:
+        pass
+
+    if page_key == "dashboard":
+        _wz73_render_dashboard_only()
+        return
+
+    if page_key == "workobot":
+        _wz73_render_workobot_page()
+        return
+
+    # Shared clean chrome for product pages.
+    try:
+        _wz72_render_brand_top()
+        _wz59_render_mobile_toolbox_native()
+        _wz35_sidebar(page_key)
+    except Exception:
+        pass
+
+    if page_key == "cv_documents":
+        try:
+            if callable(globals().get("_wz35_css")): _wz35_css()
+        except Exception:
+            pass
+        try:
+            show_document_tools()
+        except Exception as exc:
+            st.error(f"CV & Documents could not load safely: {exc}")
+        return
+
+    if page_key == "job_assist":
+        try:
+            if callable(globals().get("_wz51_render_job_assist_page")):
+                _wz51_render_job_assist_page()
+            elif callable(globals().get("_wz28_job_assist_page")):
+                _wz28_job_assist_page()
+            else:
+                st.subheader("Job Assist")
+                st.info("Job Assist module could not be loaded.")
+        except Exception as exc:
+            st.error(f"Job Assist could not load safely: {exc}")
+        return
+
+    if page_key == "real_interview":
+        try:
+            if callable(globals().get("render_real_interview_simulation")):
+                render_real_interview_simulation()
+            elif callable(globals().get("show_real_interview")):
+                show_real_interview()
+            else:
+                st.error("Real Interview is not available. Please check 09_interview_assistant.py is loaded.")
+        except Exception as exc:
+            st.error(f"Real Interview could not load safely: {exc}")
+        return
+
+    if page_key == "founder_dashboard":
+        try:
+            if st.session_state.get("founder_unlocked") and callable(globals().get("render_founder_dashboard")):
+                render_founder_dashboard()
+            else:
+                st.warning("Founder access is locked.")
+        except Exception as exc:
+            st.error(f"Founder dashboard could not load safely: {exc}")
+        return
+
+    if page_key == "onboarding":
+        try:
+            if callable(globals().get("show_onboarding")):
+                show_onboarding()
+            else:
+                st.info("Please restart onboarding from the landing page.")
+        except Exception as exc:
+            st.error(f"Onboarding could not load safely: {exc}")
+        return
+
+# =========================================================
+# WorkZo v74 - FINAL: Work-O-Bot opens in-app, not landing
+# + reupload only in toolbox/sidebar, noticeable floating robot
+# =========================================================
+
+def _wz71_floating_workobot():
+    """Noticeable in-app floating Work-O-Bot launcher. No href, no landing redirect."""
+    try:
+        st.markdown("""
+        <style id="workzo-v74-floating-workobot">
+        .st-key-wz74_float_workobot {
+          position: fixed !important;
+          right: 22px !important;
+          bottom: 24px !important;
+          z-index: 999999 !important;
+          width: min(290px, calc(100vw - 32px)) !important;
+          padding: 10px !important;
+          border-radius: 24px !important;
+          border: 1px solid rgba(34, 211, 238, .50) !important;
+          background: linear-gradient(135deg, rgba(8,47,73,.98), rgba(15,23,42,.98)) !important;
+          box-shadow: 0 18px 55px rgba(0,0,0,.45), 0 0 22px rgba(34,211,238,.22) !important;
+          animation: wz74BotPulse 2.6s ease-in-out infinite !important;
+        }
+        .st-key-wz74_float_workobot:before {
+          content: "🤖";
+          position: absolute;
+          left: -18px;
+          top: -18px;
+          width: 48px;
+          height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: linear-gradient(135deg, #14b8a6, #2563eb);
+          box-shadow: 0 10px 28px rgba(20,184,166,.35);
+          font-size: 26px;
+        }
+        .st-key-wz74_float_workobot button {
+          width: 100% !important;
+          min-height: 58px !important;
+          border-radius: 18px !important;
+          border: 1px solid rgba(125,211,252,.35) !important;
+          background: rgba(15, 23, 42, .42) !important;
+          color: #ffffff !important;
+          font-weight: 900 !important;
+          font-size: 1.02rem !important;
+          line-height: 1.15 !important;
+          white-space: normal !important;
+        }
+        .st-key-wz74_float_workobot button:hover {
+          transform: translateY(-1px) !important;
+          border-color: rgba(45,212,191,.8) !important;
+          box-shadow: 0 0 0 3px rgba(20,184,166,.14) !important;
+        }
+        .wz74-bot-hint {
+          color: rgba(226,232,240,.82);
+          font-size: .82rem;
+          font-weight: 700;
+          text-align: center;
+          margin: -4px 0 2px 0;
+        }
+        @keyframes wz74BotPulse {
+          0%, 100% { box-shadow: 0 18px 55px rgba(0,0,0,.45), 0 0 14px rgba(34,211,238,.18); }
+          50% { box-shadow: 0 18px 55px rgba(0,0,0,.45), 0 0 30px rgba(34,211,238,.38); }
+        }
+        @media (max-width: 700px) {
+          .st-key-wz74_float_workobot {
+            right: 14px !important;
+            bottom: 18px !important;
+            width: 188px !important;
+            padding: 8px !important;
+            border-radius: 20px !important;
+          }
+          .st-key-wz74_float_workobot:before {
+            width: 42px;
+            height: 42px;
+            left: -12px;
+            top: -14px;
+            font-size: 22px;
+          }
+          .st-key-wz74_float_workobot button {
+            min-height: 52px !important;
+            font-size: .92rem !important;
+            padding-left: 18px !important;
+          }
+          .wz74-bot-hint { display:none; }
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        with st.container(key="wz74_float_workobot"):
+            st.markdown("<div class='wz74-bot-hint'>Career questions? Ask me</div>", unsafe_allow_html=True)
+            try:
+                bot_label = _wz72_t("Ask Work-O-Bot") if callable(globals().get("_wz72_t")) else "Ask Work-O-Bot"
+            except Exception:
+                bot_label = "Ask Work-O-Bot"
+            if st.button("🤖 " + bot_label, key="wz74_open_workobot_float", use_container_width=True):
+                st.session_state["workobot_prefill"] = st.session_state.get("workobot_prefill", "")
+                _wz73_go("workobot")
+    except Exception:
+        pass
+
+
+def _wz73_render_dashboard_only():
+    """Dashboard only. No old dashboard below it. No reupload button on main canvas."""
+    try:
+        _wz72_render_brand_top()
+    except Exception:
+        pass
+    try:
+        _wz59_render_mobile_toolbox_native()
+    except Exception:
+        pass
+    try:
+        _wz35_sidebar("dashboard")
+    except Exception:
+        pass
+    try:
+        # Guided dashboard only; intentionally does not call older dashboard/home renderers.
+        _wz70_render_guided_dashboard_top()
+    except Exception as exc:
+        st.error(f"Dashboard could not load safely: {exc}")
+
+
+# =========================================================
+# WorkZo v75 - final requested UX patch
+# - Work-O-Bot opens in-app as a floating chat panel (no landing redirect)
+# - no Exit/Reupload button on dashboard main canvas
+# - compact logo/name top spacing on all dashboard pages
+# =========================================================
+
+def _wz75_apply_compact_top_css():
+    try:
+        st.markdown("""
+        <style id="workzo-v75-dashboard-top-css">
+        html, body { margin-top: 0 !important; padding-top: 0 !important; }
+        [data-testid="stAppViewContainer"], [data-testid="stMain"], [data-testid="stAppViewContainer"] > .main { padding-top: 0 !important; }
+        [data-testid="stMainBlockContainer"], .block-container { padding-top: 0.35rem !important; margin-top: 0 !important; }
+        .wz72-brand, .workzo-header { margin-top: 0 !important; }
+        @media(max-width:700px){ [data-testid="stMainBlockContainer"], .block-container { padding-top: 0.2rem !important; padding-left: 1rem !important; padding-right: 1rem !important; } }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz71_floating_workobot():
+    """Noticeable floating Work-O-Bot that opens an in-app panel, never the landing page."""
+    try:
+        st.markdown("""
+        <style id="workzo-v75-floating-workobot">
+        .st-key-wz75_float_workobot { position: fixed !important; right: 22px !important; bottom: 24px !important; z-index: 999999 !important; width: min(260px, calc(100vw - 32px)) !important; padding: 8px 9px !important; border-radius: 20px !important; border: 1px solid rgba(34,211,238,.60) !important; background: linear-gradient(135deg, rgba(8,47,73,.98), rgba(15,23,42,.98)) !important; box-shadow: 0 14px 38px rgba(0,0,0,.42), 0 0 22px rgba(34,211,238,.22) !important; animation: wz75BotPulse 2.2s ease-in-out infinite !important; }
+        .st-key-wz75_float_workobot:before { content: "🤖"; position:absolute; left:-18px; top:-18px; width:54px; height:54px; display:flex; align-items:center; justify-content:center; border-radius:999px; background:linear-gradient(135deg,#14b8a6,#2563eb); box-shadow:0 10px 32px rgba(20,184,166,.45); font-size:28px; }
+        .st-key-wz75_float_workobot button { width:100% !important; min-height:64px !important; border-radius:20px !important; border:1px solid rgba(125,211,252,.38) !important; background:rgba(15,23,42,.52) !important; color:white !important; font-weight:950 !important; font-size:1.05rem !important; white-space:normal !important; line-height:1.15 !important; padding-left:22px !important; }
+        .wz75-bot-hint { color:rgba(226,232,240,.88); font-size:.74rem; font-weight:800; text-align:center; margin:-2px 0 2px 0; }
+        @keyframes wz75BotPulse { 0%,100%{box-shadow:0 14px 38px rgba(0,0,0,.42),0 0 14px rgba(34,211,238,.18)} 50%{box-shadow:0 14px 38px rgba(0,0,0,.42),0 0 28px rgba(34,211,238,.42)} }
+        @media(max-width:700px){ .st-key-wz75_float_workobot{right:14px!important;bottom:18px!important;width:190px!important;padding:7px!important;border-radius:18px!important} .st-key-wz75_float_workobot:before{width:44px;height:44px;left:-12px;top:-14px;font-size:23px} .st-key-wz75_float_workobot button{min-height:54px!important;font-size:.92rem!important;padding-left:18px!important} .wz75-bot-hint{display:none} }
+        </style>
+        """, unsafe_allow_html=True)
+        with st.container(key="wz75_float_workobot"):
+            st.markdown("<div class='wz75-bot-hint'>Career questions? Ask Work-O-Bot</div>", unsafe_allow_html=True)
+            if st.button("Ask Work-O-Bot", key="wz75_open_workobot_float", use_container_width=True):
+                # Open the real Work-O-Bot page directly.
+                # This is more reliable than only toggling an inline panel because Streamlit reruns
+                # can otherwise make the click look like it did nothing.
+                st.session_state["wz75_workobot_open"] = True
+                st.session_state["onboarding_complete"] = True
+                st.session_state["page"] = "workobot"
+                st.session_state["nav_page"] = "workobot"
+                try:
+                    update_url_page("workobot")
+                except Exception:
+                    try:
+                        st.query_params["page"] = "workobot"
+                    except Exception:
+                        pass
+                try:
+                    request_scroll_to_top()
+                except Exception:
+                    pass
+                st.rerun()
+    except Exception:
+        pass
+
+
+def _wz75_render_workobot_panel():
+    """Render Work-O-Bot inline so clicks cannot fall back to landing."""
+    try:
+        if not st.session_state.get("wz75_workobot_open"):
+            return
+        st.markdown("""
+        <style id="workzo-v75-workobot-panel-css">
+        .wz75-workobot-panel { margin: .6rem 0 .8rem 0; padding: .55rem .85rem; border-radius: 16px; border: 1px solid rgba(34,211,238,.35); background: linear-gradient(135deg, rgba(8,47,73,.82), rgba(15,23,42,.94)); box-shadow: 0 10px 25px rgba(2,6,23,.25); }
+        .wz75-workobot-panel h3 { font-size: 15px; margin: 0; }
+        .wz75-workobot-panel p { font-size: 13px; margin: .2rem 0 0; }
+        </style>
+        <div class="wz75-workobot-panel"><h3 style="margin:0;color:white;">🤖 Work-O-Bot</h3><p style="margin:.3rem 0 0;color:#cbd5e1;">Ask career questions, CV doubts, HR messages, job-search questions, or interview prep questions.</p></div>
+        """, unsafe_allow_html=True)
+        close_col, _ = st.columns([1, 4])
+        with close_col:
+            if st.button("Close bot", key="wz75_close_workobot", use_container_width=True):
+                st.session_state["wz75_workobot_open"] = False
+                st.rerun()
+        try:
+            if callable(globals().get("show_workobot")):
+                show_workobot()
+            elif callable(globals().get("render_workobot")):
+                render_workobot()
+            else:
+                st.info("Work-O-Bot is ready, but the chat function was not found.")
+        except Exception as exc:
+            st.error(f"Work-O-Bot could not load safely: {exc}")
+    except Exception:
+        pass
+
+
+def _wz70_render_guided_dashboard_top():
+    """Guided dashboard without the main-canvas Exit/Reupload button."""
+    try:
+        st.markdown("""<style>.wz72-hero{margin:.15rem 0 1rem 0;padding:1.05rem 1.15rem;border-radius:22px;border:1px solid rgba(20,184,166,.35);background:linear-gradient(135deg,rgba(8,47,73,.92),rgba(15,23,42,.96));box-shadow:0 18px 45px rgba(2,6,23,.25)}.wz72-kicker{color:#7dd3fc;font-weight:900;letter-spacing:.08em;text-transform:uppercase;font-size:.78rem}.wz72-title{color:#fff;font-weight:950;font-size:1.45rem;margin:.15rem 0 .2rem 0}.wz72-sub{color:#cbd5e1;font-size:.98rem}.wz72-step{padding:.85rem;border-radius:18px;min-height:112px;border:1px solid rgba(96,165,250,.23);background:rgba(15,23,42,.62)}.wz72-step-done{border-color:rgba(34,197,94,.42);background:rgba(20,83,45,.20)}.wz72-step-now{border-color:rgba(20,184,166,.58);background:rgba(8,145,178,.18)}.wz72-step-title{font-weight:950;color:#fff;margin-bottom:.25rem}.wz72-step-small{color:#cbd5e1;font-size:.86rem}.wz72-card{border-radius:20px;padding:1rem;min-height:140px;border:1px solid rgba(148,163,184,.20);background:rgba(15,23,42,.58)}.wz72-card h3{margin:.1rem 0 .4rem 0;color:#fff;font-size:1.05rem}.wz72-card p{color:#cbd5e1;margin:0;font-size:.92rem}.wz72-wow{color:#22d3ee;font-weight:950;font-size:1.35rem}@media(max-width:700px){.wz72-title{font-size:1.16rem}.wz72-hero{padding:.9rem;border-radius:18px}.wz72-step{min-height:auto;margin-bottom:.45rem}}</style>""", unsafe_allow_html=True)
+        tailored_done, job_done, interview_done, cv_done = _wz72_step_state()
+        steps = [(_wz72_t("CV tailored"), tailored_done, "cv_documents", _wz72_t("Improve CV for the job")), (_wz72_t("Job Assist"), job_done, "job_assist", _wz72_t("Analyze your target job")), (_wz72_t("Interview Practice"), interview_done, "real_interview", _wz72_t("Practice with your CV + job"))]
+        next_idx = next((i for i,s in enumerate(steps) if not s[1]), len(steps)-1)
+        next_label, _, next_page, next_hint = steps[next_idx]
+        readiness = int(round((sum(1 for _,done,_,_ in steps if done)/len(steps))*100))
+        st.markdown(f"""<div class='wz72-hero'><div class='wz72-kicker'>{_wz72_t('Your Job Journey')}</div><div class='wz72-title'>{_wz72_t('Practice a real interview based on YOUR CV & job')}</div><div class='wz72-sub'>{_wz72_t('Next step')}: <strong>{next_label}</strong> — {next_hint}</div></div>""", unsafe_allow_html=True)
+        cols = st.columns(3)
+        for i,(label,done,page,hint) in enumerate(steps):
+            cls = "wz72-step-done" if done else ("wz72-step-now" if i==next_idx else "")
+            with cols[i]:
+                st.markdown(f"""<div class='wz72-step {cls}'><div class='wz72-step-title'>{'✓' if done else '○'} {label}</div><div class='wz72-step-small'>{_wz72_t('Completed') if done else hint}</div></div>""", unsafe_allow_html=True)
+                if st.button(_wz72_t("Open"), key=f"wz75_step_{i}_{page}", use_container_width=True): _wz73_go(page)
+        st.markdown("### "+_wz72_t("Focus for today"))
+        c1,c2,c3=st.columns(3)
+        with c1:
+            st.markdown(f"""<div class='wz72-card'><h3>🎯 {_wz72_t('Next step')}</h3><p>{next_label}<br>{next_hint}</p></div>""", unsafe_allow_html=True)
+            if st.button(_wz72_t("Continue your journey"), key="wz75_continue_journey", use_container_width=True): _wz73_go(next_page)
+        with c2:
+            st.markdown(f"""<div class='wz72-card'><h3>📄 {_wz72_t('Your CV Status')}</h3><p><span class='wz72-wow'>{readiness}%</span><br>{_wz72_t('CV ready') if cv_done else _wz72_t('CV not added yet')}</p></div>""", unsafe_allow_html=True)
+            if st.button(_wz72_t("Open CV tools"), key="wz75_open_cv", use_container_width=True): _wz73_go("cv_documents")
+        with c3:
+            st.markdown(f"""<div class='wz72-card'><h3>🎤 {_wz72_t('Interview Practice')}</h3><p>{_wz72_t('Practice with your CV + job')}</p></div>""", unsafe_allow_html=True)
+            if st.button(_wz72_t("Practice interview"), key="wz75_open_interview", use_container_width=True): _wz73_go("real_interview")
+        try: _wz70_micro_feedback("dashboard_journey")
+        except Exception: pass
+    except Exception as exc:
+        st.error(f"Dashboard journey could not load safely: {exc}")
+
+
+def show_dashboard():
+    """v75 final dashboard router: compact top, floating bot in-app, no old dashboard below."""
+    try: _wz57_apply_page_query_param()
+    except Exception: pass
+    try: _wz61_apply_global_top_compact_css()
+    except Exception: pass
+    try: _wz72_apply_mobile_css()
+    except Exception: pass
+    try: _wz73_apply_final_css()
+    except Exception: pass
+    _wz75_apply_compact_top_css()
+    page_key = str(st.session_state.get("nav_page", st.session_state.get("page", "dashboard")) or "dashboard")
+    page_key = {"home":"dashboard", "":"dashboard", "bot":"workobot", "interview":"real_interview", "interview_practice":"real_interview", "jobs":"job_assist", "improve_cv":"cv_documents"}.get(page_key, page_key)
+    if page_key not in {"dashboard", "cv_documents", "job_assist", "real_interview", "workobot", "founder_dashboard", "onboarding"}: page_key = "dashboard"
+    st.session_state["page"] = page_key; st.session_state["nav_page"] = page_key
+    try:
+        if page_key != "workobot": _wz71_floating_workobot()
+    except Exception: pass
+    if page_key == "dashboard":
+        try: _wz72_render_brand_top()
+        except Exception: pass
+        try: _wz59_render_mobile_toolbox_native()
+        except Exception: pass
+        try: _wz35_sidebar("dashboard")
+        except Exception: pass
+        _wz75_render_workobot_panel(); _wz70_render_guided_dashboard_top(); return
+    if page_key == "workobot":
+        try: _wz72_render_brand_top(); _wz59_render_mobile_toolbox_native(); _wz35_sidebar("workobot")
+        except Exception: pass
+        st.session_state["wz75_workobot_open"] = True; _wz75_render_workobot_panel(); return
+    try: _wz72_render_brand_top(); _wz59_render_mobile_toolbox_native(); _wz35_sidebar(page_key)
+    except Exception: pass
+    _wz75_render_workobot_panel()
+    if page_key == "cv_documents":
+        try: show_document_tools()
+        except Exception as exc: st.error(f"CV & Documents could not load safely: {exc}")
+        return
+    if page_key == "job_assist":
+        try:
+            if callable(globals().get("_wz51_render_job_assist_page")): _wz51_render_job_assist_page()
+            elif callable(globals().get("_wz28_job_assist_page")): _wz28_job_assist_page()
+            else: st.subheader("Job Assist"); st.info("Job Assist module could not be loaded.")
+        except Exception as exc: st.error(f"Job Assist could not load safely: {exc}")
+        return
+    if page_key == "real_interview":
+        try:
+            if callable(globals().get("render_real_interview_simulation")): render_real_interview_simulation()
+            elif callable(globals().get("show_real_interview")): show_real_interview()
+            else: st.error("Real Interview is not available. Please check 09_interview_assistant.py is loaded.")
+        except Exception as exc: st.error(f"Real Interview could not load safely: {exc}")
+        return
+    if page_key == "founder_dashboard":
+        try:
+            if st.session_state.get("founder_unlocked") and callable(globals().get("render_founder_dashboard")): render_founder_dashboard()
+            else: st.warning("Founder access is locked.")
+        except Exception as exc: st.error(f"Founder dashboard could not load safely: {exc}")
+        return
+    if page_key == "onboarding":
+        try:
+            if callable(globals().get("show_onboarding")): show_onboarding()
+            else: st.info("Please restart onboarding from the landing page.")
+        except Exception as exc: st.error(f"Onboarding could not load safely: {exc}")
+        return
+
+
+# =========================================================
+# WorkZo v82 - hard duplicate-logo prevention
+# Dashboard must never draw its own top brand card.
+# =========================================================
+def _wz72_render_brand_top():
+    return
+
+def _wz77_render_brand_top():
+    return
+
+def _wz81_render_brand_top():
+    return

@@ -284,6 +284,49 @@ except Exception:
 register_request = workzo_safe_register_request
 can_make_request = workzo_safe_can_make_request
 
+
+
+# =========================================================
+# WorkZo v75 - compact top spacing + clean landing + safe Work-O-Bot routing
+# =========================================================
+def apply_workzo_v75_global_css() -> None:
+    """Keep the brand/header close to the top on every page and simplify landing spacing."""
+    try:
+        st.markdown("""
+        <style id="workzo-v75-global-spacing">
+        html, body { margin-top: 0 !important; padding-top: 0 !important; }
+        [data-testid="stAppViewContainer"] { padding-top: 0 !important; }
+        [data-testid="stAppViewContainer"] > .main { padding-top: 0 !important; }
+        [data-testid="stMain"] { padding-top: 0 !important; }
+        [data-testid="stMainBlockContainer"], .block-container {
+            padding-top: 0.35rem !important;
+            margin-top: 0 !important;
+        }
+        .workzo-header, .wz72-brand { margin-top: 0 !important; }
+        .workzo-landing-hero-simple {
+            margin: 0.7rem 0 1.1rem 0;
+            padding: 2.2rem 2rem;
+            border-radius: 28px;
+            border: 1px solid rgba(34,211,238,.28);
+            background: radial-gradient(circle at 18% 10%, rgba(20,214,201,.22), transparent 26%), linear-gradient(135deg, rgba(3,16,42,.98), rgba(8,30,68,.96));
+            box-shadow: 0 24px 70px rgba(2,6,23,.42);
+        }
+        .workzo-landing-hero-simple h1 { color: #fff; font-size: clamp(2.1rem, 5vw, 4.2rem); line-height: 1.02; letter-spacing: -.045em; margin: 0 0 .85rem 0; font-weight: 950; max-width: 900px; }
+        .workzo-landing-hero-simple p { color: #cbd5e1; font-size: clamp(1rem, 2vw, 1.2rem); line-height: 1.55; margin: 0; max-width: 780px; }
+        .st-key-landing_start_with_cv button { min-height: 58px !important; border-radius: 18px !important; font-size: 1.1rem !important; font-weight: 900 !important; }
+        @media (max-width: 700px) {
+            [data-testid="stMainBlockContainer"], .block-container { padding-top: 0.2rem !important; padding-left: 1rem !important; padding-right: 1rem !important; }
+            .workzo-landing-hero-simple { padding: 1.35rem 1.05rem; border-radius: 22px; margin-top: .35rem; }
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+# Reset on every Streamlit rerun because this module is exec-loaded each run.
+_workzo_header_rendered_this_run = False
+
 def render_workzo_header() -> None:
     """Premium SaaS-style product header for WorkZo.
 
@@ -305,6 +348,72 @@ def render_workzo_header() -> None:
         <div class="workzo-beta">BETA</div>
     </div>
     """, unsafe_allow_html=True)
+
+
+# =========================================================
+# SAMPLE DATA DEMO FLOW
+# =========================================================
+SAMPLE_CV_TEXT = """
+ALEX MORGAN
+Junior Data Analyst | IT Support Specialist
+Berlin, Germany | alex.morgan@example.com | +49 151 00000000 | linkedin.com/in/alexmorgan-demo
+
+PROFESSIONAL SUMMARY
+Junior Data Analyst with a technical support background and hands-on experience in SQL, Python, Excel, Tableau, Power BI, and customer-facing problem solving. Strong at turning support tickets, user issues, and operational data into clear dashboards, insights, and process improvements. Looking for junior data analyst, reporting analyst, or data-focused customer operations roles.
+
+CORE SKILLS
+SQL, Python, pandas, Excel, Tableau, Power BI, Data Cleaning, Data Visualization, Dashboard Development, Ticket Analysis, KPI Reporting, Technical Support, SaaS Support, Incident Management, Root Cause Analysis, Process Documentation, Stakeholder Communication
+
+PROFESSIONAL EXPERIENCE
+IT Support Specialist | BrightDesk Solutions | Berlin, Germany | 2021 - 2023
+- Resolved software, login, access, and workflow issues for business users through ticketing and remote troubleshooting.
+- Analyzed recurring support tickets to identify issue patterns, common root causes, and process improvement opportunities.
+- Created Excel reports and simple dashboards to track ticket volume, response time, resolution time, and repeated customer pain points.
+- Collaborated with product and operations teams to document bugs, clarify user needs, and improve support workflows.
+
+Customer Support Analyst | Northstar Digital Services | 2019 - 2021
+- Supported customers with onboarding, product usage questions, and technical troubleshooting.
+- Used Excel reports and basic SQL queries to summarize issue trends, customer requests, and service performance.
+- Prepared weekly summaries for team leads highlighting common questions, unresolved blockers, and improvement ideas.
+
+PROJECTS
+Support Ticket Analytics Dashboard
+- Built a Tableau dashboard using sample support data to analyze ticket categories, resolution time, volume trends, and customer impact.
+- Used Python and pandas to clean raw ticket exports and prepare analysis-ready datasets.
+
+E-Scooter Data Pipeline
+- Collected public data using APIs and Python, cleaned the data, and prepared basic visual insights for operational planning.
+
+EDUCATION
+Data Science Bootcamp | WBS Coding School | 2024
+Bachelor's Degree | Demo University | 2018
+
+LANGUAGES
+English - Professional | German - A2/B1 learning
+""".strip()
+
+SAMPLE_JOB_DESCRIPTION = """
+Junior Data Analyst / IT Support Analyst
+Location: Germany, hybrid or remote
+
+We are looking for a motivated Junior Data Analyst with strong technical support experience to help analyze support data, build dashboards, and improve internal processes. The ideal candidate can work with SQL, Python, Excel, and Tableau or Power BI, and can communicate clearly with business and technical stakeholders.
+
+Responsibilities:
+- Analyze customer support and operational data to identify trends and improvement opportunities.
+- Build dashboards and reports using Tableau, Power BI, or similar tools.
+- Use SQL and Python to clean, transform, and analyze datasets.
+- Support incident management, root cause analysis, and process documentation.
+- Collaborate with product, support, and operations teams.
+
+Requirements:
+- Experience with SQL, Python, Excel, and data visualization.
+- Understanding of IT support, ticketing systems, or ITSM processes.
+- Strong communication skills and ability to explain technical topics clearly.
+- Experience with dashboards, reporting, APIs, or cloud tools is a plus.
+- English fluency; German communication skills are a plus.
+""".strip()
+
+
 
 
 # =========================================================
@@ -515,6 +624,24 @@ def show_landing_page():
         st.markdown('</div>', unsafe_allow_html=True)
 
     st.caption("You can upload a CV, create one with AI, or try sample data on the next page.")
+
+# =========================================================
+# ONBOARDING
+# =========================================================
+
+POPULAR_SKILLS = [
+    "Python", "SQL", "Power BI", "Tableau", "Excel", "Data Analysis", "Pandas", "Machine Learning",
+    "Customer Support", "Technical Support", "Troubleshooting", "CRM", "SaaS", "IT Support", "Help Desk",
+    "Project Management", "Communication", "Problem Solving", "Sales", "Marketing", "SEO", "Java",
+    "JavaScript", "React", "AWS", "Azure", "Google Cloud", "Docker", "Linux", "System Administration",
+    "Testing", "Agile", "Scrum", "Leadership", "Public Speaking", "Photoshop", "Figma", "Canva"
+]
+EDUCATION_LEVELS = [
+    "", "High School", "Diploma", "Bachelor's Degree", "Master's Degree", "PhD",
+    "Bootcamp", "Vocational Training", "Certificate Course", "Self-taught"
+]
+
+
 
 # =========================================================
 # ONBOARDING

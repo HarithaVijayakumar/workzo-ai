@@ -2734,3 +2734,445 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
+# =========================================================
+# WorkZo v62 - Founder analytics accuracy + event de-duplication
+# Scope:
+# - Makes Founder Analytics more honest and decision-focused.
+# - Prevents app_open / feature_view refresh spam from inflating numbers.
+# - Calculates activation from stable browser IDs, not raw event/session counts.
+# - Keeps analytics privacy-safe: no CV text, no job text, no personal docs.
+# =========================================================
+
+def _wz62_now_ts() -> str:
+    try:
+        return time.strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        return ""
+
+
+def _wz62_event_dedupe_key(event_name: str, feature: str, metadata: Optional[Dict] = None) -> str:
+    """Create a safe in-session de-dupe key. Never includes user text."""
+    try:
+        metadata = metadata or {}
+        step = str(metadata.get("step") or metadata.get("button") or "").strip().lower()[:60]
+        return f"{str(event_name or '').strip().lower()}|{str(feature or '').strip().lower()}|{step}"
+    except Exception:
+        return f"{event_name}|{feature}"
+
+
+def track_event(event_name: str, feature: str = "", metadata: Optional[Dict] = None):
+    """Privacy-safe analytics with guardrails against Streamlit rerun inflation.
+
+    Important: Streamlit reruns can call top-level code many times. This version
+    counts meaningful events, but avoids writing repeated app_open / feature_view
+    / button_click events caused by refreshes and rerenders.
+    """
+    if workzo_analytics_test_mode():
+        return
+
+    try:
+        init_beta_analytics()
+    except Exception:
+        return
+
+    metadata = metadata or {}
+    raw_event_name = str(event_name or "").strip()
+    raw_feature = str(feature or "").strip()
+    event_low = raw_event_name.lower()
+
+    try:
+        if "_wz62_event_seen_at" not in st.session_state:
+            st.session_state["_wz62_event_seen_at"] = {}
+        seen = st.session_state["_wz62_event_seen_at"]
+        now = time.time()
+        key = _wz62_event_dedupe_key(raw_event_name, raw_feature, metadata)
+
+        # These are commonly duplicated by Streamlit reruns/refreshes.
+        dedupe_ttl = 0
+        if event_low in {"app_open", "feature_view"}:
+            dedupe_ttl = 60 * 60 * 6   # once per session-ish window
+        elif event_low == "button_click":
+            dedupe_ttl = 3             # prevents double-click/rerun duplicates
+        elif event_low in {"cv_ready", "cv_uploaded", "cv_structured_profile_created", "application_prepared", "interview_started", "feedback_submitted"}:
+            dedupe_ttl = 10            # completion events should not duplicate instantly
+
+        if dedupe_ttl and key in seen and (now - float(seen.get(key, 0))) < dedupe_ttl:
+            return
+        seen[key] = now
+    except Exception:
+        pass
+
+    try:
+        session_duration_seconds = int(time.time() - st.session_state.get("session_started_at", time.time()))
+    except Exception:
+        session_duration_seconds = 0
+
+    event = {
+        "timestamp": _wz62_now_ts(),
+        "anonymous_user_id": st.session_state.get("anonymous_user_id", ""),
+        "session_id": st.session_state.get("session_id", ""),
+        "event_name": safe_analytics_value(raw_event_name),
+        "feature": safe_analytics_value(raw_feature),
+        "session_duration_seconds": session_duration_seconds,
+        "repeat_user": safe_analytics_value(st.session_state.get("is_repeat_user", False)),
+        "country": safe_analytics_value(st.session_state.get("country", "")),
+        "migration_country": safe_analytics_value(st.session_state.get("migration_country", "")),
+        "user_status": safe_analytics_value(st.session_state.get("user_status", "")),
+        "preferred_language": safe_analytics_value(st.session_state.get("preferred_language", "")),
+        "cv_uploaded": safe_analytics_value(bool(st.session_state.get("cv_text", ""))),
+        "metadata": safe_analytics_value(json.dumps(metadata, ensure_ascii=False)),
+    }
+
+    try:
+        st.session_state.analytics_events.append(event)
+    except Exception:
+        pass
+
+    try:
+        if raw_feature:
+            st.session_state.feature_usage_counts[raw_feature] = st.session_state.feature_usage_counts.get(raw_feature, 0) + 1
+    except Exception:
+        pass
+
+    try:
+        file_exists = os.path.exists(ANALYTICS_FILE)
+        with open(ANALYTICS_FILE, "a", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=list(event.keys()))
+            if not file_exists:
+                writer.writeheader()
+            writer.writerow(event)
+    except Exception:
+        pass
+
+    try:
+        send_analytics_to_webhook(event)
+    except Exception:
+        pass
+
+
+def track_feature_view(feature_name: str):
+    """Track page/feature views once per viewed feature in the active session."""
+    if workzo_analytics_test_mode():
+        return
+    try:
+        init_beta_analytics()
+        feature_name = str(feature_name or "").strip() or "Unknown"
+        if st.session_state.get("last_tracked_page") != feature_name:
+            track_event("feature_view", feature_name)
+            st.session_state.last_tracked_page = feature_name
+    except Exception:
+        pass
+
+
+def _wz62_safe_int(value, default=0):
+    try:
+        return int(float(value or 0))
+    except Exception:
+        return default
+
+
+def _wz62_lower(value) -> str:
+    return str(value or "").strip().lower()
+
+
+def _wz62_event_name(row: Dict) -> str:
+    return str(row.get("event_name", "") or "").strip()
+
+
+def _wz62_feature_name(row: Dict) -> str:
+    return str(row.get("feature", "") or "Unknown").strip() or "Unknown"
+
+
+def _wz62_uid(row: Dict) -> str:
+    return str(row.get("anonymous_user_id", "") or "").strip()
+
+
+def _wz62_sid(row: Dict) -> str:
+    return str(row.get("session_id", "") or "").strip()
+
+
+def _wz62_count_by_func(rows: List[Dict], fn):
+    counts = {}
+    for r in rows:
+        value = fn(r) or "Unknown"
+        counts[value] = counts.get(value, 0) + 1
+    return sorted(counts.items(), key=lambda x: x[1], reverse=True)
+
+
+def _wz62_users_with(rows: List[Dict], predicate):
+    users = set()
+    for r in rows:
+        uid = _wz62_uid(r)
+        if uid and predicate(r):
+            users.add(uid)
+    return users
+
+
+def _wz62_sessions_with(rows: List[Dict], predicate):
+    sessions = set()
+    for r in rows:
+        sid = _wz62_sid(r)
+        if sid and predicate(r):
+            sessions.add(sid)
+    return sessions
+
+
+def _wz62_metric_help():
+    st.caption(
+        "Data-health note: browser IDs are not exact people. Events can include old inflated data before this fix, "
+        "but new app_open / feature_view / button_click events are de-duplicated in-session. Use this dashboard for trends and drop-offs, not exact user counts."
+    )
+
+
+def render_founder_dashboard():
+    """Cleaner Founder Analytics: honest counts, funnel clarity, and less misleading conversion math."""
+    st.markdown("### Founder Analytics Dashboard")
+    st.caption("Private beta metrics. Privacy-safe and decision-focused: no CV text, job text, emails, phone numbers, or documents are stored.")
+    workzo_show_test_mode_badge()
+
+    rows = read_csv_rows(ANALYTICS_FILE)
+    feedback_rows = read_csv_rows(FEEDBACK_FILE)
+    issue_rows = read_csv_rows(ISSUES_FILE) if os.path.exists(ISSUES_FILE) else []
+
+    if not rows:
+        st.info("No analytics events recorded yet.")
+        return
+
+    total_events = len(rows)
+    browser_ids = {_wz62_uid(r) for r in rows if _wz62_uid(r)}
+    unique_browser_ids = len(browser_ids)
+    unique_sessions = len({_wz62_sid(r) for r in rows if _wz62_sid(r)})
+
+    uid_event_counts, uid_max_duration, uid_sessions, uid_dates, uid_repeat_flags = {}, {}, {}, {}, {}
+    for r in rows:
+        uid = _wz62_uid(r)
+        sid = _wz62_sid(r)
+        if not uid:
+            continue
+        uid_event_counts[uid] = uid_event_counts.get(uid, 0) + 1
+        uid_max_duration[uid] = max(uid_max_duration.get(uid, 0), _wz62_safe_int(r.get("session_duration_seconds")))
+        if sid:
+            uid_sessions.setdefault(uid, set()).add(sid)
+        ts = str(r.get("timestamp", "") or "")[:10]
+        if ts:
+            uid_dates.setdefault(uid, set()).add(ts)
+        if _wz62_lower(r.get("repeat_user")) in {"true", "1", "yes"}:
+            uid_repeat_flags[uid] = True
+
+    def is_meaningful_user(uid: str) -> bool:
+        return (
+            uid_event_counts.get(uid, 0) >= 2
+            or uid_max_duration.get(uid, 0) >= 30
+            or len(uid_sessions.get(uid, set())) >= 2
+        )
+
+    likely_tester_ids = {uid for uid in browser_ids if is_meaningful_user(uid)}
+    denominator_users = likely_tester_ids or browser_ids
+    excluded_ids = max(0, unique_browser_ids - len(likely_tester_ids))
+
+    returning_user_ids = {
+        uid for uid in browser_ids
+        if len(uid_sessions.get(uid, set())) > 1 or len(uid_dates.get(uid, set())) > 1 or uid_repeat_flags.get(uid, False)
+    }
+
+    durations = [_wz62_safe_int(r.get("session_duration_seconds")) for r in rows]
+    avg_event_time = int(sum(durations) / len(durations)) if durations else 0
+    max_event_time = max(durations) if durations else 0
+
+    def ev_contains(r, terms):
+        text = f"{_wz62_event_name(r)} {_wz62_feature_name(r)}".lower()
+        return any(term in text for term in terms)
+
+    opened_users = _wz62_users_with(rows, lambda r: _wz62_lower(_wz62_event_name(r)) == "app_open" or "app" == _wz62_lower(_wz62_feature_name(r)))
+    onboarding_users = _wz62_users_with(rows, lambda r: ev_contains(r, ["onboarding"]))
+    cv_users = _wz62_users_with(rows, lambda r: ev_contains(r, ["cv_ready", "cv_uploaded", "cv_structured_profile", "document", "resume", "cv "]) or _wz62_lower(r.get("cv_uploaded")) == "true")
+    job_users = _wz62_users_with(rows, lambda r: ev_contains(r, ["job assist", "job_assist", "job analyzed", "job_match", "prepare for job"]))
+    interview_users = _wz62_users_with(rows, lambda r: ev_contains(r, ["real interview", "interview_started", "interview", "stimulator", "simulation"]))
+    workobot_users = _wz62_users_with(rows, lambda r: ev_contains(r, ["work-o-bot", "workobot"]))
+    prepared_users = _wz62_users_with(rows, lambda r: ev_contains(r, ["application_prepared", "prepared application", "cover letter", "cv improved"]))
+    saved_users = _wz62_users_with(rows, lambda r: ev_contains(r, ["application_saved", "tracker", "saved application"]))
+    feedback_users = {str(r.get("anonymous_user_id", "") or "").strip() for r in feedback_rows if str(r.get("anonymous_user_id", "") or "").strip()}
+
+    core_users = cv_users | job_users | interview_users | workobot_users | prepared_users
+    activated_users = job_users | interview_users | prepared_users
+    activation_rate = round((len(activated_users) / max(len(denominator_users), 1)) * 100, 1) if denominator_users else 0
+    cv_rate = round((len(cv_users) / max(len(denominator_users), 1)) * 100, 1) if denominator_users else 0
+    return_rate = round((len(returning_user_ids) / max(len(denominator_users), 1)) * 100, 1) if denominator_users else 0
+
+    # Session-level details remain useful for debugging.
+    button_sessions = _wz62_sessions_with(rows, lambda r: "button" in _wz62_lower(_wz62_event_name(r)))
+    active_sessions = _wz62_sessions_with(rows, lambda r: _wz62_safe_int(r.get("session_duration_seconds")) >= 60)
+
+    st.markdown("#### Beta health")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Events", total_events)
+    c2.metric("Likely testers", len(likely_tester_ids))
+    c3.metric("Browser IDs", unique_browser_ids)
+    c4.metric("Sessions", unique_sessions)
+
+    c5, c6, c7, c8 = st.columns(4)
+    c5.metric("Activation", f"{activation_rate}%")
+    c6.metric("CV reach", f"{cv_rate}%")
+    c7.metric("Returning browsers", len(returning_user_ids), f"{return_rate}%")
+    c8.metric("Avg event time", f"{avg_event_time // 60}m {avg_event_time % 60}s")
+
+    _wz62_metric_help()
+    if excluded_ids:
+        st.caption(f"Likely testers currently excludes {excluded_ids} one-off or very-short browser IDs.")
+
+    st.markdown("#### Decision summary")
+    if activation_rate >= 25:
+        insight_1 = "Good: users are reaching core features. Improve completion, feedback, and repeat usage next."
+    elif activation_rate >= 10:
+        insight_1 = "Some users reach core features. Make the main path clearer and reduce distractions."
+    else:
+        insight_1 = "Main issue: people open the app but do not reach the core workflow. Strengthen the first CTA and guided journey."
+
+    if len(feedback_rows) == 0:
+        insight_2 = "Feedback is still missing. Ask for feedback immediately after one completed action, not only at the bottom of the app."
+    else:
+        insight_2 = "Feedback exists. Read repeated issues before changing more features."
+
+    if len(interview_users) > len(job_users):
+        insight_3 = "Real Interview is attracting attention. Consider making it the primary Product Hunt hook."
+    elif len(job_users) > 0 or len(prepared_users) > 0:
+        insight_3 = "Job/CV preparation has signal. Keep the workflow focused: CV → Job → Improve → Interview."
+    else:
+        insight_3 = "Core feature discovery is weak. Hide secondary tools until the user starts the journey."
+
+    i1, i2, i3 = st.columns(3)
+    with i1:
+        st.markdown(f"<div class='next-action-card'><div class='next-action-label'>Activation</div><div class='next-action-title'>{html.escape(insight_1)}</div></div>", unsafe_allow_html=True)
+    with i2:
+        st.markdown(f"<div class='next-action-card'><div class='next-action-label'>Feedback</div><div class='next-action-title'>{html.escape(insight_2)}</div></div>", unsafe_allow_html=True)
+    with i3:
+        st.markdown(f"<div class='next-action-card'><div class='next-action-label'>Product focus</div><div class='next-action-title'>{html.escape(insight_3)}</div></div>", unsafe_allow_html=True)
+
+    st.markdown("#### User journey funnel")
+    funnel_steps = [
+        ("Likely testers", len(denominator_users)),
+        ("Opened app", len(opened_users) or len(denominator_users)),
+        ("Onboarding", len(onboarding_users)),
+        ("CV / document reached", len(cv_users)),
+        ("Job Assist reached", len(job_users)),
+        ("Real Interview reached", len(interview_users)),
+        ("Application prepared", len(prepared_users)),
+        ("Saved / tracker", len(saved_users)),
+        ("Feedback submitted", len(feedback_rows)),
+    ]
+    max_funnel = max([v for _, v in funnel_steps] + [1])
+    for label, value in funnel_steps:
+        pct = round((value / max_funnel) * 100, 1) if max_funnel else 0
+        st.markdown(f"**{label}:** {value}")
+        st.progress(min(int(pct), 100))
+
+    st.markdown("#### Core feature reach")
+    r1, r2, r3, r4 = st.columns(4)
+    r1.metric("CV users", len(cv_users))
+    r2.metric("Job Assist users", len(job_users))
+    r3.metric("Real Interview users", len(interview_users))
+    r4.metric("Prepared apps", len(prepared_users))
+
+    st.markdown("#### Retention details")
+    rr1, rr2, rr3, rr4 = st.columns(4)
+    rr1.metric("Repeat browser IDs", len(returning_user_ids))
+    rr2.metric("Browsers with 2+ sessions", sum(1 for s in uid_sessions.values() if len(s) > 1))
+    rr3.metric("Browsers active 2+ days", sum(1 for d in uid_dates.values() if len(d) > 1))
+    rr4.metric("Active sessions 60s+", len(active_sessions))
+
+    st.markdown("#### Feature usage")
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.markdown("##### Most used features")
+        for feature, count in _wz62_count_by_func(rows, _wz62_feature_name)[:12]:
+            st.write(f"- **{feature}**: {count}")
+    with col_b:
+        st.markdown("##### Event types")
+        for event, count in _wz62_count_by_func(rows, _wz62_event_name)[:12]:
+            st.write(f"- **{event}**: {count}")
+        st.markdown("##### Button clicks / engagement")
+        st.write(f"- **Sessions with button click:** {len(button_sessions)}")
+        st.write(f"- **Max recorded session time:** {max_event_time // 60}m {max_event_time % 60}s")
+
+    st.markdown("#### Audience")
+    a1, a2, a3 = st.columns(3)
+    with a1:
+        st.markdown("##### Countries")
+        for country, count in _wz62_count_by_func(rows, lambda r: str(r.get("country", "") or "Unknown").strip() or "Unknown")[:10]:
+            st.write(f"- **{country}**: {count}")
+    with a2:
+        st.markdown("##### Career situations")
+        for status, count in _wz62_count_by_func(rows, lambda r: str(r.get("user_status", "") or "Unknown").strip() or "Unknown")[:10]:
+            st.write(f"- **{status}**: {count}")
+    with a3:
+        st.markdown("##### Languages")
+        for lang, count in _wz62_count_by_func(rows, lambda r: str(r.get("preferred_language", "") or "Unknown").strip() or "Unknown")[:10]:
+            st.write(f"- **{lang}**: {count}")
+
+    st.markdown("#### Value signals")
+    v1, v2, v3, v4 = st.columns(4)
+    v1.metric("CV reached users", len(cv_users))
+    v2.metric("Application prepared users", len(prepared_users))
+    v3.metric("Tracker / save users", len(saved_users))
+    v4.metric("Feedback responses", len(feedback_rows))
+
+    st.markdown("#### Feedback quality")
+    if feedback_rows:
+        avg_rating_values = []
+        for r in feedback_rows:
+            try:
+                avg_rating_values.append(int(float(r.get("rating", 0))))
+            except Exception:
+                pass
+        avg_rating = round(sum(avg_rating_values) / len(avg_rating_values), 1) if avg_rating_values else "—"
+        f1, f2, f3 = st.columns(3)
+        f1.metric("Feedback responses", len(feedback_rows))
+        f2.metric("Average rating", avg_rating)
+        f3.metric("Issue reports", len(issue_rows))
+        with st.expander("Latest feedback", expanded=False):
+            for r in feedback_rows[-15:][::-1]:
+                st.markdown(f"""
+**Rating:** {html.escape(str(r.get('rating','')))} / 5  
+**Feature:** {html.escape(str(r.get('feature','')))}  
+**Worked well:** {html.escape(str(r.get('worked_well','')))}  
+**Needs improvement:** {html.escape(str(r.get('needs_improvement','')))}
+---
+""")
+    else:
+        st.info("No feedback submitted yet. Add a quick feedback prompt after users complete CV improvement, Job Assist, or Real Interview.")
+
+    if issue_rows:
+        with st.expander("Latest reported problems", expanded=False):
+            for r in issue_rows[-15:][::-1]:
+                st.markdown(f"""
+**Area:** {html.escape(str(r.get('area','') or r.get('feature','')))}  
+**Problem:** {html.escape(str(r.get('description','') or r.get('problem','') or r.get('issue','')))}  
+---
+""")
+
+    st.markdown("#### Launch readiness checklist")
+    st.markdown("""
+Before posting broadly, check after 24 hours:
+- 20+ likely testers opened the app.
+- 25%+ of likely testers reached a core feature.
+- 5+ users reached CV / Job Assist / Real Interview.
+- 2+ users prepared an application or completed one clear workflow.
+- At least 3 feedback responses were submitted.
+- The largest drop-off point is clear.
+""")
+
+    st.markdown("#### Export data")
+    d1, d2, d3 = st.columns(3)
+    with d1:
+        if os.path.exists(ANALYTICS_FILE):
+            with open(ANALYTICS_FILE, "rb") as f:
+                st.download_button("Download analytics CSV", data=f.read(), file_name="workzo_beta_analytics.csv", mime="text/csv", key="founder_download_analytics_v62")
+    with d2:
+        if os.path.exists(FEEDBACK_FILE):
+            with open(FEEDBACK_FILE, "rb") as f:
+                st.download_button("Download feedback CSV", data=f.read(), file_name="workzo_beta_feedback.csv", mime="text/csv", key="founder_download_feedback_v62")
+    with d3:
+        if os.path.exists(ISSUES_FILE):
+            with open(ISSUES_FILE, "rb") as f:
+                st.download_button("Download issue reports CSV", data=f.read(), file_name="workzo_beta_issues.csv", mime="text/csv", key="founder_download_issues_v62")
