@@ -19299,3 +19299,987 @@ def _wz77_render_brand_top():
 
 def _wz81_render_brand_top():
     return
+
+
+# =========================================================
+# WorkZo v83 - Clean CV Documents + Job Assist screens
+# Scope: UX-only wrapper for CV/document and job-assist pages.
+# Keeps existing feature logic available, but presents one clear action per screen.
+# =========================================================
+
+def _wz83_clean_css():
+    try:
+        st.markdown("""
+        <style id="workzo-v83-clean-feature-css">
+        .wz83-page-hero{
+            margin:.15rem 0 1rem 0; padding:1rem 1.1rem; border-radius:22px;
+            border:1px solid rgba(34,211,238,.30);
+            background:linear-gradient(135deg,rgba(8,47,73,.78),rgba(15,23,42,.94));
+            box-shadow:0 14px 34px rgba(2,6,23,.22);
+        }
+        .wz83-kicker{color:#7dd3fc;font-weight:900;letter-spacing:.08em;text-transform:uppercase;font-size:.74rem;margin-bottom:.15rem;}
+        .wz83-title{color:#fff;font-weight:950;font-size:1.55rem;line-height:1.08;margin:0 0 .3rem 0;}
+        .wz83-sub{color:#cbd5e1;font-size:.96rem;line-height:1.45;margin:0;}
+        .wz83-card{border-radius:18px;border:1px solid rgba(148,163,184,.22);background:rgba(15,23,42,.50);padding:.9rem;margin:.65rem 0;}
+        .wz83-card-title{font-weight:950;color:#f8fafc;margin-bottom:.25rem;}
+        .wz83-muted{color:#cbd5e1;font-size:.9rem;line-height:1.45;}
+        .wz83-next{border-radius:16px;border:1px solid rgba(34,197,94,.28);background:rgba(20,83,45,.18);padding:.75rem .85rem;margin:.8rem 0;color:#dcfce7;}
+        .wz83-warning{border-radius:16px;border:1px solid rgba(251,191,36,.25);background:rgba(113,63,18,.18);padding:.75rem .85rem;margin:.8rem 0;color:#fef3c7;}
+        .wz83-list{margin:.25rem 0 .15rem 1.15rem;color:#e5e7eb;line-height:1.55;}
+        .wz83-list li{margin:.12rem 0;}
+        .wz83-small-tag{display:inline-block;margin:.15rem .2rem .15rem 0;padding:.18rem .48rem;border-radius:999px;border:1px solid rgba(125,211,252,.28);background:rgba(14,165,233,.12);color:#e0f2fe;font-size:.78rem;font-weight:800;}
+        @media(max-width:700px){
+            .wz83-page-hero{padding:.85rem;border-radius:18px;margin-top:.2rem;}
+            .wz83-title{font-size:1.2rem;}
+            .wz83-sub,.wz83-muted{font-size:.88rem;}
+            .stButton button,.stDownloadButton button{min-height:48px!important;border-radius:14px!important;font-weight:850!important;}
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz83_label(text: str) -> str:
+    try:
+        return ui_label(text)
+    except Exception:
+        return text
+
+
+def _wz83_go(page_key: str):
+    try:
+        st.session_state["page"] = page_key
+        st.session_state["nav_page"] = page_key
+        try:
+            update_url_page(page_key)
+        except Exception:
+            try:
+                st.query_params["page"] = page_key
+            except Exception:
+                pass
+        try:
+            request_scroll_to_top()
+        except Exception:
+            pass
+        st.rerun()
+    except Exception:
+        pass
+
+
+def _wz83_cv_text() -> str:
+    return str(
+        st.session_state.get("improved_cv_text_v92")
+        or st.session_state.get("tailored_cv_text")
+        or st.session_state.get("generated_country_cv_text")
+        or st.session_state.get("clean_structured_cv_text")
+        or st.session_state.get("cv_text")
+        or ""
+    )
+
+
+def _wz83_extract_keywords(text: str, limit: int = 3):
+    try:
+        import re
+        cv_low = str(st.session_state.get("cv_text") or st.session_state.get("clean_structured_cv_text") or "").lower()
+        words = re.findall(r"[A-Za-z][A-Za-z+#.\-]{2,}", str(text or "").lower())
+        stop = set("the and with for you are this that from will have has job role team work experience skills our your in on of to a an is as be or by at it we they candidate looking required preferred ability good strong excellent using use plus nice responsibilities requirements about into can must should".split())
+        seen, missing = set(), []
+        for word in words:
+            if word in stop or word in seen:
+                continue
+            seen.add(word)
+            if word not in cv_low:
+                missing.append(word)
+            if len(missing) >= limit:
+                break
+        return missing[:limit]
+    except Exception:
+        return []
+
+
+def _wz83_top_three_cv_improvements(jd: str):
+    missing = _wz83_extract_keywords(jd, 3)
+    items = []
+    if missing:
+        items.append("Add truthful missing keywords: " + ", ".join(missing[:3]))
+    items.append("Make your summary match the target role in one clear line")
+    items.append("Add measurable results to your strongest experience bullets")
+    items.append("Keep skills grouped and easy for ATS/recruiters to scan")
+    # Preserve order, max 3
+    cleaned = []
+    for item in items:
+        if item and item not in cleaned:
+            cleaned.append(item)
+    return cleaned[:3]
+
+
+def _wz83_downloads(text: str, filename_base: str = "workzo_cv"):
+    try:
+        if callable(globals().get("_wz52_render_downloads")):
+            _wz52_render_downloads("CV", text, filename_base)
+            return
+    except Exception:
+        pass
+    st.download_button(
+        "⬇️ Download CV",
+        data=str(text or ""),
+        file_name=f"{filename_base}.txt",
+        mime="text/plain",
+        use_container_width=True,
+        key=f"wz83_{filename_base}_txt",
+    )
+
+
+def _wz83_render_clean_cv_documents_page():
+    """Clean CV/Documents screen: one purpose, one main action, existing tools hidden safely."""
+    _wz83_clean_css()
+    st.markdown("""
+    <div class="wz83-page-hero">
+      <div class="wz83-kicker">CV STEP</div>
+      <div class="wz83-title">Match your CV to this job</div>
+      <p class="wz83-sub">Paste the job description. WorkZo will show the top fixes first, then let you download or open the full editor.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    cv_text = _wz83_cv_text()
+    if not cv_text.strip():
+        st.markdown("<div class='wz83-warning'>Add or upload your CV first. Then come back here to tailor it for a job.</div>", unsafe_allow_html=True)
+        if st.button("Add CV", type="primary", use_container_width=True, key="wz83_cv_add_cv"):
+            st.session_state["onboarding_complete"] = False
+            _wz83_go("onboarding")
+        return
+
+    default_jd = st.session_state.get("improve_cv_for_job_desc") or st.session_state.get("last_understand_job_description") or st.session_state.get("current_job_description") or ""
+    jd = st.text_area(
+        "Job description",
+        value=default_jd,
+        height=190,
+        placeholder="Paste the job description here...",
+        key="wz83_clean_cv_jd",
+    )
+
+    if st.button("Improve CV", type="primary", use_container_width=True, key="wz83_clean_improve_cv"):
+        if not str(jd or "").strip():
+            st.warning("Paste a job description first.")
+        else:
+            st.session_state["improve_cv_for_job_desc"] = jd
+            st.session_state["last_understand_job_description"] = jd
+            st.session_state["current_job_description"] = jd
+            st.session_state["document_tools_mode"] = "Improve / Update CV"
+            st.session_state["cv_documents_mode"] = "improve_cv"
+            st.session_state["cv_tailored_done"] = True
+            st.session_state["wz83_cv_result_open"] = True
+            try:
+                if callable(globals().get("track_event")):
+                    track_event("cv_improve_started", "CV Documents", {"source": "clean_cv_screen"})
+            except Exception:
+                pass
+            st.rerun()
+
+    if st.session_state.get("wz83_cv_result_open"):
+        improvements = _wz83_top_three_cv_improvements(jd)
+        st.markdown("<div class='wz83-card'><div class='wz83-card-title'>Top 3 improvements</div><ol class='wz83-list'>" + "".join(f"<li>{html.escape(x)}</li>" for x in improvements) + "</ol></div>", unsafe_allow_html=True)
+        st.markdown("<div class='wz83-next'>✅ Next: download your CV or continue to jobs.</div>", unsafe_allow_html=True)
+        _wz83_downloads(_wz83_cv_text(), "workzo_cv")
+        if st.button("Next: Find Jobs", use_container_width=True, key="wz83_cv_next_jobs"):
+            _wz83_go("job_assist")
+
+        with st.expander("Advanced editor & documents", expanded=False):
+            st.caption("Only open this if you need the full CV editor, cover letter, or extra document tools.")
+            try:
+                if callable(globals().get("show_document_tools")):
+                    # Prevent recursive call to this clean wrapper by calling saved previous if available.
+                    prev = globals().get("_wz83_previous_show_document_tools")
+                    if callable(prev):
+                        prev()
+                    else:
+                        st.info("Full document tools are not available in this build.")
+            except Exception as exc:
+                st.error(f"Full document tools could not load safely: {exc}")
+
+
+def _wz83_render_job_card(job, idx: int):
+    try:
+        title = str(job.get("title") or job.get("job_title") or "Job role")
+        company = str(job.get("company") or job.get("company_name") or "Company")
+        location = str(job.get("location") or job.get("city") or "")
+        url = str(job.get("url") or job.get("link") or job.get("job_url") or "")
+        score = job.get("score") or job.get("match_score") or job.get("fit_score") or ""
+    except Exception:
+        title, company, location, url, score = "Job role", "Company", "", "", ""
+    chips = ""
+    if score:
+        chips += f"<span class='wz83-small-tag'>{html.escape(str(score))}% match</span>"
+    if location:
+        chips += f"<span class='wz83-small-tag'>📍 {html.escape(location)}</span>"
+    st.markdown(f"""
+    <div class='wz83-card'>
+      <div class='wz83-card-title'>{idx+1}. {html.escape(title)}</div>
+      <div class='wz83-muted'>{html.escape(company)}</div>
+      <div>{chips}</div>
+    </div>
+    """, unsafe_allow_html=True)
+    if url:
+        st.link_button("Open job", url, use_container_width=True)
+
+
+def _wz83_suggest_roles(cv_text: str):
+    try:
+        if callable(globals().get("_wz51_extract_roles_from_cv")):
+            roles = _wz51_extract_roles_from_cv(cv_text) or []
+            if roles:
+                return roles[:3]
+    except Exception:
+        pass
+    target = st.session_state.get("target_role") or st.session_state.get("detected_target_role") or ""
+    if target:
+        return [target]
+    return ["Data Analyst", "Business Analyst", "IT Support Specialist"]
+
+
+def _wz83_render_clean_job_assist_page():
+    """Clean Job Assist screen: one search action and a readable result list."""
+    _wz83_clean_css()
+    st.markdown("""
+    <div class="wz83-page-hero">
+      <div class="wz83-kicker">JOB STEP</div>
+      <div class="wz83-title">Find jobs that fit your profile</div>
+      <p class="wz83-sub">Search with your target role and preferred location. Keep it focused.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    cv_text = str(st.session_state.get("cv_text") or st.session_state.get("clean_structured_cv_text") or "")
+    country = str(st.session_state.get("migration_country") or st.session_state.get("country") or "Global").strip() or "Global"
+    suggested_roles = _wz83_suggest_roles(cv_text)
+    if "wz83_job_titles" not in st.session_state:
+        st.session_state["wz83_job_titles"] = ", ".join(suggested_roles[:2])
+    if "wz83_job_location" not in st.session_state:
+        st.session_state["wz83_job_location"] = country if country != "Global" else "Remote"
+
+    role = st.text_input("Target role", key="wz83_job_titles", placeholder="Example: Data Analyst")
+    location = st.text_input("Preferred location", key="wz83_job_location", placeholder="Example: Germany, Berlin, Remote")
+
+    if st.button("Explore Jobs", type="primary", use_container_width=True, key="wz83_explore_jobs"):
+        roles = [x.strip() for x in str(role or "").replace("/", ",").replace(";", ",").split(",") if x.strip()]
+        if not roles:
+            st.warning("Add one target role first.")
+        else:
+            st.session_state["job_assist_mode_key"] = "find"
+            st.session_state["job_assist_target_titles"] = ", ".join(roles[:3])
+            st.session_state["job_assist_location_text"] = str(location or country or "").strip()
+            st.session_state["last_job_search_target_titles"] = ", ".join(roles[:3])
+            st.session_state["last_job_search_location_text"] = str(location or country or "").strip()
+            st.session_state["wz83_jobs_result_open"] = True
+            try:
+                if callable(globals().get("track_event")):
+                    track_event("job_search_started", "Job Assist", {"source": "clean_job_screen", "roles": roles[:3], "location": location})
+            except Exception:
+                pass
+            jobs = []
+            try:
+                with st.status("Finding relevant jobs...", expanded=False) as status:
+                    if callable(globals().get("fetch_live_jobs_global")):
+                        jobs = fetch_live_jobs_global(country, roles, str(location or country or "").strip(), st.session_state.get("user_status", "")) or []
+                    if jobs and callable(globals().get("curate_job_matches")):
+                        jobs = curate_job_matches(jobs, cv_text, {"job_titles": roles, "search_queries": roles, "location": location}, country, st.session_state.get("user_status", ""), limit=12)
+                    status.update(label="Jobs ready", state="complete", expanded=False)
+            except Exception as exc:
+                st.warning(f"Live search had an issue: {exc}")
+            st.session_state["latest_curated_jobs"] = jobs
+            st.session_state["workzo_progress_job_matched"] = bool(jobs)
+            st.rerun()
+
+    jobs = st.session_state.get("latest_curated_jobs") or []
+    if st.session_state.get("wz83_jobs_result_open"):
+        if jobs:
+            st.markdown("<div class='wz83-card'><div class='wz83-card-title'>Best matches</div><div class='wz83-muted'>Showing the most relevant results first.</div></div>", unsafe_allow_html=True)
+            for i, job in enumerate(jobs[:6]):
+                _wz83_render_job_card(job, i)
+            st.markdown("<div class='wz83-next'>✅ Next: open one job, then practice the interview for that role.</div>", unsafe_allow_html=True)
+            if st.button("Next: Practice Interview", use_container_width=True, key="wz83_jobs_next_interview"):
+                _wz83_go("real_interview")
+        else:
+            st.markdown("<div class='wz83-warning'>No jobs found yet. Try a broader title or location like Remote.</div>", unsafe_allow_html=True)
+
+    with st.expander("Advanced Job Assist", expanded=False):
+        st.caption("Use this only if you want Understand Job or Prepare for Job.")
+        try:
+            if callable(globals().get("_wz51_render_job_assist_page")):
+                _wz51_render_job_assist_page()
+            elif callable(globals().get("_wz28_job_assist_page")):
+                _wz28_job_assist_page()
+            else:
+                st.info("Advanced Job Assist is not available in this build.")
+        except Exception as exc:
+            st.error(f"Advanced Job Assist could not load safely: {exc}")
+
+
+# Save old document tool before overriding, so advanced expander can still use it.
+try:
+    if callable(globals().get("show_document_tools")) and globals().get("show_document_tools").__name__ != "_wz83_render_clean_cv_documents_page":
+        _wz83_previous_show_document_tools = globals().get("show_document_tools")
+except Exception:
+    pass
+
+# Override the public document-tools function with the clean screen.
+show_document_tools = _wz83_render_clean_cv_documents_page
+
+# Final v83 dashboard router: same dashboard, but clean CV/Documents and Job Assist pages.
+def show_dashboard():
+    try: _wz57_apply_page_query_param()
+    except Exception: pass
+    try: _wz61_apply_global_top_compact_css()
+    except Exception: pass
+    try: _wz72_apply_mobile_css()
+    except Exception: pass
+    try: _wz73_apply_final_css()
+    except Exception: pass
+    try: _wz75_apply_compact_top_css()
+    except Exception: pass
+
+    page_key = str(st.session_state.get("nav_page", st.session_state.get("page", "dashboard")) or "dashboard")
+    page_key = {"home":"dashboard", "":"dashboard", "bot":"workobot", "interview":"real_interview", "interview_practice":"real_interview", "jobs":"job_assist", "improve_cv":"cv_documents", "documents":"cv_documents"}.get(page_key, page_key)
+    if page_key not in {"dashboard", "cv_documents", "job_assist", "real_interview", "workobot", "founder_dashboard", "onboarding"}:
+        page_key = "dashboard"
+    st.session_state["page"] = page_key
+    st.session_state["nav_page"] = page_key
+
+    try:
+        if page_key != "workobot":
+            _wz71_floating_workobot()
+    except Exception:
+        pass
+
+    if page_key == "dashboard":
+        try: _wz72_render_brand_top()
+        except Exception: pass
+        try: _wz59_render_mobile_toolbox_native()
+        except Exception: pass
+        try: _wz35_sidebar("dashboard")
+        except Exception: pass
+        try: _wz75_render_workobot_panel()
+        except Exception: pass
+        _wz70_render_guided_dashboard_top()
+        return
+
+    if page_key == "workobot":
+        try: _wz72_render_brand_top(); _wz59_render_mobile_toolbox_native(); _wz35_sidebar("workobot")
+        except Exception: pass
+        st.session_state["wz75_workobot_open"] = True
+        _wz75_render_workobot_panel()
+        return
+
+    try: _wz72_render_brand_top(); _wz59_render_mobile_toolbox_native(); _wz35_sidebar(page_key)
+    except Exception: pass
+    try: _wz75_render_workobot_panel()
+    except Exception: pass
+
+    if page_key == "cv_documents":
+        try: _wz83_render_clean_cv_documents_page()
+        except Exception as exc: st.error(f"CV & Documents could not load safely: {exc}")
+        return
+    if page_key == "job_assist":
+        try: _wz83_render_clean_job_assist_page()
+        except Exception as exc: st.error(f"Job Assist could not load safely: {exc}")
+        return
+    if page_key == "real_interview":
+        try:
+            if callable(globals().get("render_real_interview_simulation")):
+                render_real_interview_simulation()
+            elif callable(globals().get("show_real_interview")):
+                show_real_interview()
+            else:
+                st.error("Real Interview is not available. Please check 09_interview_assistant.py is loaded.")
+        except Exception as exc:
+            st.error(f"Real Interview could not load safely: {exc}")
+        return
+    if page_key == "founder_dashboard":
+        try:
+            if st.session_state.get("founder_unlocked") and callable(globals().get("render_founder_dashboard")):
+                render_founder_dashboard()
+            else:
+                st.warning("Founder access is locked.")
+        except Exception as exc:
+            st.error(f"Founder dashboard could not load safely: {exc}")
+        return
+    if page_key == "onboarding":
+        try:
+            if callable(globals().get("show_onboarding")):
+                show_onboarding()
+            else:
+                st.info("Please restart onboarding from the landing page.")
+        except Exception as exc:
+            st.error(f"Onboarding could not load safely: {exc}")
+        return
+
+
+# =========================================================
+# WorkZo v84 - Clean guided CV screen + Jobs -> Interview connection
+# Scope: UI/flow only. Existing advanced CV, documents, and job features remain available in expanders.
+# =========================================================
+def _wz84_css():
+    try:
+        st.markdown("""
+        <style id="workzo-v84-guided-cv-jobs-css">
+        .wz84-hero {
+            margin: .55rem 0 1rem 0;
+            padding: 1.15rem 1.2rem;
+            border-radius: 22px;
+            border: 1px solid rgba(34,211,238,.28);
+            background: linear-gradient(135deg, rgba(8,47,73,.82), rgba(15,23,42,.94));
+            box-shadow: 0 16px 38px rgba(2,6,23,.20);
+        }
+        .wz84-kicker { color:#67e8f9; font-size:.72rem; font-weight:900; letter-spacing:.13em; text-transform:uppercase; margin-bottom:.35rem; }
+        .wz84-title { color:#fff; font-size:clamp(1.45rem, 4vw, 2.1rem); line-height:1.12; font-weight:950; letter-spacing:-.035em; margin:0; }
+        .wz84-sub { color:#cbd5e1; font-size:.95rem; line-height:1.45; margin:.45rem 0 0 0; max-width:760px; }
+        .wz84-card {
+            border-radius: 18px;
+            border: 1px solid rgba(148,163,184,.28);
+            background: rgba(15,23,42,.06);
+            padding: .9rem 1rem;
+            margin: .55rem 0;
+        }
+        .wz84-card-strong {
+            border-radius: 18px;
+            border: 1px solid rgba(34,211,238,.32);
+            background: linear-gradient(135deg, rgba(14,165,233,.10), rgba(20,184,166,.06));
+            padding: .95rem 1rem;
+            margin: .65rem 0;
+        }
+        .wz84-card-title { font-weight: 900; font-size: 1rem; margin-bottom: .25rem; }
+        .wz84-muted { color:#64748b; font-size:.9rem; line-height:1.35; }
+        .wz84-next { margin:.8rem 0; padding:.8rem .9rem; border-radius:16px; background:rgba(16,185,129,.10); border:1px solid rgba(16,185,129,.25); font-weight:800; }
+        .wz84-warning { margin:.8rem 0; padding:.8rem .9rem; border-radius:16px; background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.28); font-weight:800; }
+        .wz84-list { margin:.3rem 0 0 1.1rem; padding:0; }
+        .wz84-list li { margin:.25rem 0; line-height:1.32; }
+        .wz84-tag { display:inline-block; margin:.18rem .22rem .18rem 0; padding:.22rem .55rem; border-radius:999px; background:rgba(14,165,233,.12); border:1px solid rgba(14,165,233,.20); font-size:.82rem; font-weight:800; }
+        .wz84-progress { display:flex; gap:.45rem; flex-wrap:wrap; margin:.65rem 0 .2rem 0; }
+        .wz84-step { padding:.42rem .65rem; border-radius:999px; background:rgba(148,163,184,.12); border:1px solid rgba(148,163,184,.22); font-size:.82rem; font-weight:800; }
+        .wz84-step-done { background:rgba(16,185,129,.12); border-color:rgba(16,185,129,.30); }
+        .wz84-step-now { background:rgba(34,211,238,.14); border-color:rgba(34,211,238,.34); }
+        div[data-testid="stButton"] button { min-height: 46px; border-radius: 14px !important; font-weight: 850 !important; }
+        @media (max-width: 760px) {
+            .wz84-hero { padding: 1rem .9rem; border-radius: 18px; }
+            .wz84-card, .wz84-card-strong { padding: .8rem .85rem; border-radius: 16px; }
+            .wz84-sub, .wz84-muted { font-size: .88rem; }
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz84_html_escape(value: str) -> str:
+    try:
+        return html.escape(str(value or ""))
+    except Exception:
+        return str(value or "")
+
+
+def _wz84_cv_readiness(cv_text: str, jd: str = "") -> int:
+    """Small deterministic readiness signal. It avoids extra AI calls and never invents."""
+    try:
+        text = str(cv_text or "")
+        score = 45
+        low = text.lower()
+        if len(text) > 900: score += 10
+        if any(x in low for x in ["python", "sql", "excel", "tableau", "power bi", "support", "analysis", "project"]): score += 10
+        if any(ch.isdigit() for ch in text): score += 8
+        if "•" in text or "-" in text: score += 6
+        if str(jd or "").strip(): score += 6
+        missing = _wz83_extract_keywords(jd, 3) if str(jd or "").strip() else []
+        score -= min(12, len(missing) * 4)
+        return max(35, min(92, int(score)))
+    except Exception:
+        return 68
+
+
+def _wz84_role_hint():
+    try:
+        roles = _wz83_suggest_roles(str(st.session_state.get("cv_text") or st.session_state.get("clean_structured_cv_text") or ""))
+        return roles[0] if roles else (st.session_state.get("target_role") or "your target role")
+    except Exception:
+        return st.session_state.get("target_role") or "your target role"
+
+
+def _wz84_progress(cv_tailored=False, jobs_found=False, interview_ready=False):
+    cv_ready = bool(str(st.session_state.get("cv_text") or st.session_state.get("clean_structured_cv_text") or "").strip())
+    cv_tailored = bool(cv_tailored or st.session_state.get("cv_tailored_done") or st.session_state.get("wz83_cv_result_open"))
+    jobs_found = bool(jobs_found or st.session_state.get("workzo_progress_job_matched") or st.session_state.get("latest_curated_jobs"))
+    interview_ready = bool(interview_ready or st.session_state.get("interview_started") or st.session_state.get("interview_history"))
+    steps = [
+        ("CV Uploaded", cv_ready, not cv_tailored),
+        ("CV Tailored", cv_tailored, cv_ready and not jobs_found),
+        ("Jobs Found", jobs_found, cv_tailored and not interview_ready),
+        ("Interview Ready", interview_ready, jobs_found),
+    ]
+    html_steps = []
+    for label, done, now in steps:
+        cls = "wz84-step-done" if done else ("wz84-step-now" if now else "")
+        prefix = "✅" if done else ("🔄" if now else "⬜")
+        html_steps.append(f"<span class='wz84-step {cls}'>{prefix} {_wz84_html_escape(label)}</span>")
+    st.markdown("<div class='wz84-progress'>" + "".join(html_steps) + "</div>", unsafe_allow_html=True)
+
+
+def _wz84_render_cv_documents_page():
+    """Dashboard-style CV screen: one clear action, short result, next step."""
+    _wz83_clean_css()
+    _wz84_css()
+    cv_text = _wz83_cv_text()
+    role = _wz84_role_hint()
+    default_jd = st.session_state.get("improve_cv_for_job_desc") or st.session_state.get("last_understand_job_description") or st.session_state.get("current_job_description") or ""
+
+    st.markdown(f"""
+    <div class="wz84-hero">
+      <div class="wz84-kicker">CV STEP</div>
+      <div class="wz84-title">Match your CV to this job</div>
+      <p class="wz84-sub">Paste one job description. WorkZo shows the top fixes first, then helps you continue to jobs or interview practice.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    _wz84_progress(cv_tailored=bool(st.session_state.get("cv_tailored_done") or st.session_state.get("wz83_cv_result_open")))
+
+    if not cv_text.strip():
+        st.markdown("<div class='wz84-warning'>Add your CV first. Then WorkZo can tailor it to a real job.</div>", unsafe_allow_html=True)
+        if st.button("Add CV", type="primary", use_container_width=True, key="wz84_cv_add_cv"):
+            st.session_state["onboarding_complete"] = False
+            _wz83_go("onboarding")
+        return
+
+    readiness = _wz84_cv_readiness(cv_text, default_jd)
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown(f"<div class='wz84-card-strong'><div class='wz84-card-title'>🎯 CV readiness</div><div style='font-size:1.75rem;font-weight:950;'>{readiness}%</div><div class='wz84-muted'>For { _wz84_html_escape(role) }</div></div>", unsafe_allow_html=True)
+    with c2:
+        st.markdown("<div class='wz84-card'><div class='wz84-card-title'>⚠️ Biggest gap</div><div class='wz84-muted'>Most CVs need clearer measurable results and role-specific keywords.</div></div>", unsafe_allow_html=True)
+
+    jd = st.text_area(
+        "Job description",
+        value=default_jd,
+        height=180,
+        placeholder="Paste the job description here...",
+        key="wz84_clean_cv_jd",
+    )
+
+    if st.button("Improve CV", type="primary", use_container_width=True, key="wz84_clean_improve_cv"):
+        if not str(jd or "").strip():
+            st.warning("Paste a job description first.")
+        else:
+            st.session_state["improve_cv_for_job_desc"] = jd
+            st.session_state["last_understand_job_description"] = jd
+            st.session_state["current_job_description"] = jd
+            st.session_state["interview_jd_text_v117"] = jd
+            st.session_state["document_tools_mode"] = "Improve / Update CV"
+            st.session_state["cv_documents_mode"] = "improve_cv"
+            st.session_state["cv_tailored_done"] = True
+            st.session_state["wz84_cv_result_open"] = True
+            st.session_state["wz83_cv_result_open"] = True
+            try:
+                if callable(globals().get("track_event")):
+                    track_event("cv_improve_started", "CV Documents", {"source": "guided_cv_screen"})
+            except Exception:
+                pass
+            st.rerun()
+
+    if st.session_state.get("wz84_cv_result_open") or st.session_state.get("wz83_cv_result_open"):
+        improvements = _wz83_top_three_cv_improvements(jd)
+        one_key_fix = improvements[0] if improvements else "Make the CV more specific to the job."
+        st.markdown("<div class='wz84-card-strong'><div class='wz84-card-title'>Top 3 improvements</div><ol class='wz84-list'>" + "".join(f"<li>{_wz84_html_escape(x)}</li>" for x in improvements[:3]) + "</ol></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='wz84-next'>✅ One key fix: {_wz84_html_escape(one_key_fix)}<br>👉 Next: find jobs that match this improved CV.</div>", unsafe_allow_html=True)
+        _wz83_downloads(_wz83_cv_text(), "workzo_cv")
+        if st.button("Next: Find Jobs", type="primary", use_container_width=True, key="wz84_cv_next_jobs"):
+            _wz83_go("job_assist")
+
+    with st.expander("Advanced CV & document tools", expanded=False):
+        st.caption("Open only if you need the full CV editor, cover letter, or extra document tools.")
+        try:
+            prev = globals().get("_wz83_previous_show_document_tools")
+            if callable(prev):
+                prev()
+            else:
+                st.info("Full document tools are not available in this build.")
+        except Exception as exc:
+            st.error(f"Full document tools could not load safely: {exc}")
+
+
+def _wz84_job_text(job) -> str:
+    try:
+        if isinstance(job, dict):
+            parts = [
+                str(job.get("title") or job.get("job_title") or ""),
+                str(job.get("company") or job.get("company_name") or ""),
+                str(job.get("location") or job.get("city") or ""),
+                str(job.get("description") or job.get("snippet") or job.get("summary") or ""),
+            ]
+            return "\n".join([p for p in parts if p.strip()])
+    except Exception:
+        pass
+    return str(job or "")
+
+
+def _wz84_render_connected_job_card(job, idx: int):
+    try:
+        title = str(job.get("title") or job.get("job_title") or "Job role")
+        company = str(job.get("company") or job.get("company_name") or "Company")
+        location = str(job.get("location") or job.get("city") or "")
+        url = str(job.get("url") or job.get("link") or job.get("job_url") or "")
+        score = job.get("score") or job.get("match_score") or job.get("fit_score") or ""
+    except Exception:
+        title, company, location, url, score = "Job role", "Company", "", "", ""
+    chips = ""
+    if score:
+        chips += f"<span class='wz84-tag'>{_wz84_html_escape(str(score))}% match</span>"
+    if location:
+        chips += f"<span class='wz84-tag'>📍 {_wz84_html_escape(location)}</span>"
+    st.markdown(f"""
+    <div class='wz84-card'>
+      <div class='wz84-card-title'>{idx+1}. {_wz84_html_escape(title)}</div>
+      <div class='wz84-muted'>{_wz84_html_escape(company)}</div>
+      <div>{chips}</div>
+    </div>
+    """, unsafe_allow_html=True)
+    c1, c2 = st.columns([1, 1])
+    with c1:
+        if url:
+            st.link_button("Open job", url, use_container_width=True)
+        else:
+            st.caption("Job link not available")
+    with c2:
+        if st.button("Practice Interview", use_container_width=True, key=f"wz84_practice_job_{idx}"):
+            job_context = _wz84_job_text(job)
+            st.session_state["selected_interview_job"] = {"title": title, "company": company, "location": location, "url": url}
+            st.session_state["current_job_description"] = job_context
+            st.session_state["last_understand_job_description"] = job_context
+            st.session_state["interview_jd_text_v117"] = job_context
+            st.session_state["job_desc_v42"] = job_context
+            st.session_state["interview_started_from_job"] = True
+            try:
+                if callable(globals().get("track_event")):
+                    track_event("job_to_interview_clicked", "Job Assist", {"title": title, "company": company})
+            except Exception:
+                pass
+            _wz83_go("real_interview")
+
+
+def _wz84_render_job_assist_page():
+    """Clean Job Assist with direct Jobs -> Interview connection."""
+    _wz83_clean_css()
+    _wz84_css()
+    cv_text = str(st.session_state.get("cv_text") or st.session_state.get("clean_structured_cv_text") or "")
+    country = str(st.session_state.get("migration_country") or st.session_state.get("country") or "Global").strip() or "Global"
+    suggested_roles = _wz83_suggest_roles(cv_text)
+    role_hint = suggested_roles[0] if suggested_roles else "your profile"
+
+    st.markdown(f"""
+    <div class="wz84-hero">
+      <div class="wz84-kicker">JOB STEP</div>
+      <div class="wz84-title">Find jobs that fit your profile</div>
+      <p class="wz84-sub">Search focused roles, open relevant jobs, then practice the interview for that exact role.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    _wz84_progress(cv_tailored=bool(st.session_state.get("cv_tailored_done")), jobs_found=bool(st.session_state.get("latest_curated_jobs")))
+
+    fit_score = _wz84_cv_readiness(cv_text, st.session_state.get("last_understand_job_description") or "")
+    st.markdown(f"<div class='wz84-card-strong'><div class='wz84-card-title'>🎯 Your fit</div><div class='wz84-muted'>You look like a <b>{fit_score}%</b> fit for roles like <b>{_wz84_html_escape(role_hint)}</b> in {_wz84_html_escape(country)}.</div></div>", unsafe_allow_html=True)
+
+    if "wz84_job_titles" not in st.session_state:
+        st.session_state["wz84_job_titles"] = ", ".join(suggested_roles[:2]) if suggested_roles else ""
+    if "wz84_job_location" not in st.session_state:
+        st.session_state["wz84_job_location"] = country if country != "Global" else "Remote"
+
+    role = st.text_input("Target role", key="wz84_job_titles", placeholder="Example: Data Analyst")
+    location = st.text_input("Preferred location", key="wz84_job_location", placeholder="Example: Germany, Berlin, Remote")
+
+    if st.button("Explore Jobs", type="primary", use_container_width=True, key="wz84_explore_jobs"):
+        roles = [x.strip() for x in str(role or "").replace("/", ",").replace(";", ",").split(",") if x.strip()]
+        if not roles:
+            st.warning("Add one target role first.")
+        else:
+            st.session_state["job_assist_mode_key"] = "find"
+            st.session_state["job_assist_target_titles"] = ", ".join(roles[:3])
+            st.session_state["job_assist_location_text"] = str(location or country or "").strip()
+            st.session_state["last_job_search_target_titles"] = ", ".join(roles[:3])
+            st.session_state["last_job_search_location_text"] = str(location or country or "").strip()
+            st.session_state["wz84_jobs_result_open"] = True
+            st.session_state["wz83_jobs_result_open"] = True
+            try:
+                if callable(globals().get("track_event")):
+                    track_event("job_search_started", "Job Assist", {"source": "guided_job_screen", "roles": roles[:3], "location": location})
+            except Exception:
+                pass
+            jobs = []
+            try:
+                with st.status("Finding relevant jobs...", expanded=False) as status:
+                    if callable(globals().get("fetch_live_jobs_global")):
+                        jobs = fetch_live_jobs_global(country, roles, str(location or country or "").strip(), st.session_state.get("user_status", "")) or []
+                    if jobs and callable(globals().get("curate_job_matches")):
+                        jobs = curate_job_matches(jobs, cv_text, {"job_titles": roles, "search_queries": roles, "location": location}, country, st.session_state.get("user_status", ""), limit=12)
+                    status.update(label="Jobs ready", state="complete", expanded=False)
+            except Exception as exc:
+                st.warning(f"Live search had an issue: {exc}")
+            st.session_state["latest_curated_jobs"] = jobs
+            st.session_state["workzo_progress_job_matched"] = bool(jobs)
+            st.rerun()
+
+    jobs = st.session_state.get("latest_curated_jobs") or []
+    if st.session_state.get("wz84_jobs_result_open") or st.session_state.get("wz83_jobs_result_open"):
+        if jobs:
+            st.markdown("<div class='wz84-card'><div class='wz84-card-title'>Best matches</div><div class='wz84-muted'>Open one job or practice the interview for that role.</div></div>", unsafe_allow_html=True)
+            for i, job in enumerate(jobs[:6]):
+                _wz84_render_connected_job_card(job, i)
+            st.markdown("<div class='wz84-next'>👉 Next: choose one job and practice the interview with that job context.</div>", unsafe_allow_html=True)
+        else:
+            st.markdown("<div class='wz84-warning'>No jobs found yet. Try a broader title or location like Remote.</div>", unsafe_allow_html=True)
+
+    with st.expander("Advanced Job Assist", expanded=False):
+        st.caption("Use this only if you want Understand Job or Prepare for Job.")
+        try:
+            if callable(globals().get("_wz51_render_job_assist_page")):
+                _wz51_render_job_assist_page()
+            elif callable(globals().get("_wz28_job_assist_page")):
+                _wz28_job_assist_page()
+            else:
+                st.info("Advanced Job Assist is not available in this build.")
+        except Exception as exc:
+            st.error(f"Advanced Job Assist could not load safely: {exc}")
+
+
+# Re-apply public overrides after all previous dashboard versions.
+show_document_tools = _wz84_render_cv_documents_page
+
+# Final v84 dashboard router: guided CV, clean jobs, and Jobs -> Interview connection.
+def show_dashboard():
+    try: _wz57_apply_page_query_param()
+    except Exception: pass
+    try: _wz61_apply_global_top_compact_css()
+    except Exception: pass
+    try: _wz72_apply_mobile_css()
+    except Exception: pass
+    try: _wz73_apply_final_css()
+    except Exception: pass
+    try: _wz75_apply_compact_top_css()
+    except Exception: pass
+
+    page_key = str(st.session_state.get("nav_page", st.session_state.get("page", "dashboard")) or "dashboard")
+    page_key = {"home":"dashboard", "":"dashboard", "bot":"workobot", "interview":"real_interview", "interview_practice":"real_interview", "jobs":"job_assist", "improve_cv":"cv_documents", "documents":"cv_documents"}.get(page_key, page_key)
+    if page_key not in {"dashboard", "cv_documents", "job_assist", "real_interview", "workobot", "founder_dashboard", "onboarding"}:
+        page_key = "dashboard"
+    st.session_state["page"] = page_key
+    st.session_state["nav_page"] = page_key
+
+    try:
+        if page_key != "workobot":
+            _wz71_floating_workobot()
+    except Exception:
+        pass
+
+    if page_key == "dashboard":
+        try: _wz72_render_brand_top()
+        except Exception: pass
+        try: _wz59_render_mobile_toolbox_native()
+        except Exception: pass
+        try: _wz35_sidebar("dashboard")
+        except Exception: pass
+        try: _wz75_render_workobot_panel()
+        except Exception: pass
+        _wz70_render_guided_dashboard_top()
+        return
+
+    if page_key == "workobot":
+        try: _wz72_render_brand_top(); _wz59_render_mobile_toolbox_native(); _wz35_sidebar("workobot")
+        except Exception: pass
+        st.session_state["wz75_workobot_open"] = True
+        _wz75_render_workobot_panel()
+        return
+
+    try: _wz72_render_brand_top(); _wz59_render_mobile_toolbox_native(); _wz35_sidebar(page_key)
+    except Exception: pass
+    try: _wz75_render_workobot_panel()
+    except Exception: pass
+
+    if page_key == "cv_documents":
+        try: _wz84_render_cv_documents_page()
+        except Exception as exc: st.error(f"CV & Documents could not load safely: {exc}")
+        return
+    if page_key == "job_assist":
+        try: _wz84_render_job_assist_page()
+        except Exception as exc: st.error(f"Job Assist could not load safely: {exc}")
+        return
+    if page_key == "real_interview":
+        try:
+            if callable(globals().get("render_real_interview_simulation")):
+                render_real_interview_simulation()
+            elif callable(globals().get("show_real_interview")):
+                show_real_interview()
+            elif callable(globals().get("show_real_interview_stimulator")):
+                show_real_interview_stimulator()
+            else:
+                st.error("Real Interview is not available. Please check 09_interview_assistant.py is loaded.")
+        except Exception as exc:
+            st.error(f"Real Interview could not load safely: {exc}")
+        return
+    if page_key == "founder_dashboard":
+        try:
+            if st.session_state.get("founder_unlocked") and callable(globals().get("render_founder_dashboard")):
+                render_founder_dashboard()
+            else:
+                st.warning("Founder access is locked.")
+        except Exception as exc:
+            st.error(f"Founder dashboard could not load safely: {exc}")
+        return
+    if page_key == "onboarding":
+        try:
+            if callable(globals().get("show_onboarding")):
+                show_onboarding()
+            else:
+                st.info("Please restart onboarding from the landing page.")
+        except Exception as exc:
+            st.error(f"Onboarding could not load safely: {exc}")
+        return
+
+
+# =========================================================
+# WorkZo v85 - Shared connection layer: CV ↔ Jobs ↔ Interview
+# Keeps features connected without changing existing core logic.
+# =========================================================
+def _wz85_init_connection_state():
+    """Create shared journey keys used by CV, Job Assist, and Interview."""
+    try:
+        ss = st.session_state
+        ss.setdefault("journey_stage", "cv")
+        ss.setdefault("selected_job", ss.get("selected_interview_job") or {})
+        ss.setdefault("selected_job_context", ss.get("current_job_description") or ss.get("interview_jd_text_v117") or "")
+        ss.setdefault("workzo_interview_gaps", [])
+        ss.setdefault("workzo_interview_next_action", "")
+    except Exception:
+        pass
+
+
+def _wz85_sync_selected_job(job=None, title="", company="", location="", url=""):
+    """Store one selected job in all legacy keys so Interview and CV can reuse it."""
+    try:
+        job = job or {}
+        selected = {
+            "title": title or job.get("title") or job.get("job_title") or job.get("position") or "Selected role",
+            "company": company or job.get("company") or job.get("employer") or job.get("company_name") or "",
+            "location": location or job.get("location") or job.get("city") or "",
+            "url": url or job.get("url") or job.get("link") or job.get("job_url") or "",
+            "raw": job,
+        }
+        job_context = _wz84_job_text(job) if callable(globals().get("_wz84_job_text")) else str(job)
+        st.session_state["selected_job"] = selected
+        st.session_state["selected_interview_job"] = selected
+        st.session_state["selected_job_context"] = job_context
+        st.session_state["current_job_description"] = job_context
+        st.session_state["last_understand_job_description"] = job_context
+        st.session_state["last_prepare_job_description"] = job_context
+        st.session_state["interview_jd_text_v117"] = job_context
+        st.session_state["real_interview_jd_saved"] = job_context
+        st.session_state["job_desc_v42"] = job_context
+        st.session_state["wz150_jd"] = job_context
+        st.session_state["wz150_role"] = selected.get("title", "")
+        st.session_state["journey_stage"] = "interview"
+        st.session_state["workzo_progress_job_selected"] = True
+        st.session_state["interview_started_from_job"] = True
+    except Exception:
+        pass
+
+
+def _wz85_render_connection_bar(active="dashboard"):
+    """Small journey strip shown on feature screens. No extra CTA clutter."""
+    try:
+        cv_done = bool(st.session_state.get("cv_text") or st.session_state.get("clean_structured_cv_text"))
+        tailored = bool(st.session_state.get("cv_tailored_done") or st.session_state.get("improved_cv_text_v92") or st.session_state.get("latest_tailored_cv"))
+        job_selected = bool(st.session_state.get("selected_job") or st.session_state.get("selected_interview_job"))
+        interview_done = bool(st.session_state.get("workzo_interview_summary") or st.session_state.get("wz150_finished"))
+        def mark(done, label):
+            return ("✅ " if done else "⬜ ") + label
+        st.markdown(f"""
+        <div style='margin:.55rem 0 .85rem 0;padding:.75rem .9rem;border-radius:16px;border:1px solid rgba(34,211,238,.22);background:rgba(15,23,42,.55);color:#cbd5e1;font-size:.88rem;'>
+          {mark(cv_done, 'CV')} &nbsp; → &nbsp; {mark(tailored, 'CV tailored')} &nbsp; → &nbsp; {mark(job_selected, 'Job selected')} &nbsp; → &nbsp; {mark(interview_done, 'Interview ready')}
+        </div>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz85_render_interview_to_cv_hint():
+    """Show interview gaps inside CV screen so users know what to fix next."""
+    try:
+        gaps = st.session_state.get("workzo_interview_gaps") or []
+        next_action = st.session_state.get("workzo_interview_next_action") or ""
+        outcome = st.session_state.get("workzo_interview_outcome") or ""
+        if not gaps and not next_action and not outcome:
+            return
+        st.markdown("""
+        <div style='margin:.7rem 0;padding:.85rem 1rem;border-radius:18px;border:1px solid rgba(251,191,36,.32);background:rgba(120,53,15,.24);'>
+          <div style='font-weight:900;color:#fde68a;'>🎤 Based on your interview</div>
+        </div>
+        """, unsafe_allow_html=True)
+        if outcome:
+            st.caption(f"Likely outcome: {outcome}")
+        if gaps:
+            st.markdown("**Top gaps to fix in your CV/answers:**")
+            for g in gaps[:3]:
+                st.write(f"• {g}")
+        if next_action:
+            st.info(f"Next: {next_action}")
+    except Exception:
+        pass
+
+
+# Wrap guided CV screen to include the Interview → CV feedback loop.
+try:
+    _wz85_old_cv_documents_page = _wz84_render_cv_documents_page
+    def _wz84_render_cv_documents_page():
+        _wz85_init_connection_state()
+        _wz85_render_connection_bar("cv_documents")
+        _wz85_render_interview_to_cv_hint()
+        return _wz85_old_cv_documents_page()
+except Exception:
+    pass
+
+
+# Override job card click so every selected job is available to Interview.
+def _wz84_render_connected_job_card(job, idx: int):
+    try:
+        title = job.get("title") or job.get("job_title") or job.get("position") or "Relevant role"
+        company = job.get("company") or job.get("employer") or job.get("company_name") or "Company"
+        location = job.get("location") or job.get("city") or ""
+        url = job.get("url") or job.get("link") or job.get("job_url") or ""
+    except Exception:
+        title, company, location, url = "Relevant role", "Company", "", ""
+    st.markdown(f"""
+    <div class='wz84-job'>
+      <b>{_wz84_html_escape(title)}</b><br>
+      <span>{_wz84_html_escape(company)}{(' · ' + _wz84_html_escape(location)) if location else ''}</span>
+    </div>
+    """, unsafe_allow_html=True)
+    c1, c2 = st.columns([1, 1])
+    with c1:
+        if url:
+            st.link_button("Open job", url, use_container_width=True)
+        else:
+            st.caption("Job link not available")
+    with c2:
+        if st.button("Practice Interview", use_container_width=True, key=f"wz85_practice_job_{idx}"):
+            _wz85_sync_selected_job(job, title, company, location, url)
+            try:
+                if callable(globals().get("track_event")):
+                    track_event("job_to_interview_clicked", "Job Assist", {"title": title, "company": company, "connected": True})
+            except Exception:
+                pass
+            _wz83_go("real_interview")
+
+
+# Wrap Job Assist to mark the journey stage and render connection state.
+try:
+    _wz85_old_job_assist_page = _wz84_render_job_assist_page
+    def _wz84_render_job_assist_page():
+        _wz85_init_connection_state()
+        st.session_state["journey_stage"] = "jobs"
+        _wz85_render_connection_bar("job_assist")
+        return _wz85_old_job_assist_page()
+except Exception:
+    pass
+
