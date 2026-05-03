@@ -812,25 +812,54 @@ def _workzo_run_router_if_available() -> None:
         except Exception:
             _home_param = ""
 
+        # Permanent routing rule:
+        # landing and onboarding must always be honored, even before onboarding_complete.
+        # This prevents old/dashboard paths from hijacking the updated onboarding page.
         if url_page == "dashboard" and _home_param:
             st.session_state.onboarding_complete = True
             st.session_state.page = "dashboard"
             st.session_state.nav_page = "dashboard"
+        elif url_page == "landing":
+            st.session_state.page = "landing"
+            st.session_state.nav_page = "landing"
+        elif url_page == "onboarding":
+            st.session_state.page = "onboarding"
+            st.session_state.nav_page = "onboarding"
+            st.session_state.onboarding_complete = False
         elif url_page in valid_pages and st.session_state.get("onboarding_complete"):
             st.session_state.page = url_page
-            st.session_state.nav_page = "dashboard" if url_page in ["onboarding", "landing"] else url_page
+            st.session_state.nav_page = url_page
 
         if "page" not in st.session_state:
             st.session_state.page = "landing"
         if "onboarding_complete" not in st.session_state:
             st.session_state.onboarding_complete = False
 
+        # Consume queued navigation after defaults so button clicks cannot be overwritten.
+        try:
+            pending = st.session_state.pop("_workzo_pending_nav", None)
+            if pending in valid_pages:
+                st.session_state.page = pending
+                st.session_state.nav_page = pending
+                if pending == "onboarding":
+                    st.session_state.onboarding_complete = False
+        except Exception:
+            pass
+
         if st.session_state.page == "landing":
             show_landing_page()
-        elif not st.session_state.onboarding_complete or st.session_state.page == "onboarding":
+            return
+        if st.session_state.page == "onboarding" or not st.session_state.get("onboarding_complete", False):
             show_onboarding()
-        else:
-            show_dashboard()
+            return
+
+        try:
+            if callable(globals().get("render_workzo_header")):
+                render_workzo_header()
+        except Exception:
+            pass
+        show_dashboard()
+        return
     except Exception as exc:
         try:
             st.error(f"WorkZo router error: {exc}")

@@ -83,7 +83,7 @@ def show_document_tools():
     st.caption(txt("document_hub_caption"))
 
     show_country_builder = is_applying_abroad_status(st.session_state.get("user_status", ""))
-    tab_labels = [ui_label("Improve / Update CV")]
+    tab_labels = [ui_label("Generate Cover Letter")]
     if show_country_builder:
         tab_labels.append(ui_label("Country resume explorer"))
     tab_labels.append(ui_label("Cover Letter Generator + Language"))
@@ -91,13 +91,13 @@ def show_document_tools():
     cover_tab = tabs[2] if show_country_builder else tabs[1]
 
     # -----------------------------------------------------
-    # 1. Improve / Update CV
+    # 1. Generate Cover Letter
     # -----------------------------------------------------
     with tabs[0]:
-        st.markdown(f"### {ui_label('Improve / Update CV')}")
+        st.markdown(f"### {ui_label('Generate Cover Letter')}")
         st.caption(ui_label("Tailor your existing CV to a job description, update details, preview it in a country-aware template, then download it."))
 
-        # Improve / Update CV uses the country chosen during onboarding, not the temporary country selected in the Country-Specific Resume Builder.
+        # Generate Cover Letter uses the country chosen during onboarding, not the temporary country selected in the Country-Specific Resume Builder.
         selected_country_for_cv = onboarding_country_for_cv()
         user_status_for_template = st.session_state.get("user_status", "Not specified")
         template_options = get_cv_template_options(selected_country_for_cv, user_status_for_template)
@@ -597,13 +597,14 @@ def show_document_tools():
             with dl_col4:
                 if rendercv_pdf:
                     st.download_button(label=ui_label("Download RenderCV PDF"), data=rendercv_pdf, file_name=f"{safe_file_base}_rendercv.pdf", mime="application/pdf", key="download_country_cv_rendercv_pdf_v1")
+
     # -----------------------------------------------------
     # 3. Cover Letter Generator
     # -----------------------------------------------------
     with cover_tab:
-        company_name = st.text_input(ui_label("Company Name"), value=st.session_state.get("target_company", "") or "", key="doc_tools_company_name")
-        company_website = st.text_input(ui_label("Company website / careers page (optional)"), value=st.session_state.get("doc_tools_latest_company_website", "") or "", key="doc_tools_company_website")
-        role_name = st.text_input(txt("target_role"), value=st.session_state.get("target_job_title", "") or "", key="doc_tools_role_name")
+        company_name = st.text_input(ui_label("Company Name"), value=st.session_state.get("target_company", ""), key="doc_tools_company_name")
+        company_website = st.text_input(ui_label("Company website / careers page (optional)"), value=st.session_state.get("target_company_website", ""), key="doc_tools_company_website", help=ui_label("Optional. Helps WorkZo make the letter more company-specific without guessing."))
+        role_name = st.text_input(txt("target_role"), value=st.session_state.get("target_job_title", ""), key="doc_tools_role_name")
         cover_letter_language = st.selectbox(
             ui_label("Cover letter language"),
             language_options,
@@ -614,87 +615,77 @@ def show_document_tools():
 
         if st.button(txt("generate"), key="btn_cover_letter_v49"):
             track_button_click("Generate Cover Letter", "Document Tools")
-
-            company_name = str(company_name or "").strip()
-            company_website = str(company_website or "").strip()
-            role_name = str(role_name or "").strip()
-            job_desc_letter_combined = str(job_desc_letter or "").strip()
-            cv_text_for_letter = str(st.session_state.get("cv_text", "") or "").strip()
-
-            if not role_name or not job_desc_letter_combined:
+            job_desc_letter_combined = (job_desc_letter or "").strip()
+            if not role_name.strip() or not job_desc_letter_combined.strip():
                 st.warning(ui_label("Please enter a target role and paste the job description."))
-            elif not cv_text_for_letter:
+            elif not st.session_state.cv_text.strip():
                 st.warning(ui_label("Please upload or create a CV first."))
             else:
                 with st.spinner(ui_label("Generating cover letter...")):
                     company_context = _wz26_company_context_for_docs(company_name, company_website)
                     st.session_state["target_company"] = company_name
-                    st.session_state["doc_tools_latest_company_website"] = company_website
-
+                    st.session_state["target_company_website"] = company_website
                     prompt = f"""
 {txt('country_label')}: {st.session_state.country}
 Target role: {role_name}
-Company: {company_name or "Not specified"}
-Company website: {company_website or "Not specified"}
+Company: {company_name if company_name.strip() else "Not specified"}
+Company website: {company_website if company_website.strip() else "Not specified"}
 Company context from website/user input:
 {company_context or "Not available. Do not invent company facts."}
 
 Candidate CV:
-{cv_text_for_letter}
+{st.session_state.cv_text}
 
 Job description:
 {job_desc_letter_combined}
 
 Write a strong, personalized professional cover letter in {cover_letter_language}.
 
+Quality requirements:
+- Use the candidate's actual CV details.
+- Connect 3 to 5 specific candidate strengths to the job description.
+- Avoid generic sentences and repeated buzzwords.
+- Use company context only when available; if not available, stay based on the JD and CV.
+- Be honest: do not invent tools, achievements, metrics, language levels, or company knowledge.
+- Sound natural, confident, concise, and human.
+- Keep it suitable for the selected country and role level.
+- Write the final cover letter and email version fully in {cover_letter_language}.
+
 Return in this exact structure:
+
 1. Full Cover Letter
 2. Short Email Version
 3. 3 Customization Tips
+
+Important:
+- Do not leave any section empty.
+- Write complete content for each section.
 """
                     result = run_ai_prompt(prompt, force_language=cover_letter_language)
-
                     if render_error_or_success(result):
-                        st.session_state.latest_cover_letter = result
-                        sections = numbered_sections_to_markdown(result)
-                        full_letter = sections.get("Full Cover Letter", "").strip()
-                        short_email = sections.get("Short Email Version", "").strip()
+                        if not result.strip():
+                            st.error(ui_label("Cover letter generation returned an empty response. Please try again."))
+                        else:
+                            st.session_state.latest_cover_letter = result
+                            render_section_cards(result, default_expand=True)
 
-                        if full_letter:
-                            st.markdown(f"### {ui_label('Full Cover Letter')}")
-                            st.text_area(ui_label("Generated Cover Letter"), value=full_letter, height=320)
+                            sections = numbered_sections_to_markdown(result)
+                            full_letter = sections.get("Full Cover Letter", "").strip()
+                            short_email = sections.get("Short Email Version", "").strip()
 
-                            c1, c2 = st.columns(2)
-                            with c1:
-                                st.download_button(ui_label("Download Cover Letter as TXT"), full_letter, "cover_letter.txt", "text/plain", key="download_cover_letter_txt_v49", use_container_width=True)
-
-                            with c2:
-                                try:
-                                    from io import BytesIO
-                                    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-                                    from reportlab.lib.pagesizes import A4
-                                    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-                                    from reportlab.lib.units import mm
-                                    import html as _html
-
-                                    buffer = BytesIO()
-                                    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=22*mm, leftMargin=22*mm, topMargin=20*mm, bottomMargin=20*mm)
-                                    styles = getSampleStyleSheet()
-                                    title_style = ParagraphStyle("CoverTitle", parent=styles["Heading1"], fontSize=16, leading=20, spaceAfter=12)
-                                    body_style = ParagraphStyle("CoverBody", parent=styles["BodyText"], fontSize=10.5, leading=15, spaceAfter=8)
-
-                                    story = [Paragraph(_html.escape(ui_label("Cover Letter")), title_style), Spacer(1, 6)]
-                                    for para in [p.strip() for p in full_letter.split("\n\n") if p.strip()]:
-                                        story.append(Paragraph(_html.escape(para).replace("\n", "<br/>"), body_style))
-
-                                    doc.build(story)
-                                    st.download_button(ui_label("Download Cover Letter as PDF"), buffer.getvalue(), "cover_letter.pdf", "application/pdf", key="download_cover_letter_pdf_v49", use_container_width=True)
-                                except Exception:
-                                    st.caption(ui_label("PDF download is unavailable because the PDF library is not installed."))
-
-                        if short_email:
-                            st.markdown(f"### {ui_label('Short Email Version')}")
-                            st.text_area(ui_label("Generated Short Email"), value=short_email, height=180)
+                            if full_letter:
+                                st.markdown(f"### {ui_label('Full Cover Letter')}")
+                                st.text_area(ui_label("Generated Cover Letter"), value=full_letter, height=320)
+                                st.download_button(
+                                    ui_label("Download Cover Letter as TXT"),
+                                    data=full_letter,
+                                    file_name="cover_letter.txt",
+                                    mime="text/plain",
+                                    key="download_cover_letter_txt_v49"
+                                )
+                            if short_email:
+                                st.markdown(f"### {ui_label('Short Email Version')}")
+                                st.text_area(ui_label("Generated Short Email"), value=short_email, height=180)
 
 
 
@@ -744,3 +735,87 @@ def render_country_fit_cards(country_text: str):
 # current_job_description / last_understand_job_description.
 # The existing widgets in this file already read these values. Job Match and
 # Interview Practice now keep them updated so users do not re-enter details.
+
+
+# =========================================================
+# WorkZo v96 - Clean Generate Cover Letter document hub fallback
+# Removes duplicate Improve/Update CV from this module's document tools.
+# The dashboard CV page remains responsible for CV improve/edit/preview/download.
+# =========================================================
+def _wz96_generate_cover_letter_only_page():
+    try:
+        st.markdown("### Generate cover letter")
+        st.caption("Create a role-specific cover letter using your CV, selected country, language, and job description.")
+        cv_text = ""
+        try:
+            if callable(globals().get("get_clean_cv_source_for_tools")):
+                cv_text = get_clean_cv_source_for_tools()
+        except Exception:
+            cv_text = st.session_state.get("cv_text", "")
+        job_desc = st.text_area("Job description", value=st.session_state.get("last_prepare_job_description", ""), height=180, key="wz96_cover_letter_jd")
+        company = st.text_input("Company name (optional)", value=st.session_state.get("target_company_name", ""), key="wz96_cover_letter_company")
+        language = st.session_state.get("preferred_language", "English")
+        country = st.session_state.get("migration_country") or st.session_state.get("country", "")
+        if st.button("Generate cover letter", type="primary", use_container_width=True, key="wz96_generate_cover_letter_btn"):
+            if not str(cv_text or "").strip():
+                st.warning("Please upload or create a CV first.")
+            elif not str(job_desc or "").strip():
+                st.warning("Please paste a job description.")
+            else:
+                with st.spinner("Generating cover letter..."):
+                    try:
+                        if callable(globals().get("apply_cover_letter_prompt")):
+                            rules_prompt = apply_cover_letter_prompt(country, language, company)
+                        else:
+                            rules_prompt = f"Write a concise cover letter for {country} in {language}."
+                        if callable(globals().get("generate_cover_letter")):
+                            result = generate_cover_letter(cv_text, job_desc, company, rules_prompt)
+                        elif callable(globals().get("ask_ai")):
+                            result = ask_ai(f"{rules_prompt}\n\nCV:\n{cv_text}\n\nJob description:\n{job_desc}")
+                        else:
+                            result = "Cover letter generator is not available."
+                        st.session_state["latest_cover_letter"] = result
+                        try:
+                            if callable(globals().get("log_event")):
+                                log_event("cover_letter_generated", "Generate cover letter", {"country": country, "language": language})
+                        except Exception:
+                            pass
+                    except Exception as exc:
+                        result = f"Could not generate cover letter: {exc}"
+                    st.text_area("Cover letter", value=str(result or ""), height=320, key="wz96_cover_letter_result")
+                    st.download_button("Download cover letter", data=str(result or ""), file_name="workzo_cover_letter.txt", mime="text/plain", use_container_width=True)
+        elif st.session_state.get("latest_cover_letter"):
+            st.text_area("Cover letter", value=st.session_state.get("latest_cover_letter", ""), height=320, key="wz96_cover_letter_existing")
+            st.download_button("Download cover letter", data=str(st.session_state.get("latest_cover_letter", "")), file_name="workzo_cover_letter.txt", mime="text/plain", use_container_width=True)
+    except Exception as exc:
+        st.error(f"Generate cover letter could not load safely: {exc}")
+
+# Only override in this module. Later dashboard modules may provide a richer CV/Documents page.
+show_document_tools = _wz96_generate_cover_letter_only_page
+
+
+# =========================================================
+# WorkZo v99 final cleanup: focused Generate Cover Letter route
+# =========================================================
+try:
+    _wz99_previous_show_document_tools_07 = show_document_tools
+except Exception:
+    _wz99_previous_show_document_tools_07 = None
+
+
+def show_document_tools():
+    try:
+        st.markdown("### 📄 Generate Cover Letter")
+        st.caption("Create a cover letter using your CV, selected country, selected language, and job description.")
+        if callable(globals().get("_wz52_render_cover_letter_tool")):
+            _wz52_render_cover_letter_tool()
+            return
+        if callable(globals().get("show_cover_letter_generator")):
+            show_cover_letter_generator()
+            return
+        if callable(_wz99_previous_show_document_tools_07):
+            _wz99_previous_show_document_tools_07()
+            return
+        st.info("Cover letter generator is ready after your CV and job details are available.")
+    except Exception as exc:
+        st.warning(f"Generate cover letter is temporarily unavailable: {exc}")

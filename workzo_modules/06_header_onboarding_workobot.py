@@ -324,26 +324,129 @@ def apply_workzo_v75_global_css() -> None:
         pass
 
 
-def render_workzo_header() -> None:
-    apply_workzo_v75_global_css()
-    """Premium SaaS-style product header for WorkZo.
+def _workzo_header_progress_state():
+    """Small header progress tracker: CV → Jobs → Interview."""
+    try:
+        cv_done = bool(str(st.session_state.get("cv_text", "") or st.session_state.get("clean_structured_cv_text", "")).strip())
+        job_done = bool(str(
+            st.session_state.get("selected_job_description", "")
+            or st.session_state.get("last_understand_job_description", "")
+            or st.session_state.get("improve_cv_for_job_desc", "")
+            or st.session_state.get("interview_jd_text_v117", "")
+        ).strip())
+        interview_done = bool(
+            st.session_state.get("interview_completed")
+            or st.session_state.get("real_interview_completed")
+            or st.session_state.get("latest_interview_feedback")
+        )
+        done = sum([cv_done, job_done, interview_done])
+        progress_pct = int(round(done / 3 * 100))
+        stage = "CV"
+        if cv_done and not job_done:
+            stage = "Jobs"
+        elif cv_done and job_done and not interview_done:
+            stage = "Interview"
+        elif interview_done:
+            stage = "Ready"
+        return progress_pct, stage, cv_done, job_done, interview_done
+    except Exception:
+        return 0, "CV", False, False, False
 
-    The logo/brand acts like a Home button by linking to the dashboard URL state.
+
+def render_workzo_header() -> None:
+    """Sticky responsive SaaS header with progress and back navigation.
+
+    Kept self-contained so it does not depend on global_header.py and does not affect
+    dashboard/interview/CV/job logic.
     """
-    logo_src = image_to_data_uri(ICON_PATH) or image_to_data_uri(LOGO_PATH)
-    logo_html = f'<img src="{logo_src}" class="workzo-logo" alt="WorkZo AI logo">' if logo_src else '<div class="workzo-logo workzo-logo-fallback">WZ</div>'
-    subtitle = html.escape(txt("title"))
-    home_href = "?page=dashboard&home=1"
+    try:
+        apply_workzo_v75_global_css()
+    except Exception:
+        pass
+
+    try:
+        logo_src = image_to_data_uri(ICON_PATH) or image_to_data_uri(LOGO_PATH)
+    except Exception:
+        logo_src = None
+
+    logo_html = (
+        f'<img src="{logo_src}" class="workzo-logo" alt="WorkZo AI logo">'
+        if logo_src
+        else '<div class="workzo-logo workzo-logo-fallback">WZ</div>'
+    )
+
+    progress_pct, stage, cv_done, job_done, interview_done = _workzo_header_progress_state()
+    cv_mark = "✓" if cv_done else "1"
+    job_mark = "✓" if job_done else "2"
+    interview_mark = "✓" if interview_done else "3"
+    current_page = str(st.session_state.get("page", "landing") or "landing")
+    show_back = current_page not in {"landing", "dashboard"}
+    back_html = '<a class="workzo-back" href="javascript:history.back()">← Back</a>' if show_back else '<span></span>'
+
     st.markdown(f"""
+    <style id="workzo-sticky-saas-header-css">
+    .workzo-header {{
+        width: min(1180px, calc(100vw - 2rem)) !important;
+        margin: 0 auto 1.05rem auto !important;
+        position: sticky !important;
+        top: .55rem !important;
+        z-index: 99999 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 1rem !important;
+        padding: .82rem 1rem !important;
+        border-radius: 22px !important;
+        border: 1px solid rgba(34,211,238,.30) !important;
+        background: linear-gradient(135deg, rgba(8,47,73,.96), rgba(15,23,42,.98)) !important;
+        box-shadow: 0 18px 45px rgba(2,6,23,.35) !important;
+        backdrop-filter: blur(14px) !important;
+    }}
+    .workzo-brand {{ display:flex !important; align-items:center !important; gap:.85rem !important; min-width:0 !important; text-decoration:none !important; }}
+    .workzo-logo {{ width:54px !important; height:54px !important; min-width:54px !important; border-radius:15px !important; object-fit:cover !important; display:flex !important; align-items:center !important; justify-content:center !important; background:linear-gradient(135deg,#06b6d4,#2563eb) !important; color:#fff !important; font-weight:950 !important; box-shadow:0 10px 24px rgba(14,165,233,.25) !important; }}
+    .workzo-title {{ color:#fff !important; font-size:1.45rem !important; font-weight:950 !important; letter-spacing:-.04em !important; line-height:1 !important; white-space:nowrap !important; }}
+    .workzo-title span {{ color:#22d3ee !important; }}
+    .workzo-subtitle {{ color:#cbd5e1 !important; font-size:.82rem !important; font-weight:650 !important; margin-top:.25rem !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; max-width:380px !important; }}
+    .workzo-header-right {{ display:flex !important; align-items:center !important; gap:.75rem !important; }}
+    .workzo-back {{ color:#cbd5e1 !important; text-decoration:none !important; border:1px solid rgba(148,163,184,.28) !important; border-radius:999px !important; padding:.42rem .68rem !important; font-weight:850 !important; font-size:.78rem !important; background:rgba(15,23,42,.42) !important; white-space:nowrap !important; }}
+    .workzo-progress-wrap {{ min-width:220px !important; }}
+    .workzo-progress-top {{ display:flex !important; justify-content:space-between !important; color:#cbd5e1 !important; font-size:.72rem !important; font-weight:850 !important; margin-bottom:.28rem !important; }}
+    .workzo-progress-bar {{ height:7px !important; border-radius:999px !important; background:rgba(148,163,184,.18) !important; overflow:hidden !important; }}
+    .workzo-progress-fill {{ height:100% !important; width:{progress_pct}% !important; border-radius:999px !important; background:linear-gradient(90deg,#22d3ee,#22c55e) !important; }}
+    .workzo-progress-steps {{ display:flex !important; gap:.35rem !important; margin-top:.34rem !important; }}
+    .workzo-step {{ color:#cbd5e1 !important; border:1px solid rgba(148,163,184,.22) !important; background:rgba(15,23,42,.42) !important; border-radius:999px !important; padding:.16rem .42rem !important; font-size:.63rem !important; font-weight:850 !important; white-space:nowrap !important; }}
+    .workzo-step.done {{ color:#67e8f9 !important; border-color:rgba(34,211,238,.45) !important; background:rgba(8,145,178,.18) !important; }}
+    .workzo-beta {{ color:#67e8f9 !important; border:1px solid rgba(103,232,249,.42) !important; background:rgba(8,145,178,.16) !important; border-radius:999px !important; padding:.38rem .72rem !important; font-size:.7rem !important; font-weight:950 !important; letter-spacing:.04em !important; white-space:nowrap !important; }}
+    @media (max-width:760px) {{
+        .workzo-header {{ width:calc(100vw - 1rem) !important; top:.45rem !important; border-radius:18px !important; padding:.65rem .75rem !important; }}
+        .workzo-logo {{ width:44px !important; height:44px !important; min-width:44px !important; }}
+        .workzo-title {{ font-size:1.16rem !important; }}
+        .workzo-subtitle {{ font-size:.70rem !important; max-width:150px !important; }}
+        .workzo-progress-wrap, .workzo-back {{ display:none !important; }}
+        .workzo-beta {{ font-size:.62rem !important; padding:.32rem .52rem !important; }}
+    }}
+    </style>
     <div class="workzo-header">
-        <a class="workzo-brand workzo-home-link" href="{home_href}" target="_self" title="Go to dashboard">
+        <a class="workzo-brand workzo-home-link" href="?page=dashboard&home=1" target="_self" title="Go to dashboard">
             {logo_html}
             <div>
                 <div class="workzo-title">WorkZo <span>AI</span></div>
-                <div class="workzo-subtitle">{subtitle}</div>
+                <div class="workzo-subtitle">Your guided AI career system</div>
             </div>
         </a>
-        <div class="workzo-beta">BETA</div>
+        <div class="workzo-header-right">
+            {back_html}
+            <div class="workzo-progress-wrap">
+                <div class="workzo-progress-top"><span>{stage}</span><span>{progress_pct}%</span></div>
+                <div class="workzo-progress-bar"><div class="workzo-progress-fill"></div></div>
+                <div class="workzo-progress-steps">
+                    <span class="workzo-step {'done' if cv_done else ''}">{cv_mark} CV</span>
+                    <span class="workzo-step {'done' if job_done else ''}">{job_mark} Jobs</span>
+                    <span class="workzo-step {'done' if interview_done else ''}">{interview_mark} Interview</span>
+                </div>
+            </div>
+            <div class="workzo-beta">BETA</div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -525,97 +628,199 @@ def render_sample_data_button(location: str = "top") -> None:
             st.rerun()
 
 
-maybe_scroll_to_top()
-
 def show_landing_page():
-    """Minimal conversion landing page: one brand card, one hero card, one action."""
+    """Modern SaaS-style landing page: one hero, one CTA, one product preview."""
     apply_workzo_v75_global_css()
     maybe_scroll_to_top()
-    render_workzo_header()
+    try:
+        render_workzo_header()
+    except Exception:
+        pass
 
     st.markdown("""
-    <style id="workzo-minimal-landing-css">
-    .workzo-landing-hero-card {
-        max-width: 1120px;
-        margin: 3.0rem auto 1.5rem auto;
-        padding: clamp(1.6rem, 4vw, 3.2rem);
-        border-radius: 28px;
-        border: 1px solid rgba(34,211,238,.26);
-        background:
-            radial-gradient(circle at 12% 8%, rgba(20,214,201,.18), transparent 28%),
-            linear-gradient(135deg, rgba(3,16,42,.98), rgba(8,30,68,.96));
-        box-shadow: 0 24px 70px rgba(2,6,23,.42);
-        overflow: hidden;
+    <style id="workzo-landing-product-hero-css">
+    .workzo-landing-shell {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 0.4rem 0 0.6rem 0;
     }
-    .workzo-landing-kicker {
-        margin: 0 0 .9rem 0;
+    .workzo-landing-hero-v2 {
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: minmax(0, 1.08fr) minmax(320px, .92fr);
+        gap: 2rem;
+        align-items: center;
+        min-height: 430px;
+        padding: 3rem 3.2rem;
+        border-radius: 30px;
+        border: 1px solid rgba(34, 211, 238, .28);
+        background:
+            radial-gradient(circle at 80% 20%, rgba(37, 99, 235, .34), transparent 28%),
+            radial-gradient(circle at 15% 15%, rgba(20, 184, 166, .28), transparent 25%),
+            linear-gradient(135deg, rgba(3, 16, 42, .98), rgba(8, 30, 68, .96));
+        box-shadow: 0 26px 80px rgba(2, 6, 23, .42);
+    }
+    .workzo-landing-hero-v2:before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(120deg, rgba(255,255,255,.05) 0 1px, transparent 1px 90px);
+        opacity: .28;
+        pointer-events: none;
+    }
+    .workzo-landing-copy, .workzo-preview-card {
+        position: relative;
+        z-index: 1;
+    }
+    .workzo-kicker {
         color: #67e8f9;
         font-size: .78rem;
+        font-weight: 900;
         letter-spacing: .22em;
         text-transform: uppercase;
-        font-weight: 900;
+        margin-bottom: 1rem;
     }
-    .workzo-landing-hero-card h1 {
-        margin: 0;
-        color: #ffffff;
-        font-size: clamp(2.15rem, 4.7vw, 4.35rem);
-        line-height: 1.08;
-        letter-spacing: -0.05em;
+    .workzo-landing-title-v2 {
+        color: #fff;
+        font-size: clamp(2.25rem, 5vw, 4.35rem);
+        line-height: 1.03;
+        letter-spacing: -.055em;
         font-weight: 950;
-        max-width: 980px;
+        margin: 0 0 1.1rem 0;
+        max-width: 780px;
     }
-    .workzo-landing-cta-wrap {
-        max-width: 360px;
-        margin-top: 2rem;
+    .workzo-landing-subtitle-v2 {
+        color: #cbd5e1;
+        font-size: clamp(1rem, 1.6vw, 1.18rem);
+        line-height: 1.55;
+        max-width: 700px;
+        margin-bottom: 1.35rem;
     }
+    .workzo-trust-row {
+        display: flex;
+        gap: .55rem;
+        flex-wrap: wrap;
+        margin-top: .7rem;
+    }
+    .workzo-trust-chip {
+        color: #dbeafe;
+        border: 1px solid rgba(148, 163, 184, .22);
+        background: rgba(15, 23, 42, .36);
+        border-radius: 999px;
+        padding: .48rem .72rem;
+        font-size: .82rem;
+        font-weight: 750;
+    }
+    .workzo-preview-card {
+        border-radius: 26px;
+        padding: 1.35rem;
+        border: 1px solid rgba(34, 211, 238, .26);
+        background: rgba(2, 6, 23, .46);
+        box-shadow: 0 18px 50px rgba(2, 6, 23, .32);
+        backdrop-filter: blur(8px);
+    }
+    .workzo-preview-title {
+        color: #fff;
+        font-size: 1.05rem;
+        font-weight: 900;
+        margin-bottom: .25rem;
+    }
+    .workzo-preview-subtitle {
+        color: #94a3b8;
+        font-size: .88rem;
+        margin-bottom: 1rem;
+    }
+    .workzo-preview-metric {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: .9rem 1rem;
+        margin-bottom: .75rem;
+        border-radius: 18px;
+        background: rgba(15, 23, 42, .72);
+        border: 1px solid rgba(148, 163, 184, .18);
+    }
+    .workzo-preview-label {
+        color: #e2e8f0;
+        font-weight: 800;
+        font-size: .92rem;
+    }
+    .workzo-preview-value {
+        color: #67e8f9;
+        font-weight: 950;
+        font-size: 1.25rem;
+    }
+    .workzo-next-card {
+        margin-top: .95rem;
+        border-radius: 20px;
+        padding: 1rem;
+        background: linear-gradient(135deg, rgba(8, 47, 73, .86), rgba(30, 41, 59, .72));
+        border: 1px solid rgba(34, 211, 238, .24);
+        color: #e0f2fe;
+    }
+    .workzo-next-card strong { color: #fff; }
     .st-key-landing_start_with_cv button {
-        min-height: 58px !important;
-        border-radius: 18px !important;
-        font-size: 1.08rem !important;
+        min-height: 56px !important;
+        max-width: 280px !important;
+        border-radius: 16px !important;
+        font-size: 1rem !important;
         font-weight: 900 !important;
+        box-shadow: 0 16px 38px rgba(239, 68, 68, .26) !important;
     }
-    @media (max-width: 700px) {
-        .workzo-landing-hero-card {
-            margin: 1.25rem auto 1rem auto;
-            padding: 1.25rem 1rem;
-            border-radius: 22px;
+    @media (max-width: 900px) {
+        .workzo-landing-hero-v2 {
+            grid-template-columns: 1fr;
+            padding: 1.35rem 1.1rem;
+            min-height: auto;
+            border-radius: 24px;
+            gap: 1.1rem;
         }
-        .workzo-landing-kicker {
-            font-size: .68rem;
-            margin-bottom: .7rem;
-        }
-        .workzo-landing-hero-card h1 {
-            font-size: 2.05rem;
-            line-height: 1.12;
-        }
-        .workzo-landing-cta-wrap {
-            max-width: 100%;
-            margin-top: 1.3rem;
-        }
+        .workzo-landing-title-v2 { font-size: clamp(2rem, 10vw, 2.75rem); }
+        .workzo-preview-card { padding: 1rem; }
+        .st-key-landing_start_with_cv button { max-width: 100% !important; }
     }
     </style>
-
-    <section class="workzo-landing-hero-card">
-        <p class="workzo-landing-kicker">Honest AI Career Assistant</p>
-        <h1>Land more interviews with honest ATS insights, CV optimization, and AI-powered real interview practice.</h1>
-        <div class="workzo-landing-cta-wrap">
-    """, unsafe_allow_html=True)
-
-    if st.button("🚀 Start with your CV", type="primary", use_container_width=True, key="landing_start_with_cv"):
-        st.session_state["page"] = "onboarding"
-        st.session_state["nav_page"] = "onboarding"
-        st.session_state["onboarding_complete"] = False
-        try:
-            st.query_params["page"] = "onboarding"
-        except Exception:
-            pass
-        request_scroll_to_top()
-        st.rerun()
-
-    st.markdown("""
+    <div class="workzo-landing-shell">
+      <div class="workzo-landing-hero-v2">
+        <div class="workzo-landing-copy">
+          <div class="workzo-kicker">Real Interview Practice</div>
+          <h1 class="workzo-landing-title-v2">Practice real interviews using your CV and job description.</h1>
+          <div class="workzo-landing-subtitle-v2">
+            Upload or create your CV, add a job description later, and prepare for realistic interview practice based on your profile.
+          </div>
+          <div class="workzo-trust-row">
+            <span class="workzo-trust-chip">CV optimization</span>
+            <span class="workzo-trust-chip">Job matching</span>
+            <span class="workzo-trust-chip">Real Interview AI</span>
+          </div>
         </div>
-    </section>
+        <div class="workzo-preview-card">
+          <div class="workzo-preview-title">Your career snapshot</div>
+          <div class="workzo-preview-subtitle">A quick preview of what WorkZo helps you improve.</div>
+          <div class="workzo-preview-metric"><span class="workzo-preview-label">CV Match</span><span class="workzo-preview-value">72%</span></div>
+          <div class="workzo-preview-metric"><span class="workzo-preview-label">Interview Readiness</span><span class="workzo-preview-value">58%</span></div>
+          <div class="workzo-preview-metric"><span class="workzo-preview-label">Next Step</span><span class="workzo-preview-value">Interview</span></div>
+          <div class="workzo-next-card"><strong>Next:</strong> Upload your CV and get a guided plan.</div>
+        </div>
+      </div>
+    </div>
     """, unsafe_allow_html=True)
+
+    c1, c2, c3 = st.columns([1, 1.15, 1])
+    with c2:
+        if st.button("🚀 Start with your CV", type="primary", use_container_width=True, key="landing_start_with_cv"):
+            st.session_state["page"] = "onboarding"
+            st.session_state["nav_page"] = "onboarding"
+            st.session_state["onboarding_complete"] = False
+            try:
+                st.query_params["page"] = "onboarding"
+            except Exception:
+                pass
+            request_scroll_to_top()
+            st.rerun()
+
 
 # =========================================================
 # ONBOARDING
@@ -633,6 +838,28 @@ EDUCATION_LEVELS = [
     "Bootcamp", "Vocational Training", "Certificate Course", "Self-taught"
 ]
 
+
+SMART_CREATE_ROLE_OPTIONS = [
+    "Data Analyst", "Junior Data Analyst", "Business Analyst", "IT Support Specialist", "Help Desk Analyst",
+    "Technical Support Engineer", "Customer Success Manager", "Customer Support Specialist", "Service Desk Analyst",
+    "Python Developer", "QA Tester", "Project Coordinator", "Product Support Specialist", "Other",
+]
+SMART_CREATE_SKILL_OPTIONS = sorted(set(POPULAR_SKILLS + [
+    "Power Query", "Power Pivot", "Looker Studio", "NumPy", "Statistics", "Dashboard Development",
+    "Reporting", "ETL", "REST APIs", "Web Scraping", "Ticketing Systems", "ITSM", "Jira",
+    "ServiceDesk Plus", "Incident Management", "Root Cause Analysis", "Documentation", "Stakeholder Communication",
+]))
+SMART_CREATE_LANGUAGE_OPTIONS = [
+    "English - Fluent", "English - Professional", "English - Intermediate", "German - A1", "German - A2",
+    "German - B1", "German - B2", "German - C1", "Tamil - Native", "Hindi - Fluent",
+    "Malayalam - Native", "French - Basic", "Spanish - Basic", "Dutch - Basic",
+]
+SMART_CREATE_CERT_OPTIONS = [
+    "Data Science Bootcamp", "Data Analytics Bootcamp", "Google Data Analytics Certificate", "Microsoft Excel Advanced",
+    "Power BI Certificate", "Tableau Certificate", "AWS Cloud Practitioner", "Google Cloud Fundamentals",
+    "ITIL Foundation", "Scrum Fundamentals", "Python Certificate", "SQL Certificate",
+]
+
 def render_resume_choice_card(icon: str, title: str, desc: str, active: bool = False):
     active_class = " active" if active else ""
     st.markdown(f"""
@@ -642,298 +869,321 @@ def render_resume_choice_card(icon: str, title: str, desc: str, active: bool = F
     </div>
     """, unsafe_allow_html=True)
 
-
 def show_onboarding():
-    """Simple guided onboarding: one step, one main action.
-
-    UX rules:
-    - Step 1: language + country only
-    - Step 2: CV upload as primary action; demo/manual/LinkedIn hidden
-    - Step 3: short confirmation, then dashboard
-    Existing parsing, analytics, profile sync, and dashboard analysis are kept.
-    """
     maybe_scroll_to_top()
+    try:
+        render_workzo_header()
+    except Exception:
+        pass
+    # WorkZo v36: sync language BEFORE rendering labels, so onboarding never shows mixed languages.
+    try:
+        _chosen_lang = st.session_state.get("onboarding_preferred_language") or st.session_state.get("preferred_language") or "English"
+        if callable(globals().get("workzo_set_language_everywhere")):
+            workzo_set_language_everywhere(_chosen_lang)
+        elif callable(globals().get("set_single_preferred_language")):
+            set_single_preferred_language(_chosen_lang)
+    except Exception:
+        pass
+    st.subheader(txt("welcome_workzo"), help=txt("app_info_help"))
+    st.caption(txt("onboarding_subtitle"))
+    render_sample_data_button("onboarding")
 
-    def _safe_set_language(lang: str) -> None:
+    language_list = language_options if language_options else ["English", "German", "Dutch"]
+    lang_default = st.session_state.get("preferred_language", "English")
+    if lang_default not in language_list:
+        lang_default = "English" if "English" in language_list else language_list[0]
+
+    preferred_language = st.selectbox(
+        txt("preferred_language"),
+        language_list,
+        index=language_list.index(lang_default),
+        key="onboarding_preferred_language",
+        help=txt("language_help")
+    )
+    _old_lang = st.session_state.get("preferred_language") or st.session_state.get("language") or "English"
+    if callable(globals().get("workzo_set_language_everywhere")):
+        workzo_set_language_everywhere(preferred_language)
+    else:
+        set_single_preferred_language(preferred_language)
+    if preferred_language != _old_lang:
         try:
-            if callable(globals().get("workzo_set_language_everywhere")):
-                workzo_set_language_everywhere(lang)
-            elif callable(globals().get("set_single_preferred_language")):
-                set_single_preferred_language(lang)
+            st.query_params["wz_lang"] = preferred_language
+        except Exception:
+            pass
+        st.rerun()
+
+    country_index = country_options.index(st.session_state.country) if st.session_state.country in country_options else 0
+    country = st.selectbox(
+        txt("country"),
+        country_options,
+        index=country_index,
+        key="onboarding_country",
+        help=f"{txt('detected_country_hint')}: {geo_country_default}"
+    )
+
+    status_options = [
+        txt("select_optional"),
+        txt("student_thesis_internship"),
+        txt("local_jobseeker"),
+        txt("fresh_graduate"),
+        txt("career_changer"),
+        txt("migrant"),
+        txt("experienced"),
+        txt("returning"),
+    ]
+    status_display = st.selectbox(
+        txt("user_status"),
+        status_options,
+        index=0,
+        key="onboarding_user_status",
+        format_func=lambda value: value,
+        help=txt("status_help")
+    )
+    status_map = {
+        txt("student_thesis_internship"): STUDENT_STATUS_INTERNAL,
+        txt("local_jobseeker"): "Looking for jobs locally",
+        txt("fresh_graduate"): "Fresh graduate / entry level",
+        txt("career_changer"): "Career changer",
+        txt("migrant"): "Planning to migrate / applying abroad",
+        txt("experienced"): "Experienced professional",
+        txt("returning"): "Returning after a career break",
+    }
+    user_status = "" if status_display == txt("select_optional") else status_map.get(status_display, status_display).strip()
+
+    if "career changer" in user_status.lower():
+        career_change_goal = st.text_input(
+            "What role would you like to move into?",
+            value=st.session_state.get("target_role", ""),
+            placeholder="Example: Data Analyst, Customer Success Manager, IT Support"
+        )
+        if career_change_goal.strip():
+            st.session_state.target_role = career_change_goal.strip()
+
+    migration_country = ""
+    if "migrate" in user_status.lower() or "abroad" in user_status.lower():
+        migration_default = st.session_state.get("migration_country") or st.session_state.get("country") or "Germany"
+        migration_index = country_options.index(migration_default) if migration_default in country_options else 0
+        migration_country = st.selectbox(
+            txt("migration_country"),
+            country_options,
+            index=migration_index
+        )
+
+    # CV review is no longer shown during onboarding. Users review/edit the structured CV inside Improve / Update CV.
+    if st.session_state.get("cv_review_required"):
+        st.session_state.cv_review_required = False
+
+    st.markdown(f"### {txt('resume_input')}")
+    st.caption(txt("resume_choice_caption"))
+
+    if "cv_mode" not in st.session_state:
+        st.session_state.cv_mode = ""
+
+    st.markdown(
+        f"<div class='workzo-mini-note'>{html.escape(txt('privacy_short'))}</div>",
+        unsafe_allow_html=True
+    )
+
+    c_upload, c_create, c_linkedin = st.columns(3, gap="large")
+
+    def _cv_mode_card(col, mode_value: str, display_label: str, copy: str, key: str):
+        with col:
+            active = st.session_state.get("cv_mode") == mode_value
+            label = ("✓ " if active else "") + display_label
+            with st.container(border=True):
+                st.markdown(f"**{label}**")
+                st.caption(copy)
+                if st.button(display_label, key=key, use_container_width=True):
+                    st.session_state.cv_mode = mode_value
+                    request_scroll_to_top()
+                    st.rerun()
+
+    _cv_mode_card(c_upload, "Upload CV", txt("upload_cv"), txt("upload_cv_copy"), "choose_upload_cv")
+    _cv_mode_card(c_create, "Create CV", txt("create_cv"), txt("create_cv_copy"), "choose_create_cv")
+    _cv_mode_card(c_linkedin, "Import LinkedIn", txt("import_linkedin"), txt("import_linkedin_copy"), "choose_linkedin_cv")
+
+    cv_mode = st.session_state.get("cv_mode", "")
+
+
+    if not cv_mode:
+        st.info(txt("choose_resume_continue"))
+        return
+
+    if cv_mode == "Upload CV":
+        uploaded_direct = st.file_uploader(
+            txt("upload_cv_instruction"),
+            type=["pdf", "txt"],
+            key="upload_cv_direct",
+            label_visibility="collapsed"
+        )
+        if uploaded_direct is not None:
+            st.session_state.uploaded_file_direct = uploaded_direct
+            st.success(txt("cv_uploaded_success"))
+
+    with st.form("onboarding_form_v49"):
+        cv_text_input = ""
+        full_name = ""
+        email = ""
+        phone = ""
+        location = ""
+        summary = ""
+        skills = ""
+        experience = ""
+        projects = ""
+        certifications = ""
+        education = ""
+        languages = ""
+        extra_info = ""
+        linkedin_url = ""
+        linkedin_notes = ""
+        target_role = ""
+
+        if cv_mode == "Upload CV":
+            uploaded_file = st.session_state.get("uploaded_file_direct")
+
+            if uploaded_file is not None:
+                if uploaded_file.size > 5 * 1024 * 1024:
+                    st.error(txt("file_too_large"))
+                elif uploaded_file.type == "text/plain":
+                    cv_text_input = organize_cv_for_display(uploaded_file.read().decode("utf-8", errors="ignore"))
+                elif uploaded_file.type == "application/pdf":
+                    try:
+                        cv_text_input = organize_cv_for_display(extract_pdf_text(uploaded_file))
+                    except Exception as e:
+                        st.error(f"{txt('pdf_read_error')}: {e}")
+                else:
+                    st.error(txt("unsupported_file"))
             else:
-                st.session_state.preferred_language = lang
-                st.session_state.language = lang
-                st.session_state.ui_language = lang
-                st.session_state.response_language = lang
-        except Exception:
-            st.session_state.preferred_language = lang
-            st.session_state.language = lang
+                st.caption(txt("choose_pdf_txt"))
 
-    def _safe_track(event_name: str, feature: str, meta: dict | None = None) -> None:
-        try:
-            if callable(globals().get("track_event")):
-                track_event(event_name, feature, meta or {})
-        except Exception:
-            pass
+        elif cv_mode == "Import LinkedIn":
+            st.markdown(f"#### {txt('linkedin_cv_title')}")
+            st.caption(txt("linkedin_instruction"))
+            linkedin_url = st.text_input(txt("linkedin_profile_link"), placeholder="https://www.linkedin.com/in/your-profile")
+            linkedin_notes = st.text_area(
+                txt("linkedin_extra_details"),
+                placeholder="Example: About: customer support engineer with SaaS experience. Experience: Zoho, 4 years, ticket support, product troubleshooting. Skills: SQL, Python, CRM.",
+                height=160
+            )
+            target_role = st.text_input(txt("target_role_optional"), placeholder="Example: Data Analyst, IT Support Specialist, Customer Success Manager")
+            if linkedin_url.strip() or linkedin_notes.strip() or target_role.strip():
+                cv_text_input = f"""
+LinkedIn Profile Link: {linkedin_url}
+Target Role: {target_role}
+LinkedIn / Profile Notes:
+{linkedin_notes}
+""".strip()
 
-    def _safe_button_track(label: str, feature: str, meta: dict | None = None) -> None:
-        try:
-            if callable(globals().get("track_button_click")):
-                track_button_click(label, feature, meta or {})
-        except Exception:
-            pass
+        else:
+            st.markdown(f"#### {txt('guided_cv_builder')}")
+            st.caption(txt("guided_cv_caption"))
+            st.caption(f"{txt('generated_language_note')}: {preferred_language}")
 
-    def _finish_cv_onboarding(cv_text_input: str, cv_mode: str) -> bool:
-        """Use the existing WorkZo onboarding finish logic, but keep the UI simple."""
-        cv_text_input = str(cv_text_input or "").strip()
-        if not cv_text_input:
-            st.warning("Please add your CV first.")
-            return False
+            c1, c2 = st.columns(2)
+            with c1:
+                full_name = st.text_input(txt("full_name"), placeholder="Example: Alex Morgan")
+                email = st.text_input(txt("email"), placeholder="Example: alex.morgan@email.com")
+                phone = st.text_input(txt("phone"), placeholder="Example: +1 555 123 4567")
+                location = st.text_input(txt("location"), placeholder="Example: Toronto, Canada")
+            with c2:
+                target_role_choice = st.selectbox("Target role", [""] + SMART_CREATE_ROLE_OPTIONS, key="onboarding_target_role_smart")
+                if target_role_choice == "Other":
+                    target_role = st.text_input(txt("target_role_optional"), placeholder="Example: Data Analyst / IT Support Specialist")
+                else:
+                    target_role = target_role_choice
+                education_level = st.selectbox(txt("education_level"), EDUCATION_LEVELS, index=0, key="onboarding_education_level")
+                selected_skills = st.multiselect(txt("suggested_skills"), SMART_CREATE_SKILL_OPTIONS, key="onboarding_suggested_skills", placeholder="Start typing skills")
+                selected_languages = st.multiselect(txt("languages_label"), SMART_CREATE_LANGUAGE_OPTIONS, key="onboarding_languages_smart", placeholder="Start typing languages")
+                languages = ", ".join(selected_languages)
 
-        country = st.session_state.get("onboarding_country_clean") or st.session_state.get("country") or "Germany"
-        user_status = st.session_state.get("onboarding_user_status_clean", "")
-        migration_country = st.session_state.get("onboarding_migration_country_clean") or country
-        target_role = st.session_state.get("target_role", "")
+            summary = st.text_area(txt("summary"), placeholder="Example: Customer support professional with SaaS experience, interested in data and technology roles.")
+            skills = st.text_area(txt("skills"), placeholder="Example: SQL, Excel, Python, customer support, problem solving, CRM tools")
+            if selected_skills:
+                skills = ", ".join(dict.fromkeys([x.strip() for x in (skills.split(",") if skills else [])] + selected_skills))
+            experience = st.text_area(txt("experience"), placeholder="Example: Technical Support Associate, ABC Software, 2020-2024 — handled customer tickets and troubleshooting.")
+            projects = st.text_area(txt("projects_label"), placeholder="Example: Built a dashboard to track monthly sales and customer trends.")
+            selected_certifications = st.multiselect("Certificates / Courses", SMART_CREATE_CERT_OPTIONS, key="onboarding_certifications_smart", placeholder="Start typing certificates")
+            certifications = st.text_area(txt("cert_courses"), placeholder="Example: Google Data Analytics Certificate, Excel Advanced, AWS basics")
+            if selected_certifications:
+                certifications = ", ".join(dict.fromkeys([x.strip() for x in (certifications.split(",") if certifications else [])] + selected_certifications))
+            education = st.text_area(txt("education"), placeholder="Example: Bachelor of Computer Science, University of Toronto, 2020-2024")
+            if education_level and education_level not in education:
+                education = f"{education}\nEducation level: {education_level}".strip()
+            extra_info = st.text_area(txt("extra_cv_info"), placeholder="Example: Target role: Junior Data Analyst. Open to remote/hybrid roles. Prefer English-speaking teams.")
+            if target_role and target_role not in extra_info:
+                extra_info = f"Target role: {target_role}\n{extra_info}".strip()
 
-        st.session_state.country = country
-        st.session_state.user_status = user_status
-        st.session_state.migration_country = migration_country
-        st.session_state.cv_mode = cv_mode
-        if target_role:
-            st.session_state.target_role = target_role
-            st.session_state.detected_target_role = target_role
+            if any([full_name.strip(), email.strip(), phone.strip(), location.strip(), summary.strip(), skills.strip(), experience.strip(), projects.strip(), certifications.strip(), education.strip(), languages.strip(), extra_info.strip()]):
+                cv_text_input = build_created_cv_text(
+                    full_name, email, phone, location, summary, skills, experience, education, projects, certifications, languages, extra_info
+                )
 
-        # Keep original extraction path so downstream CV tools/downloads still work.
-        st.session_state.raw_cv_extraction = cv_text_input
-        try:
-            with st.spinner("Reading your CV..."):
+        submitted = st.form_submit_button(txt("continue"))
+
+        if submitted:
+            track_button_click("Continue to Dashboard", "Onboarding", {"cv_mode": cv_mode, "selected_status": user_status})
+            if not country:
+                st.warning(txt("warn_country"))
+                return
+
+            if cv_mode == "Upload CV":
+                if not cv_text_input.strip():
+                    st.warning(txt("warn_upload_cv"))
+                    return
+            else:
+                if cv_mode == "Create CV" and not full_name.strip():
+                    st.warning(txt("warn_full_name"))
+                    return
+                if not cv_text_input.strip():
+                    st.warning(txt("warn_enter_details"))
+                    return
+
+                with st.spinner(txt("creating_cv_draft")):
+                    ai_cv = generate_cv_from_user_details(cv_text_input, migration_country if migration_country else country, user_status)
+                    if ai_cv and not ai_cv.startswith("ERROR:"):
+                        st.session_state.created_cv_ai_output = ai_cv
+                        cv_text_input = ai_cv
+
+            st.session_state.country = country
+            st.session_state.user_status = user_status
+            st.session_state.migration_country = migration_country if migration_country else country
+            st.session_state.cv_mode = cv_mode
+            if target_role:
+                st.session_state.target_role = target_role
+                st.session_state.detected_target_role = target_role
+
+            # Build a clean structured CV for EVERY input method: upload, create CV, and LinkedIn import.
+            # This makes later editing, template rendering, translation, and PDF download reliable.
+            st.session_state.raw_cv_extraction = cv_text_input
+            with st.spinner("Extracting resume facts into clean editable sections..."):
                 structured_data = extract_structured_resume_json(cv_text_input, active_application_country(), user_status)
             clean_from_sections = _format_structured_resume_profile(structured_data)
             st.session_state.structured_cv_json = structured_data if isinstance(structured_data, dict) else {}
             st.session_state.pending_structured_cv_json = {}
             st.session_state.cv_review_required = False
-            if clean_from_sections and len(str(clean_from_sections).strip()) > 120:
+            if clean_from_sections and len(clean_from_sections.strip()) > 120:
                 st.session_state.structured_cv_profile = clean_from_sections
                 st.session_state.clean_structured_cv_text = clean_from_sections
                 cv_text_input = clean_from_sections
-            _safe_track("cv_structured_profile_created", "Onboarding", {"cv_mode": cv_mode, "target_country": active_application_country()})
-        except Exception:
-            # Fallback: never block onboarding if structured extraction fails.
-            st.session_state.structured_cv_json = st.session_state.get("structured_cv_json", {}) or {}
-            st.session_state.clean_structured_cv_text = cv_text_input
+            track_event("cv_structured_profile_created", "Onboarding", {"cv_mode": cv_mode, "target_country": active_application_country()})
 
-        try:
             st.session_state.cv_text = clean_cv_text(cv_text_input)
-        except Exception:
-            st.session_state.cv_text = cv_text_input
-
-        try:
             workzo_sync_user_profile()
-        except Exception:
-            pass
+            track_event("cv_ready", "Onboarding", {"cv_mode": cv_mode, "user_status": user_status, "target_country": st.session_state.get("migration_country", country)})
+            st.session_state.onboarding_complete = True
+            sync_navigation_state("dashboard")
 
-        _safe_track("cv_ready", "Onboarding", {"cv_mode": cv_mode, "user_status": user_status, "target_country": st.session_state.get("migration_country", country)})
-        st.session_state.onboarding_complete = True
-        st.session_state.onboarding_step_clean = 3
-        return True
+            with st.spinner(txt("reading_resume_dashboard")):
+                analyze_resume_dashboard_stable(st.session_state.cv_text, force_refresh=True)
 
-    # Keep language consistent before rendering labels.
-    current_lang = st.session_state.get("onboarding_preferred_language") or st.session_state.get("preferred_language") or "English"
-    _safe_set_language(current_lang)
-
-    st.markdown("""
-    <style id="workzo-clean-onboarding-css">
-    .wz-onboard-wrap { max-width: 980px; margin: 0 auto; }
-    .wz-step-label { color:#67e8f9; font-size:.78rem; font-weight:900; letter-spacing:.14em; text-transform:uppercase; margin-bottom:.45rem; }
-    .wz-onboard-title { color:white; font-size:clamp(1.7rem,4vw,2.6rem); line-height:1.08; font-weight:950; letter-spacing:-.04em; margin:0 0 .45rem 0; }
-    .wz-onboard-sub { color:#cbd5e1; font-size:1rem; line-height:1.45; max-width:680px; margin:0 0 1.1rem 0; }
-    .wz-onboard-card { border:1px solid rgba(34,211,238,.24); background:linear-gradient(135deg, rgba(8,47,73,.50), rgba(15,23,42,.92)); border-radius:24px; padding:1.25rem; margin:.8rem 0 1rem; box-shadow:0 16px 44px rgba(2,6,23,.22); }
-    .wz-mini-confirm { border:1px solid rgba(148,163,184,.22); background:rgba(15,23,42,.65); border-radius:18px; padding:1rem; }
-    .stButton > button { min-height:48px; border-radius:14px !important; font-weight:850 !important; }
-    @media (max-width: 700px) {
-      .wz-onboard-card { padding:1rem; border-radius:20px; }
-      .wz-onboard-sub { font-size:.95rem; }
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    step = int(st.session_state.get("onboarding_step_clean", 1) or 1)
-    if step < 1 or step > 3:
-        step = 1
-        st.session_state.onboarding_step_clean = 1
-
-    st.markdown("<div class='wz-onboard-wrap'>", unsafe_allow_html=True)
-    st.caption(f"Step {step} of 3")
-
-    # -----------------------------
-    # STEP 1: Basics
-    # -----------------------------
-    if step == 1:
-        st.markdown("""
-        <div class="wz-onboard-card">
-          <div class="wz-step-label">Start here</div>
-          <div class="wz-onboard-title">Set your career context</div>
-          <p class="wz-onboard-sub">Choose the language and job market WorkZo should use. You can add your CV next.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        language_list = language_options if "language_options" in globals() and language_options else ["English", "German", "Dutch"]
-        lang_default = st.session_state.get("preferred_language", "English")
-        if lang_default not in language_list:
-            lang_default = "English" if "English" in language_list else language_list[0]
-
-        c1, c2 = st.columns(2)
-        with c1:
-            preferred_language = st.selectbox(
-                "Preferred language",
-                language_list,
-                index=language_list.index(lang_default),
-                key="onboarding_preferred_language_clean",
-            )
-        with c2:
-            country_list = country_options if "country_options" in globals() and country_options else ["Germany", "India", "United States", "United Kingdom"]
-            country_default = st.session_state.get("country", "Germany")
-            country_index = country_list.index(country_default) if country_default in country_list else 0
-            country = st.selectbox("Target job country", country_list, index=country_index, key="onboarding_country_clean")
-
-        with st.expander("More details (optional)", expanded=False):
-            status_options_clean = [
-                "", "Student / Thesis / Internship seeker", "Looking for jobs locally", "Fresh graduate / entry level",
-                "Career changer", "Planning to migrate / applying abroad", "Experienced professional", "Returning after a career break"
-            ]
-            user_status = st.selectbox("Career situation", status_options_clean, index=0, key="onboarding_user_status_clean")
-            target_role = st.text_input("Target role", value=st.session_state.get("target_role", ""), placeholder="Example: Data Analyst, IT Support, Customer Success")
-            migration_country = country
-            if "migrate" in str(user_status).lower() or "abroad" in str(user_status).lower():
-                migration_country = st.selectbox("Target migration country", country_list, index=country_index, key="onboarding_migration_country_clean")
-            else:
-                st.session_state.onboarding_migration_country_clean = country
-            if target_role.strip():
-                st.session_state.target_role = target_role.strip()
-
-        if st.button("Continue", type="primary", use_container_width=True, key="onboarding_step1_continue_clean"):
-            _safe_set_language(preferred_language)
-            st.session_state.preferred_language = preferred_language
-            st.session_state.language = preferred_language
-            st.session_state.ui_language = preferred_language
-            st.session_state.response_language = preferred_language
-            st.session_state.country = country
-            st.session_state.migration_country = st.session_state.get("onboarding_migration_country_clean") or country
-            st.session_state.onboarding_step_clean = 2
             request_scroll_to_top()
+            st.session_state.nav_page = "dashboard"
             st.rerun()
 
-        st.markdown("</div>", unsafe_allow_html=True)
-        return
-
-    # -----------------------------
-    # STEP 2: Add CV
-    # -----------------------------
-    if step == 2:
-        st.markdown("""
-        <div class="wz-onboard-card">
-          <div class="wz-step-label">Add CV</div>
-          <div class="wz-onboard-title">Upload your CV</div>
-          <p class="wz-onboard-sub">WorkZo uses your CV to personalize CV improvement, job matching, and interview practice.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        uploaded_file = st.file_uploader("Upload PDF or TXT", type=["pdf", "txt"], key="upload_cv_direct_clean")
-        cv_text_input = ""
-        cv_mode = "Upload CV"
-        if uploaded_file is not None:
-            try:
-                if uploaded_file.size > 5 * 1024 * 1024:
-                    st.error("File is too large. Please upload a smaller CV.")
-                elif uploaded_file.type == "text/plain":
-                    cv_text_input = organize_cv_for_display(uploaded_file.read().decode("utf-8", errors="ignore"))
-                    st.session_state["onboarding_pending_cv_text_clean"] = cv_text_input
-                    st.success("CV uploaded.")
-                elif uploaded_file.type == "application/pdf":
-                    cv_text_input = organize_cv_for_display(extract_pdf_text(uploaded_file))
-                    st.session_state["onboarding_pending_cv_text_clean"] = cv_text_input
-                    st.success("CV uploaded.")
-                else:
-                    st.error("Unsupported file type.")
-            except Exception as e:
-                st.error(f"Could not read the CV: {e}")
-
-        pending_text = st.session_state.get("onboarding_pending_cv_text_clean", "")
-
-        if st.button("Continue", type="primary", use_container_width=True, key="onboarding_step2_continue_clean", disabled=not bool(str(pending_text).strip())):
-            _safe_button_track("Continue with uploaded CV", "Onboarding", {"cv_mode": "Upload CV"})
-            if _finish_cv_onboarding(pending_text, "Upload CV"):
-                request_scroll_to_top()
-                st.rerun()
-
-        with st.expander("Other ways to try WorkZo", expanded=False):
-            st.caption("Use these only if you do not want to upload a CV yet.")
-            if st.button("Try Demo", use_container_width=True, key="onboarding_try_demo_clean"):
-                try:
-                    load_workzo_sample_data()
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Could not load demo: {e}")
-
-            st.markdown("---")
-            manual_cv = st.text_area(
-                "Paste CV text or LinkedIn notes",
-                height=160,
-                placeholder="Paste your CV text or LinkedIn profile notes here...",
-                key="onboarding_manual_cv_clean",
-            )
-            if st.button("Use pasted text", use_container_width=True, key="onboarding_use_manual_cv_clean", disabled=not bool(manual_cv.strip())):
-                if _finish_cv_onboarding(manual_cv, "Manual / LinkedIn notes"):
-                    request_scroll_to_top()
-                    st.rerun()
-
-        back_col, _ = st.columns([1, 3])
-        with back_col:
-            if st.button("Back", use_container_width=True, key="onboarding_step2_back_clean"):
-                st.session_state.onboarding_step_clean = 1
-                request_scroll_to_top()
-                st.rerun()
-
-        st.markdown("</div>", unsafe_allow_html=True)
-        return
-
-    # -----------------------------
-    # STEP 3: Confirm profile
-    # -----------------------------
-    st.markdown("""
-    <div class="wz-onboard-card">
-      <div class="wz-step-label">Ready</div>
-      <div class="wz-onboard-title">Your workspace is ready</div>
-      <p class="wz-onboard-sub">Start with one clear next step: improve your CV for a real job.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown(f"<div class='wz-mini-confirm'><b>CV</b><br>{'Uploaded' if st.session_state.get('cv_text') else 'Missing'}</div>", unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"<div class='wz-mini-confirm'><b>Country</b><br>{html.escape(str(st.session_state.get('migration_country') or st.session_state.get('country') or ''))}</div>", unsafe_allow_html=True)
-    with c3:
-        st.markdown(f"<div class='wz-mini-confirm'><b>Language</b><br>{html.escape(str(st.session_state.get('preferred_language') or 'English'))}</div>", unsafe_allow_html=True)
-
-    if st.button("Go to Dashboard", type="primary", use_container_width=True, key="onboarding_go_dashboard_clean"):
-        try:
-            with st.spinner("Preparing your dashboard..."):
-                analyze_resume_dashboard_stable(st.session_state.get("cv_text", ""), force_refresh=True)
-        except Exception:
-            pass
-        sync_navigation_state("dashboard")
-        request_scroll_to_top()
-        st.rerun()
-
-    with st.expander("Need to change something?", expanded=False):
-        if st.button("Back to CV upload", use_container_width=True, key="onboarding_step3_back_clean"):
-            st.session_state.onboarding_step_clean = 2
-            request_scroll_to_top()
-            st.rerun()
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
+# =========================================================
+# =========================================================
+# WORK-O-BOT
+# =========================================================
 def workobot_intro_message() -> str:
     return """Hi, I'm Work-O-Bot
 
@@ -2383,5 +2633,652 @@ try:
             "creating_cv_draft": "Je cv-concept wordt met AI gemaakt...",
             "reading_resume_dashboard": "Je cv wordt gelezen en het dashboard wordt voorbereid...",
         })
+except Exception:
+    pass
+
+# =========================================================
+# WorkZo v90 - Clean onboarding with smarter Create CV
+# Safe override: Upload CV OR Create CV only. LinkedIn option removed.
+# =========================================================
+import re as _wz_re
+
+_WZ90_SKILL_OPTIONS = [
+    "Python", "SQL", "Excel", "Power BI", "Tableau", "Data Analysis", "Pandas", "NumPy", "Matplotlib",
+    "Machine Learning", "Scikit-learn", "Statistics", "Dashboard Development", "Reporting", "ETL",
+    "REST APIs", "Web Scraping", "Google Cloud", "AWS", "Azure", "Git", "Linux", "Docker",
+    "Technical Support", "IT Support", "Help Desk", "Troubleshooting", "Ticketing Systems", "ITSM",
+    "Customer Support", "Customer Success", "CRM", "SaaS", "Product Support", "Incident Management",
+    "Root Cause Analysis", "Documentation", "Stakeholder Communication", "Agile", "Scrum", "Jira",
+]
+
+_WZ90_EDUCATION_OPTIONS = [
+    "High School", "Diploma", "Vocational Training", "Bachelor's Degree", "B.Sc Computer Science",
+    "B.Tech", "Bachelor of Engineering", "Bachelor of Commerce", "Master's Degree", "M.Sc Data Science",
+    "MBA", "M.Tech", "PhD", "Data Science Bootcamp", "Data Analytics Bootcamp", "Certificate Course",
+    "Self-taught", "Other",
+]
+
+_WZ90_LANGUAGE_OPTIONS = [
+    "English", "German A1", "German A2", "German B1", "German B2", "German C1",
+    "Dutch A1", "Dutch A2", "Dutch B1", "Dutch B2", "Dutch C1",
+    "French", "Spanish", "Italian", "Portuguese", "Hindi", "Tamil", "Malayalam", "Telugu", "Kannada",
+]
+
+_WZ90_CERT_OPTIONS = [
+    "Google Data Analytics", "IBM Data Analyst", "Microsoft Power BI", "Tableau", "AWS Cloud Practitioner",
+    "Azure Fundamentals", "Google Cloud Digital Leader", "ITIL Foundation", "Scrum Master", "Python Certificate",
+    "SQL Certificate", "Excel Advanced", "Data Science Bootcamp", "WBS Coding School Bootcamp",
+]
+
+_WZ90_ROLE_OPTIONS = [
+    "Data Analyst", "Junior Data Analyst", "Business Analyst", "Reporting Analyst", "BI Analyst",
+    "Technical Support Engineer", "IT Support Specialist", "Help Desk Analyst", "Customer Support Specialist",
+    "Customer Success Manager", "Product Support Specialist", "Software Tester", "Junior Python Developer",
+]
+
+
+def _wz90_label(text: str) -> str:
+    try:
+        return ui_label(text)
+    except Exception:
+        return text
+
+
+def _wz90_top_header_once() -> None:
+    try:
+        render_workzo_header()
+    except Exception:
+        pass
+
+
+def _wz90_set_lang_country(language: str, country: str) -> None:
+    try:
+        if callable(globals().get("workzo_set_language_everywhere")):
+            workzo_set_language_everywhere(language)
+        elif callable(globals().get("set_single_preferred_language")):
+            set_single_preferred_language(language)
+    except Exception:
+        pass
+    try:
+        st.session_state.preferred_language = language
+        st.session_state.language = language
+        st.session_state.ui_language = language
+        st.session_state.response_language = language
+        st.session_state.country = country
+        st.session_state.migration_country = country
+    except Exception:
+        pass
+
+
+def _wz90_extract_uploaded_cv(uploaded_file) -> str:
+    if uploaded_file is None:
+        return ""
+    try:
+        name = (getattr(uploaded_file, "name", "") or "").lower()
+        mime = getattr(uploaded_file, "type", "") or ""
+        if mime == "text/plain" or name.endswith(".txt"):
+            return uploaded_file.read().decode("utf-8", errors="ignore")
+        if mime == "application/pdf" or name.endswith(".pdf"):
+            try:
+                return extract_pdf_text(uploaded_file)
+            except Exception:
+                return ""
+        if name.endswith(".docx"):
+            try:
+                from docx import Document
+                doc = Document(uploaded_file)
+                return "\n".join(p.text for p in doc.paragraphs if p.text and p.text.strip())
+            except Exception:
+                return ""
+    except Exception:
+        return ""
+    return ""
+
+
+def _wz90_clean_sentence(text: str) -> str:
+    """Small local fallback that makes broken notes more readable if AI is unavailable."""
+    text = str(text or "").strip()
+    if not text:
+        return ""
+    text = _wz_re.sub(r"\s+", " ", text)
+    text = text.replace(" i ", " I ")
+    if text and text[0].islower():
+        text = text[0].upper() + text[1:]
+    if text and text[-1] not in ".!?":
+        text += "."
+    return text
+
+
+def _wz90_build_create_cv_notes(data: dict) -> str:
+    skills = ", ".join(data.get("skills", []) or [])
+    languages = ", ".join(data.get("languages", []) or [])
+    certs = ", ".join(data.get("certificates", []) or [])
+    return f"""
+Full name: {data.get('full_name','')}
+Target role: {data.get('target_role','')}
+Target country: {data.get('country','')}
+Career status: {data.get('status','')}
+
+Experience / background notes:
+{data.get('experience','')}
+
+Education:
+{data.get('education','')}
+
+Skills:
+{skills}
+
+Projects:
+{data.get('projects','')}
+
+Certificates:
+{certs}
+
+Languages:
+{languages}
+
+Extra details:
+{data.get('extra','')}
+""".strip()
+
+
+def _wz90_generate_smart_cv(data: dict) -> str:
+    """Generate a better CV from rough user notes. Uses existing AI helper if available, with safe fallback."""
+    raw_notes = _wz90_build_create_cv_notes(data)
+    country = data.get("country") or st.session_state.get("country", "") or "Germany"
+    status = data.get("status") or st.session_state.get("user_status", "") or "Job seeker"
+
+    # Use existing WorkZo AI CV generator when available. This preserves your current AI behavior.
+    try:
+        if callable(globals().get("generate_cv_from_user_details")):
+            generated = generate_cv_from_user_details(raw_notes, country, status)
+            if generated and not str(generated).startswith("ERROR:") and len(str(generated).strip()) > 120:
+                return str(generated).strip()
+    except Exception:
+        pass
+
+    # Clean local fallback so onboarding never crashes if AI/API is unavailable.
+    full_name = data.get("full_name") or "Your Name"
+    target_role = data.get("target_role") or "Target Role"
+    summary_parts = []
+    if data.get("experience"):
+        summary_parts.append(_wz90_clean_sentence(data.get("experience")))
+    if data.get("skills"):
+        summary_parts.append("Skilled in " + ", ".join(data.get("skills")[:8]) + ".")
+    summary = " ".join(summary_parts) or f"Motivated candidate targeting {target_role} roles."
+
+    projects = _wz90_clean_sentence(data.get("projects"))
+    extra = _wz90_clean_sentence(data.get("extra"))
+    certs = ", ".join(data.get("certificates", []) or [])
+    langs = ", ".join(data.get("languages", []) or [])
+    skills = ", ".join(data.get("skills", []) or [])
+
+    return f"""
+{full_name}
+{target_role}
+
+PROFESSIONAL SUMMARY
+{summary}
+
+CORE SKILLS
+{skills or 'Add your main skills here'}
+
+EXPERIENCE
+{_wz90_clean_sentence(data.get('experience')) or 'Add your work, internship, project, or volunteer experience here.'}
+
+PROJECTS
+{projects or 'Add relevant projects here.'}
+
+EDUCATION
+{data.get('education') or 'Add your education here.'}
+
+CERTIFICATIONS
+{certs or 'Add relevant certifications here.'}
+
+LANGUAGES
+{langs or 'Add languages here.'}
+
+ADDITIONAL DETAILS
+{extra}
+""".strip()
+
+
+def _wz90_finalize_cv_to_dashboard(cv_text: str, cv_mode: str, country: str, language: str, user_status: str = "") -> None:
+    """Shared finalization for uploaded or created CV. Keeps existing WorkZo downstream state intact."""
+    _wz90_set_lang_country(language, country)
+    st.session_state.cv_mode = cv_mode
+    st.session_state.user_status = user_status or st.session_state.get("user_status", "") or "Job seeker"
+    st.session_state.raw_cv_extraction = cv_text
+
+    clean_text = cv_text
+    try:
+        clean_text = organize_cv_for_display(cv_text)
+    except Exception:
+        pass
+
+    # Keep structured extraction so Improve CV / Downloads / Dashboard continue to work.
+    try:
+        with st.spinner(_wz90_label("Creating a clean profile from your CV...")):
+            structured_data = extract_structured_resume_json(clean_text, country, st.session_state.user_status)
+            clean_from_sections = _format_structured_resume_profile(structured_data)
+            st.session_state.structured_cv_json = structured_data if isinstance(structured_data, dict) else {}
+            st.session_state.pending_structured_cv_json = {}
+            st.session_state.cv_review_required = False
+            if clean_from_sections and len(clean_from_sections.strip()) > 120:
+                st.session_state.structured_cv_profile = clean_from_sections
+                st.session_state.clean_structured_cv_text = clean_from_sections
+                clean_text = clean_from_sections
+    except Exception:
+        st.session_state.clean_structured_cv_text = clean_text
+
+    try:
+        st.session_state.cv_text = clean_cv_text(clean_text)
+    except Exception:
+        st.session_state.cv_text = str(clean_text or "").strip()
+
+    try:
+        workzo_sync_user_profile()
+    except Exception:
+        pass
+    try:
+        track_event("cv_ready", "Onboarding", {"cv_mode": cv_mode, "target_country": country, "user_status": st.session_state.user_status})
+    except Exception:
+        pass
+
+    st.session_state.onboarding_complete = True
+    try:
+        with st.spinner(_wz90_label("Preparing your dashboard...")):
+            analyze_resume_dashboard_stable(st.session_state.cv_text, force_refresh=True)
+    except Exception:
+        pass
+    try:
+        sync_navigation_state("dashboard")
+    except Exception:
+        st.session_state.page = "dashboard"
+    try:
+        request_scroll_to_top()
+    except Exception:
+        pass
+
+
+def _wz90_render_create_cv_form(language: str, country: str, user_status: str) -> None:
+    st.markdown("### ✍️ Create your CV")
+    st.caption(_wz90_label("Write simple notes. WorkZo will turn them into a cleaner CV."))
+
+    full_name = st.text_input(_wz90_label("Full name"), key="wz90_create_full_name", placeholder="Example: Haritha Vijayakumar")
+
+    target_role = st.selectbox(
+        _wz90_label("Target role"),
+        [""] + _WZ90_ROLE_OPTIONS + ["Other"],
+        key="wz90_create_target_role_select",
+    )
+    if target_role == "Other":
+        target_role = st.text_input(_wz90_label("Type your target role"), key="wz90_create_target_role_custom")
+
+    experience = st.text_area(
+        _wz90_label("Experience or background"),
+        key="wz90_create_experience",
+        height=120,
+        placeholder="Example: I worked in technical support for 4 years. I helped customers, handled tickets, solved product issues, and worked with support teams.",
+    )
+
+    education = st.selectbox(
+        _wz90_label("Education"),
+        [""] + _WZ90_EDUCATION_OPTIONS,
+        key="wz90_create_education_select",
+    )
+    if education == "Other":
+        education = st.text_input(_wz90_label("Type your education"), key="wz90_create_education_custom")
+
+    skills = st.multiselect(
+        _wz90_label("Skills"),
+        _WZ90_SKILL_OPTIONS,
+        key="wz90_create_skills",
+        placeholder=_wz90_label("Start typing skills"),
+    )
+
+    with st.expander(_wz90_label("Add more details (optional)"), expanded=False):
+        projects = st.text_area(
+            _wz90_label("Projects"),
+            key="wz90_create_projects",
+            height=90,
+            placeholder="Example: Built a Tableau dashboard / Python data project / customer support analysis project.",
+        )
+        certificates = st.multiselect(
+            _wz90_label("Certificates"),
+            _WZ90_CERT_OPTIONS,
+            key="wz90_create_certificates",
+            placeholder=_wz90_label("Start typing certificates"),
+        )
+        languages_known = st.multiselect(
+            _wz90_label("Languages"),
+            _WZ90_LANGUAGE_OPTIONS,
+            key="wz90_create_languages",
+            placeholder=_wz90_label("Start typing languages"),
+        )
+        extra = st.text_area(
+            _wz90_label("Anything else WorkZo should know?"),
+            key="wz90_create_extra",
+            height=80,
+            placeholder="Example: career break, relocation, preferred remote roles, willing to migrate, German level, etc.",
+        )
+
+    if st.button(_wz90_label("Create My CV"), type="primary", use_container_width=True, key="wz90_create_cv_btn"):
+        if not full_name.strip() or not target_role.strip():
+            st.warning(_wz90_label("Please add your name and target role."))
+            return
+        if not experience.strip() and not skills:
+            st.warning(_wz90_label("Please add at least your experience/background or key skills."))
+            return
+
+        data = {
+            "full_name": full_name.strip(),
+            "target_role": target_role.strip(),
+            "experience": experience.strip(),
+            "education": education.strip(),
+            "skills": skills,
+            "projects": projects.strip(),
+            "certificates": certificates,
+            "languages": languages_known,
+            "extra": extra.strip(),
+            "country": country,
+            "status": user_status,
+        }
+        with st.spinner(_wz90_label("Creating and improving your CV...")):
+            generated_cv = _wz90_generate_smart_cv(data)
+        st.session_state.wz90_created_cv_preview = generated_cv
+        st.session_state.wz90_created_cv_data = data
+        st.rerun()
+
+    if st.session_state.get("wz90_created_cv_preview"):
+        st.success(_wz90_label("Your CV draft is ready."))
+        edited_cv = st.text_area(
+            _wz90_label("Review your CV before continuing"),
+            value=st.session_state.get("wz90_created_cv_preview", ""),
+            height=260,
+            key="wz90_created_cv_review",
+        )
+        if st.button(_wz90_label("Go to Dashboard"), type="primary", use_container_width=True, key="wz90_created_cv_continue"):
+            _wz90_finalize_cv_to_dashboard(edited_cv, "Create CV", country, language, user_status)
+            st.rerun()
+
+
+def show_onboarding():
+    """Clean onboarding override: Upload CV or smart Create CV. LinkedIn option removed."""
+    _wz90_top_header_once()
+    try:
+        maybe_scroll_to_top()
+    except Exception:
+        pass
+
+    if "wz90_onboarding_step" not in st.session_state:
+        st.session_state.wz90_onboarding_step = 1
+
+    # Keep steps short. One action per screen.
+    st.markdown("### " + _wz90_label("Start your WorkZo journey"))
+    step = int(st.session_state.get("wz90_onboarding_step", 1) or 1)
+    st.caption(_wz90_label(f"Step {step} of 3"))
+
+    language_list = globals().get("language_options", None) or ["English", "German", "Dutch", "French", "Spanish", "Portuguese"]
+    country_list = globals().get("country_options", None) or ["Germany", "Netherlands", "India", "United States", "United Kingdom", "Canada", "Australia"]
+
+    if step == 1:
+        st.markdown("#### " + _wz90_label("Choose your language and job market"))
+        current_lang = st.session_state.get("preferred_language", "English")
+        if current_lang not in language_list:
+            current_lang = "English" if "English" in language_list else language_list[0]
+        language = st.selectbox(_wz90_label("Preferred language"), language_list, index=language_list.index(current_lang), key="wz90_pref_language")
+
+        current_country = st.session_state.get("country", "Germany")
+        if current_country not in country_list:
+            current_country = "Germany" if "Germany" in country_list else country_list[0]
+        country = st.selectbox(_wz90_label("Target country"), country_list, index=country_list.index(current_country), key="wz90_target_country")
+
+        user_status_options = [
+            "Job seeker", "Fresh graduate", "Student / thesis / internship", "Career changer",
+            "Experienced professional", "Returning after a career break", "Willing to migrate / international applicant",
+        ]
+        current_status = st.session_state.get("user_status", "Job seeker")
+        if current_status not in user_status_options:
+            current_status = "Job seeker"
+        user_status = st.selectbox(_wz90_label("Career situation"), user_status_options, index=user_status_options.index(current_status), key="wz90_user_status")
+
+        if st.button(_wz90_label("Continue"), type="primary", use_container_width=True, key="wz90_step1_continue"):
+            _wz90_set_lang_country(language, country)
+            st.session_state.user_status = user_status
+            st.session_state.wz90_onboarding_step = 2
+            st.rerun()
+        return
+
+    language = st.session_state.get("preferred_language", "English")
+    country = st.session_state.get("country", "Germany")
+    user_status = st.session_state.get("user_status", "Job seeker")
+
+    if step == 2:
+        st.markdown("#### " + _wz90_label("How do you want to start?"))
+        method = st.radio(
+            _wz90_label("Choose one"),
+            ["📄 Upload CV", "✍️ Create CV"],
+            horizontal=True,
+            key="wz90_cv_start_method",
+            label_visibility="collapsed",
+        )
+        st.caption(_wz90_label("Upload an existing CV, or create one from simple notes."))
+        col_back, col_continue = st.columns([1, 2])
+        with col_back:
+            if st.button(_wz90_label("Back"), use_container_width=True, key="wz90_step2_back"):
+                st.session_state.wz90_onboarding_step = 1
+                st.rerun()
+        with col_continue:
+            if st.button(_wz90_label("Continue"), type="primary", use_container_width=True, key="wz90_step2_continue"):
+                st.session_state.wz90_cv_method = method
+                st.session_state.wz90_onboarding_step = 3
+                st.rerun()
+        return
+
+    if step == 3:
+        method = st.session_state.get("wz90_cv_method", "📄 Upload CV")
+        if method.startswith("📄"):
+            st.markdown("#### " + _wz90_label("Upload your CV"))
+            st.caption(_wz90_label("Upload your CV and WorkZo will prepare your dashboard."))
+            uploaded_file = st.file_uploader(_wz90_label("Upload PDF, TXT, or DOCX"), type=["pdf", "txt", "docx"], key="wz90_upload_cv_file")
+            col_back, col_continue = st.columns([1, 2])
+            with col_back:
+                if st.button(_wz90_label("Back"), use_container_width=True, key="wz90_upload_back"):
+                    st.session_state.wz90_onboarding_step = 2
+                    st.rerun()
+            with col_continue:
+                if st.button(_wz90_label("Go to Dashboard"), type="primary", use_container_width=True, key="wz90_upload_continue"):
+                    if uploaded_file is None:
+                        st.warning(_wz90_label("Please upload your CV first."))
+                        return
+                    if getattr(uploaded_file, "size", 0) and uploaded_file.size > 5 * 1024 * 1024:
+                        st.error(_wz90_label("File is too large. Please upload a smaller CV."))
+                        return
+                    cv_text = _wz90_extract_uploaded_cv(uploaded_file)
+                    if not cv_text or len(cv_text.strip()) < 40:
+                        st.error(_wz90_label("I could not read enough text from this file. Please try a clearer PDF/TXT/DOCX."))
+                        return
+                    _wz90_finalize_cv_to_dashboard(cv_text, "Upload CV", country, language, user_status)
+                    st.rerun()
+        else:
+            _wz90_render_create_cv_form(language, country, user_status)
+
+# =========================================================
+# WorkZo v91 - Onboarding: Upload CV | Create CV | Sample Demo
+# Scope: onboarding only. LinkedIn remains removed. Existing helpers/features preserved.
+# =========================================================
+def _wz91_onboarding_css() -> None:
+    try:
+        st.markdown("""
+        <style id="workzo-v91-onboarding-css">
+        .wz91-onboard-hero { margin:.55rem 0 1rem 0; padding:1.1rem 1.2rem; border-radius:22px; border:1px solid rgba(34,211,238,.28); background:linear-gradient(135deg, rgba(8,47,73,.86), rgba(15,23,42,.95)); box-shadow:0 16px 38px rgba(2,6,23,.20); }
+        .wz91-kicker { color:#67e8f9; font-size:.72rem; font-weight:900; letter-spacing:.13em; text-transform:uppercase; margin-bottom:.3rem; }
+        .wz91-title { color:#fff; font-size:clamp(1.35rem,4vw,2rem); line-height:1.12; font-weight:950; letter-spacing:-.035em; margin:0; }
+        .wz91-sub { color:#cbd5e1; font-size:.94rem; line-height:1.45; margin:.42rem 0 0 0; max-width:760px; }
+        .wz91-card { border-radius:18px; border:1px solid rgba(148,163,184,.25); background:rgba(15,23,42,.055); padding:.95rem 1rem; margin:.55rem 0; min-height:130px; }
+        .wz91-card strong { font-size:1rem; }
+        .wz91-muted { color:#64748b; font-size:.9rem; line-height:1.35; }
+        .wz91-step { display:inline-block; padding:.32rem .62rem; border-radius:999px; background:rgba(34,211,238,.12); border:1px solid rgba(34,211,238,.25); font-size:.82rem; font-weight:850; margin:.15rem .25rem .45rem 0; }
+        div[data-testid="stButton"] button { min-height:46px; border-radius:14px !important; font-weight:850 !important; }
+        @media(max-width:760px){ .wz91-onboard-hero{padding:1rem .9rem;border-radius:18px}.wz91-card{min-height:auto;padding:.85rem} }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz91_go_onboarding_step(step: int) -> None:
+    try:
+        st.session_state.wz91_onboarding_step = int(step)
+        request_scroll_to_top()
+    except Exception:
+        pass
+    st.rerun()
+
+
+def _wz91_render_method_cards() -> None:
+    st.markdown("#### " + _wz90_label("How do you want to start?"))
+    st.caption(_wz90_label("Choose how you want to start. You can upload an existing CV, create one, or try a sample demo."))
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown("<div class='wz91-card'><strong>📄 Upload CV</strong><div class='wz91-muted'>Already have a resume? Upload it and get started instantly.</div></div>", unsafe_allow_html=True)
+        if st.button(_wz90_label("Upload CV"), type="primary", use_container_width=True, key="wz91_choose_upload"):
+            st.session_state.wz91_cv_method = "upload"
+            _wz91_go_onboarding_step(3)
+    with c2:
+        st.markdown("<div class='wz91-card'><strong>✍️ Create CV</strong><div class='wz91-muted'>No CV? Answer a few questions and WorkZo will create one.</div></div>", unsafe_allow_html=True)
+        if st.button(_wz90_label("Create CV"), use_container_width=True, key="wz91_choose_create"):
+            st.session_state.wz91_cv_method = "create"
+            _wz91_go_onboarding_step(3)
+    with c3:
+        st.markdown("<div class='wz91-card'><strong>⚡ Sample Demo</strong><div class='wz91-muted'>Just exploring? Load a demo CV and job to see the full flow.</div></div>", unsafe_allow_html=True)
+        if st.button(_wz90_label("Try Sample Demo"), use_container_width=True, key="wz91_choose_sample"):
+            try:
+                load_workzo_sample_data()
+            except Exception:
+                st.session_state.cv_mode = "Sample Demo"
+                st.session_state.cv_text = globals().get("SAMPLE_CV_TEXT", "Sample Demo CV")
+                st.session_state.clean_structured_cv_text = st.session_state.cv_text
+                st.session_state.onboarding_complete = True
+                try: sync_navigation_state("dashboard")
+                except Exception: st.session_state.page = "dashboard"
+            st.rerun()
+
+
+def show_onboarding():
+    """v91 clean onboarding: Upload CV | Create CV | Sample Demo. LinkedIn option removed."""
+    _wz90_top_header_once()
+    _wz91_onboarding_css()
+    try:
+        maybe_scroll_to_top()
+    except Exception:
+        pass
+
+    if "wz91_onboarding_step" not in st.session_state:
+        st.session_state.wz91_onboarding_step = 1
+
+    step = int(st.session_state.get("wz91_onboarding_step", 1) or 1)
+    st.markdown(f"<span class='wz91-step'>Step {step} of 3</span>", unsafe_allow_html=True)
+
+    language_list = globals().get("language_options", None) or ["English", "German", "Dutch", "French", "Spanish", "Portuguese"]
+    country_list = globals().get("country_options", None) or ["Germany", "Netherlands", "India", "United States", "United Kingdom", "Canada", "Australia"]
+
+    if step == 1:
+        st.markdown("""
+        <div class="wz91-onboard-hero">
+          <div class="wz91-kicker">SETUP</div>
+          <div class="wz91-title">Choose your country, language, and career status</div>
+          <p class="wz91-sub">WorkZo will use this to personalize your dashboard, CV guidance, job search, and interview practice.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        current_country = st.session_state.get("country", "Germany")
+        if current_country not in country_list:
+            current_country = "Germany" if "Germany" in country_list else country_list[0]
+
+        current_lang = st.session_state.get("preferred_language", "English")
+        if current_lang not in language_list:
+            current_lang = "English" if "English" in language_list else language_list[0]
+
+        user_status_options = [
+            "Job seeker", "Fresh graduate", "Student / thesis / internship", "Career changer",
+            "Experienced professional", "Returning after a career break", "Willing to migrate / international applicant",
+        ]
+        current_status = st.session_state.get("user_status", "Job seeker")
+        if current_status not in user_status_options:
+            current_status = "Job seeker"
+
+        c_country, c_language, c_status = st.columns(3)
+        with c_country:
+            country = st.selectbox(_wz90_label("Choose country"), country_list, index=country_list.index(current_country), key="wz91_target_country")
+        with c_language:
+            language = st.selectbox(_wz90_label("Choose language"), language_list, index=language_list.index(current_lang), key="wz91_pref_language")
+        with c_status:
+            user_status = st.selectbox(_wz90_label("Career status"), user_status_options, index=user_status_options.index(current_status), key="wz91_user_status")
+
+        if st.button(_wz90_label("Continue"), type="primary", use_container_width=True, key="wz91_step1_continue"):
+            _wz90_set_lang_country(language, country)
+            st.session_state.user_status = user_status
+            _wz91_go_onboarding_step(2)
+        return
+
+    language = st.session_state.get("preferred_language", "English")
+    country = st.session_state.get("country", "Germany")
+    user_status = st.session_state.get("user_status", "Job seeker")
+
+    if step == 2:
+        st.markdown("""
+        <div class="wz91-onboard-hero">
+          <div class="wz91-kicker">ADD CV</div>
+          <div class="wz91-title">Upload CV, create CV, or try sample demo</div>
+          <p class="wz91-sub">Choose how you want to enter WorkZo. After this, you can go to your dashboard.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        _wz91_render_method_cards()
+        if st.button(_wz90_label("Back"), use_container_width=True, key="wz91_step2_back"):
+            _wz91_go_onboarding_step(1)
+        return
+
+    if step == 3:
+        method = st.session_state.get("wz91_cv_method", "upload")
+        if method == "upload":
+            st.markdown("#### " + _wz90_label("Upload your CV"))
+            st.caption(_wz90_label("Upload your CV and WorkZo will prepare your dashboard."))
+            uploaded_file = st.file_uploader(_wz90_label("Upload PDF, TXT, or DOCX"), type=["pdf", "txt", "docx"], key="wz91_upload_cv_file")
+            col_back, col_continue = st.columns([1, 2])
+            with col_back:
+                if st.button(_wz90_label("Back"), use_container_width=True, key="wz91_upload_back"):
+                    _wz91_go_onboarding_step(2)
+            with col_continue:
+                if st.button(_wz90_label("Go to Dashboard"), type="primary", use_container_width=True, key="wz91_upload_continue"):
+                    if uploaded_file is None:
+                        st.warning(_wz90_label("Please upload your CV first."))
+                        return
+                    if getattr(uploaded_file, "size", 0) and uploaded_file.size > 5 * 1024 * 1024:
+                        st.error(_wz90_label("File is too large. Please upload a smaller CV."))
+                        return
+                    cv_text = _wz90_extract_uploaded_cv(uploaded_file)
+                    if not cv_text or len(cv_text.strip()) < 40:
+                        st.error(_wz90_label("I could not read enough text from this file. Please try a clearer PDF/TXT/DOCX."))
+                        return
+                    _wz90_finalize_cv_to_dashboard(cv_text, "Upload CV", country, language, user_status)
+                    st.rerun()
+            return
+
+        # Create CV path: searchable multiselects are kept, and rough notes are improved by AI/fallback.
+        _wz90_render_create_cv_form(language, country, user_status)
+        if st.button(_wz90_label("Back"), use_container_width=True, key="wz91_create_back"):
+            st.session_state.pop("wz90_created_cv_preview", None)
+            _wz91_go_onboarding_step(2)
+        return
+
+# =========================================================
+# WorkZo PERMANENT landing/onboarding guard
+# This block is intentionally at the END of this module so it wins over any
+# earlier show_landing_page/show_onboarding definitions in this file.
+# Do not create another onboarding function after this block.
+# =========================================================
+try:
+    WORKZO_ACTIVE_ONBOARDING_VERSION = "permanent_v92_guided_3_step"
 except Exception:
     pass
