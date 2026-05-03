@@ -1199,6 +1199,8 @@ LinkedIn / Profile Notes:
 def workobot_intro_message() -> str:
     return """Hi, I'm Work-O-Bot
 
+If you have uploaded or created a CV, I can use it for personalized answers.
+
 I can help you with:
 • CV improvement
 • Interview preparation
@@ -1210,9 +1212,76 @@ I can help you with:
 Ask me anything about your career."""
 
 
+
+def get_workzo_cv_context_for_bot(max_chars: int = 7000) -> str:
+    """Return the best available CV/profile text for Work-O-Bot.
+
+    This centralizes all CV keys used across onboarding, CV tools, translation,
+    structured parsing, and dashboard cache so the bot never says it cannot read
+    a CV when one was already uploaded or created.
+    """
+    keys = [
+        "cv_text",
+        "clean_structured_cv_text",
+        "structured_cv_profile",
+        "generated_country_cv_text",
+        "created_cv_ai_output",
+        "raw_cv_extraction",
+        "cv_profile_raw",
+        "improved_cv_text_v92",
+        "translated_cv_text",
+        "latest_translated_cv_text",
+    ]
+    parts = []
+    seen = set()
+    for key in keys:
+        try:
+            value = st.session_state.get(key, "")
+        except Exception:
+            value = ""
+        if isinstance(value, dict):
+            try:
+                if callable(globals().get("_format_structured_resume_profile")):
+                    value = _format_structured_resume_profile(value)
+                else:
+                    value = str(value)
+            except Exception:
+                value = str(value)
+        value = str(value or "").strip()
+        if len(value) < 40:
+            continue
+        marker = value[:300].lower()
+        if marker in seen:
+            continue
+        seen.add(marker)
+        parts.append(value)
+
+    # Structured JSON fallback
+    try:
+        structured = st.session_state.get("structured_cv_json") or st.session_state.get("approved_structured_cv_json") or {}
+        if isinstance(structured, dict) and structured:
+            if callable(globals().get("_format_structured_resume_profile")):
+                structured_text = _format_structured_resume_profile(structured)
+            else:
+                structured_text = str(structured)
+            if structured_text and len(structured_text) > 40:
+                parts.append(str(structured_text))
+    except Exception:
+        pass
+
+    combined = "\n\n--- CV/Profile source ---\n\n".join(parts).strip()
+    return combined[:max_chars] if combined else ""
+
+
+def workzo_bot_has_cv_context() -> bool:
+    try:
+        return bool(get_workzo_cv_context_for_bot(500).strip())
+    except Exception:
+        return False
+
 def workobot_context_snapshot() -> str:
     """Small private context packet so Work-O-Bot can answer like a personalized career coach."""
-    cv_text = st.session_state.get("cv_text", "") or st.session_state.get("cv_profile_raw", "") or ""
+    cv_text = get_workzo_cv_context_for_bot(max_chars=7000)
     cv_excerpt = cv_text[:3500] if cv_text else "No CV text loaded."
     try:
         target_country = get_advice_country()
@@ -1302,6 +1371,16 @@ def run_workobot(user_message: str, mode: str = "Auto"):
     answer_lang = normalize_answer_language(st.session_state.get("preferred_language", "English"))
     intent = infer_workobot_intent(user_message)
     model_name = os.getenv("WORKZO_AI_MODEL") or get_streamlit_secret("WORKZO_AI_MODEL", "gpt-4o-mini")
+    cv_context = get_workzo_cv_context_for_bot(max_chars=7000)
+    jd_context = (
+        st.session_state.get("selected_job_description")
+        or st.session_state.get("last_understand_job_description")
+        or st.session_state.get("improve_cv_for_job_desc")
+        or st.session_state.get("interview_jd_text_v117")
+        or st.session_state.get("current_job_description")
+        or ""
+    )
+    cv_status_note = "CV is available and must be used for personalized answers." if cv_context else "No CV is currently available in session. Ask the user to upload or create a CV."
 
     system_prompt = f"""
 You are Work-O-Bot, the AI career coach inside WorkZo AI.
@@ -1326,14 +1405,22 @@ User context:
 - Resume score: {st.session_state.get('cv_score_value', st.session_state.get('resume_score', 'Not scored'))}
 - ATS score: {st.session_state.get('ats_score_value', st.session_state.get('ats_score', 'Not scored'))}
 - Company website/context: {st.session_state.get('target_company_website', 'Not provided')}
+- CV status: {cv_status_note}
+
+Uploaded CV/profile context available to Work-O-Bot:
+{cv_context if cv_context else "No CV context available."}
+
+Current/selected job description context:
+{str(jd_context or "No job description selected yet.")[:3500]}
 
 Rules:
 1. Answer in {answer_lang}.
 2. Be practical and specific.
 3. Be honest. Do not invent experience, employers, dates, degrees, certifications, achievements, salary, company facts, or language level.
 4. If company-specific information is missing, say what to verify instead of pretending.
-5. If the user's CV or job description is missing, ask for it or explain the limitation.
-6. Give concise steps and copy-ready examples when useful.
+5. If CV context is available, never say you cannot read the resume. Use the CV details directly and cite specific roles, skills, projects, gaps, and strengths from it.
+6. If job description is missing, explain that job-specific advice will be stronger after the user adds one.
+7. Give concise steps and copy-ready examples when useful.
 """
     try:
         response = client.chat.completions.create(
@@ -1352,6 +1439,14 @@ Rules:
 def show_workobot():
     st.subheader(txt("workobot"))
     st.caption("Personal AI career coach based on your CV, country, target market, and selected language.")
+    try:
+        _bot_cv_context = get_workzo_cv_context_for_bot(max_chars=1200)
+        if _bot_cv_context:
+            st.markdown('<div id="workzo-bot-cv-context-status" style="border:1px solid rgba(34,211,238,.25);background:rgba(8,145,178,.12);border-radius:14px;padding:.65rem .8rem;margin:.5rem 0 1rem;color:#cbd5e1;"><b style="color:#67e8f9;">✅ Using your uploaded CV/profile</b> for personalized answers.</div>', unsafe_allow_html=True)
+        else:
+            st.info("📄 Upload or create your CV to get personalized Work-O-Bot answers.")
+    except Exception:
+        pass
 
     if "workobot_messages" not in st.session_state or not st.session_state.workobot_messages:
         st.session_state.workobot_messages = [{"role": "assistant", "content": workobot_intro_message()}]
@@ -3294,3 +3389,199 @@ try:
     WORKZO_ACTIVE_ONBOARDING_VERSION = "permanent_v92_guided_3_step"
 except Exception:
     pass
+
+
+# =========================================================
+# WorkZo FINAL UX FIX - one header + real back navigation
+# Scope: header/back behavior only. No product feature logic changed.
+# =========================================================
+_WORKZO_HEADER_RENDERED_THIS_RUN = False
+try:
+    _workzo_original_sync_navigation_state = sync_navigation_state
+except Exception:
+    _workzo_original_sync_navigation_state = None
+try:
+    _workzo_original_queue_navigation = queue_navigation
+except Exception:
+    _workzo_original_queue_navigation = None
+try:
+    _workzo_original_render_workzo_header = render_workzo_header
+except Exception:
+    _workzo_original_render_workzo_header = None
+
+
+def _workzo_push_history(next_page: str) -> None:
+    """Keep a small Streamlit-side navigation stack so the app back button returns to the previous WorkZo page."""
+    try:
+        current = str(st.session_state.get("nav_page") or st.session_state.get("page") or "landing")
+        next_page = str(next_page or "dashboard")
+        if current and current != next_page:
+            stack = list(st.session_state.get("workzo_nav_stack", []) or [])
+            if not stack or stack[-1] != current:
+                stack.append(current)
+            st.session_state["workzo_nav_stack"] = stack[-12:]
+            st.session_state["workzo_previous_page"] = current
+    except Exception:
+        pass
+
+
+def sync_navigation_state(page_key: str) -> None:
+    """Canonical navigation: session state + URL + history stack."""
+    try:
+        _workzo_push_history(page_key)
+    except Exception:
+        pass
+    try:
+        st.session_state.page = page_key
+        st.session_state.nav_page = page_key
+        st.session_state.nav_change_nonce = st.session_state.get("nav_change_nonce", 0) + 1
+        try:
+            st.query_params["page"] = page_key
+        except Exception:
+            pass
+        if callable(globals().get("request_scroll_to_top")):
+            request_scroll_to_top()
+    except Exception:
+        if callable(_workzo_original_sync_navigation_state):
+            try:
+                _workzo_original_sync_navigation_state(page_key)
+            except Exception:
+                pass
+
+
+def queue_navigation(page_key: str) -> None:
+    """Queue page navigation and preserve previous page for the header back button."""
+    try:
+        _workzo_push_history(page_key)
+        st.session_state._workzo_pending_nav = page_key
+        try:
+            st.query_params["page"] = page_key
+        except Exception:
+            pass
+        if callable(globals().get("request_scroll_to_top")):
+            request_scroll_to_top()
+    except Exception:
+        if callable(_workzo_original_queue_navigation):
+            try:
+                _workzo_original_queue_navigation(page_key)
+            except Exception:
+                pass
+
+
+def _workzo_header_back_href() -> str:
+    try:
+        stack = list(st.session_state.get("workzo_nav_stack", []) or [])
+        current = str(st.session_state.get("nav_page") or st.session_state.get("page") or "landing")
+        while stack and stack[-1] == current:
+            stack.pop()
+        target = stack[-1] if stack else ("dashboard" if current not in {"landing", "onboarding", "dashboard"} else "landing")
+        if target == "landing":
+            return "?page=landing"
+        if target == "onboarding":
+            return "?page=onboarding"
+        return f"?page={target}"
+    except Exception:
+        return "?page=dashboard"
+
+
+def render_workzo_header() -> None:
+    """Render the WorkZo header once per Streamlit run, with previous-page back navigation."""
+    global _WORKZO_HEADER_RENDERED_THIS_RUN
+    if _WORKZO_HEADER_RENDERED_THIS_RUN:
+        return
+    _WORKZO_HEADER_RENDERED_THIS_RUN = True
+
+    try:
+        apply_workzo_v75_global_css()
+    except Exception:
+        pass
+
+    try:
+        logo_src = image_to_data_uri(ICON_PATH) or image_to_data_uri(LOGO_PATH)
+    except Exception:
+        logo_src = None
+
+    logo_html = (
+        f'<img src="{logo_src}" class="workzo-logo" alt="WorkZo AI logo">'
+        if logo_src
+        else '<div class="workzo-logo workzo-logo-fallback">WZ</div>'
+    )
+
+    try:
+        progress_pct, stage, cv_done, job_done, interview_done = _workzo_header_progress_state()
+    except Exception:
+        progress_pct, stage, cv_done, job_done, interview_done = 0, "CV", False, False, False
+    cv_mark = "✓" if cv_done else "1"
+    job_mark = "✓" if job_done else "2"
+    interview_mark = "✓" if interview_done else "3"
+    current_page = str(st.session_state.get("nav_page") or st.session_state.get("page", "landing") or "landing")
+    show_back = current_page not in {"landing"}
+    back_href = _workzo_header_back_href()
+    back_html = f'<a class="workzo-back" href="{back_href}" target="_self">← Back</a>' if show_back else '<span></span>'
+
+    st.markdown(f"""
+    <style id="workzo-final-single-header-css">
+    .workzo-header {{
+        width: min(1180px, calc(100vw - 2rem)) !important;
+        margin: 0 auto 1.05rem auto !important;
+        position: sticky !important;
+        top: .55rem !important;
+        z-index: 99999 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 1rem !important;
+        padding: .82rem 1rem !important;
+        border-radius: 22px !important;
+        border: 1px solid rgba(34,211,238,.30) !important;
+        background: linear-gradient(135deg, rgba(8,47,73,.96), rgba(15,23,42,.98)) !important;
+        box-shadow: 0 18px 45px rgba(2,6,23,.35) !important;
+        backdrop-filter: blur(14px) !important;
+    }}
+    .workzo-brand {{ display:flex !important; align-items:center !important; gap:.85rem !important; min-width:0 !important; text-decoration:none !important; }}
+    .workzo-logo {{ width:54px !important; height:54px !important; min-width:54px !important; border-radius:15px !important; object-fit:cover !important; display:flex !important; align-items:center !important; justify-content:center !important; background:linear-gradient(135deg,#06b6d4,#2563eb) !important; color:#fff !important; font-weight:950 !important; box-shadow:0 10px 24px rgba(14,165,233,.25) !important; }}
+    .workzo-title {{ color:#fff !important; font-size:1.45rem !important; font-weight:950 !important; letter-spacing:-.04em !important; line-height:1 !important; white-space:nowrap !important; }}
+    .workzo-title span {{ color:#22d3ee !important; }}
+    .workzo-subtitle {{ color:#cbd5e1 !important; font-size:.82rem !important; font-weight:650 !important; margin-top:.25rem !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; max-width:380px !important; }}
+    .workzo-header-right {{ display:flex !important; align-items:center !important; gap:.75rem !important; }}
+    .workzo-back {{ color:#cbd5e1 !important; text-decoration:none !important; border:1px solid rgba(148,163,184,.28) !important; border-radius:999px !important; padding:.42rem .68rem !important; font-weight:850 !important; font-size:.78rem !important; background:rgba(15,23,42,.42) !important; white-space:nowrap !important; }}
+    .workzo-progress-wrap {{ min-width:220px !important; }}
+    .workzo-progress-top {{ display:flex !important; justify-content:space-between !important; color:#cbd5e1 !important; font-size:.72rem !important; font-weight:850 !important; margin-bottom:.28rem !important; }}
+    .workzo-progress-bar {{ height:7px !important; border-radius:999px !important; background:rgba(148,163,184,.18) !important; overflow:hidden !important; }}
+    .workzo-progress-fill {{ height:100% !important; width:{progress_pct}% !important; border-radius:999px !important; background:linear-gradient(90deg,#22d3ee,#22c55e) !important; }}
+    .workzo-progress-steps {{ display:flex !important; gap:.35rem !important; margin-top:.34rem !important; }}
+    .workzo-step {{ color:#cbd5e1 !important; border:1px solid rgba(148,163,184,.22) !important; background:rgba(15,23,42,.42) !important; border-radius:999px !important; padding:.16rem .42rem !important; font-size:.63rem !important; font-weight:850 !important; white-space:nowrap !important; }}
+    .workzo-step.done {{ color:#67e8f9 !important; border-color:rgba(34,211,238,.45) !important; background:rgba(8,145,178,.18) !important; }}
+    .workzo-beta {{ color:#67e8f9 !important; border:1px solid rgba(103,232,249,.42) !important; background:rgba(8,145,178,.16) !important; border-radius:999px !important; padding:.38rem .72rem !important; font-size:.7rem !important; font-weight:950 !important; letter-spacing:.04em !important; white-space:nowrap !important; }}
+    @media (max-width:760px) {{
+        .workzo-header {{ width:calc(100vw - 1rem) !important; top:.45rem !important; border-radius:18px !important; padding:.65rem .75rem !important; }}
+        .workzo-logo {{ width:44px !important; height:44px !important; min-width:44px !important; }}
+        .workzo-title {{ font-size:1.16rem !important; }}
+        .workzo-subtitle {{ font-size:.70rem !important; max-width:150px !important; }}
+        .workzo-progress-wrap, .workzo-back {{ display:none !important; }}
+        .workzo-beta {{ font-size:.62rem !important; padding:.32rem .52rem !important; }}
+    }}
+    </style>
+    <div class="workzo-header">
+        <a class="workzo-brand workzo-home-link" href="?page=dashboard&home=1" target="_self" title="Go to dashboard">
+            {logo_html}
+            <div>
+                <div class="workzo-title">WorkZo <span>AI</span></div>
+                <div class="workzo-subtitle">Your guided AI career system</div>
+            </div>
+        </a>
+        <div class="workzo-header-right">
+            {back_html}
+            <div class="workzo-progress-wrap">
+                <div class="workzo-progress-top"><span>{stage}</span><span>{progress_pct}%</span></div>
+                <div class="workzo-progress-bar"><div class="workzo-progress-fill"></div></div>
+                <div class="workzo-progress-steps">
+                    <span class="workzo-step {'done' if cv_done else ''}">{cv_mark} CV</span>
+                    <span class="workzo-step {'done' if job_done else ''}">{job_mark} Jobs</span>
+                    <span class="workzo-step {'done' if interview_done else ''}">{interview_mark} Interview</span>
+                </div>
+            </div>
+            <div class="workzo-beta">BETA</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)

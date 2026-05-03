@@ -22,6 +22,11 @@ ANALYTICS_FILE = BASE_DIR / "workzo_analytics.csv"
 FEEDBACK_FILE = BASE_DIR / "workzo_feedback.csv"
 USER_PROFILE_FILE = BASE_DIR / "workzo_user_profiles.csv"
 
+# Per-rerun render guards. These prevent duplicate feedback/founder blocks
+# when multiple dashboard wrappers call the same helper during one Streamlit run.
+_wz_feedback_rendered_guard = False
+_wz_founder_message_rendered_guard = False
+
 
 def _now_iso() -> str:
     return datetime.utcnow().isoformat(timespec="seconds") + "Z"
@@ -217,9 +222,16 @@ def save_feedback(what_tried: str, confused: str, use_again: str, extra: str = "
 
 
 def render_feedback_button() -> None:
-    """Small feedback section. Streamlit-safe alternative to fragile floating JS."""
+    """Small feedback section. Streamlit-safe alternative to fragile floating JS.
+
+    Guarded so it can be safely called from dashboard wrappers without showing twice.
+    """
+    global _wz_feedback_rendered_guard
     if st is None:
         return
+    if _wz_feedback_rendered_guard:
+        return
+    _wz_feedback_rendered_guard = True
     init_user_insights()
     try:
         with st.expander("💬 Give feedback (30 sec)", expanded=False):
@@ -237,9 +249,16 @@ def render_feedback_button() -> None:
 
 
 def render_founder_message(email: str = "") -> None:
-    """Human founder note, non-intrusive."""
+    """Human founder note, non-intrusive.
+
+    Guarded so it can be safely called from multiple places without duplication.
+    """
+    global _wz_founder_message_rendered_guard
     if st is None:
         return
+    if _wz_founder_message_rendered_guard:
+        return
+    _wz_founder_message_rendered_guard = True
     try:
         contact = f" You can also email me at {email}." if email else ""
         st.markdown(f"""

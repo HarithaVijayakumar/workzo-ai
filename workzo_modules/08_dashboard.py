@@ -21945,6 +21945,571 @@ try:
 
     def show_dashboard():
         result = _workzo_dashboard_before_user_insights()
+        return result
+except Exception:
+    pass
+
+
+# =========================================================
+# WorkZo FINAL UX FIX PACK
+# Fixes: duplicate logo card, template variety, founder dashboard clarity,
+# Advanced Job Assist duplication, and safe feedback placement.
+# No core CV/interview/job/rules-engine logic is removed.
+# =========================================================
+
+# 1) Prevent the older dashboard brand card from rendering when the sticky WorkZo header is active.
+try:
+    def _wz72_render_brand_top(*args, **kwargs):
+        return None
+except Exception:
+    pass
+
+# 2) Make CV template preview visibly different for every selected template.
+def _wz_final_template_style(template_name: str) -> str:
+    name = str(template_name or "").lower()
+    if any(x in name for x in ["german", "lebenslauf", "eu classic"]):
+        return "german"
+    if any(x in name for x in ["modern", "dutch", "creative"]):
+        return "modern"
+    if any(x in name for x in ["career", "pivot", "returning"]):
+        return "pivot"
+    if any(x in name for x in ["graduate", "student", "intern", "portfolio"]):
+        return "graduate"
+    if any(x in name for x in ["executive", "slate"]):
+        return "executive"
+    return "ats"
+
+
+def _wz_final_extract_cv_bits(cv_text: str):
+    lines = [x.strip() for x in str(cv_text or "").splitlines() if x.strip()]
+    name = lines[0] if lines else "Your Name"
+    role = lines[1] if len(lines) > 1 else "Professional CV"
+    body = "\n".join(lines[2:]) if len(lines) > 2 else str(cv_text or "")
+    return html.escape(name), html.escape(role), html.escape(body).replace("\n", "<br>")
+
+
+def _wz_final_cv_html(cv_text: str, template_name: str = "ATS Resume", target_country: str = "") -> str:
+    style = _wz_final_template_style(template_name)
+    name, role, body = _wz_final_extract_cv_bits(cv_text)
+    label = html.escape(str(template_name or "ATS Resume"))
+    country = html.escape(str(target_country or st.session_state.get("migration_country") or st.session_state.get("country") or "International"))
+    base = """
+    <style id="wz-final-template-preview-css">
+    .wzcv-page{width:794px;max-width:100%;min-height:980px;margin:0 auto 22px;background:white;color:#111827;box-shadow:0 18px 50px rgba(2,6,23,.24);font-family:Arial,Helvetica,sans-serif;overflow:hidden;border-radius:10px}.wzcv-page p,.wzcv-body{font-size:13px;line-height:1.45}.wzcv-section{font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;margin:18px 0 8px}.wzcv-muted{color:#64748b;font-size:12px}.wzcv-chip{display:inline-block;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:800;background:#e0f2fe;color:#075985;margin-top:8px}@media(max-width:850px){.wzcv-page{width:100%;min-height:auto}}
+    </style>
+    """
+    if style == "german":
+        return base + f"""
+        <div class="wzcv-page"><div style="padding:34px 42px;border-bottom:4px solid #111827"><div style="font-size:32px;font-weight:900;letter-spacing:.04em">{name}</div><div style="margin-top:6px;color:#334155;font-size:15px">{role}</div><div class="wzcv-chip">{label} · {country}</div></div><div style="display:grid;grid-template-columns:34% 66%"><aside style="background:#f1f5f9;padding:26px;min-height:760px"><div class="wzcv-section">Profile</div><div class="wzcv-muted">Country-aware CV style</div><div class="wzcv-section">Skills</div><div class="wzcv-body">{body[:1400]}</div></aside><main style="padding:28px 34px"><div class="wzcv-section">Experience</div><div class="wzcv-body">{body}</div></main></div></div>
+        """
+    if style == "modern":
+        return base + f"""
+        <div class="wzcv-page"><div style="background:linear-gradient(135deg,#2563eb,#14b8a6);color:white;padding:42px 46px"><div style="font-size:36px;font-weight:950">{name}</div><div style="margin-top:8px;font-size:16px;opacity:.95">{role}</div><div style="margin-top:12px;font-size:12px;opacity:.9">{label} · {country}</div></div><div style="padding:30px 42px;display:grid;grid-template-columns:1.25fr .75fr;gap:28px"><main><div class="wzcv-section" style="color:#2563eb">Profile & Experience</div><div class="wzcv-body">{body}</div></main><aside style="border-left:1px solid #e5e7eb;padding-left:24px"><div class="wzcv-section" style="color:#0f766e">Skills</div><div class="wzcv-muted">Modern two-column layout</div></aside></div></div>
+        """
+    if style == "pivot":
+        return base + f"""
+        <div class="wzcv-page" style="padding:42px 50px"><div style="background:#f5f3ff;border-left:7px solid #7c3aed;padding:22px 26px;border-radius:16px"><div style="font-size:33px;font-weight:950">{name}</div><div style="margin-top:7px;color:#4c1d95;font-size:15px">{role}</div><div class="wzcv-chip" style="background:#ede9fe;color:#5b21b6">{label} · {country}</div></div><div class="wzcv-section" style="color:#7c3aed">Career Change Profile</div><div class="wzcv-body">{body}</div></div>
+        """
+    if style == "graduate":
+        return base + f"""
+        <div class="wzcv-page"><div style="padding:38px 44px;background:#ecfdf5;border-bottom:5px solid #0f766e"><div style="font-size:32px;font-weight:950;color:#064e3b">{name}</div><div style="margin-top:7px;color:#065f46;font-size:15px">{role}</div><div class="wzcv-chip" style="background:#d1fae5;color:#065f46">{label} · {country}</div></div><div style="padding:30px 42px"><div class="wzcv-section" style="color:#0f766e">Education, Projects & Potential</div><div class="wzcv-body">{body}</div></div></div>
+        """
+    if style == "executive":
+        return base + f"""
+        <div class="wzcv-page"><div style="padding:42px 48px;background:#0f172a;color:white"><div style="font-size:35px;font-weight:900">{name}</div><div style="margin-top:7px;color:#cbd5e1;font-size:16px">{role}</div><div style="margin-top:12px;color:#94a3b8;font-size:12px">{label} · {country}</div></div><div style="padding:34px 48px"><div class="wzcv-section" style="color:#0f172a">Professional Impact</div><div class="wzcv-body">{body}</div></div></div>
+        """
+    return base + f"""
+    <div class="wzcv-page" style="padding:46px 56px"><div style="border-bottom:2px solid #e5e7eb;padding-bottom:16px"><div style="font-size:32px;font-weight:900;color:#0f172a">{name}</div><div style="margin-top:6px;color:#334155;font-size:15px">{role}</div><div class="wzcv-chip">{label} · {country}</div></div><div class="wzcv-section">ATS Profile</div><div class="wzcv-body">{body}</div></div>
+    """
+
+
+def _wz_final_structured_to_text(data: dict) -> str:
+    try:
+        if callable(globals().get("_format_structured_resume_profile")):
+            text = _format_structured_resume_profile(data)
+            if text:
+                return str(text)
+    except Exception:
+        pass
+    try:
+        parts = []
+        if data.get("full_name"):
+            parts.append(str(data.get("full_name")))
+        elif isinstance(data.get("personal_info"), dict) and data["personal_info"].get("name"):
+            parts.append(str(data["personal_info"].get("name")))
+        if data.get("target_role"):
+            parts.append(str(data.get("target_role")))
+        if data.get("professional_summary"):
+            parts.append("PROFESSIONAL SUMMARY\n" + str(data.get("professional_summary")))
+        for key in ["core_skills", "skills", "work_experience", "experience", "projects", "education", "languages", "certifications"]:
+            val = data.get(key)
+            if val:
+                parts.append(str(key).replace("_", " ").upper() + "\n" + str(val))
+        return "\n\n".join(parts)
+    except Exception:
+        return str(data or "")
+
+
+def _wz92_cv_html(cv_text: str, template_name: str, target_country: str) -> str:
+    return _wz_final_cv_html(cv_text, template_name, target_country)
+
+
+def build_visual_cv_html(cv_text, template_name="ATS Resume", target_country=""):
+    return _wz_final_cv_html(str(cv_text or ""), template_name, target_country)
+
+
+def workzo_visual_cv_html_from_structured(data, template_name="ATS Resume", target_country=""):
+    return _wz_final_cv_html(_wz_final_structured_to_text(data if isinstance(data, dict) else {}), template_name, target_country)
+
+# 3) Founder dashboard: make analytics readable instead of showing confusing raw logs.
+def _wz_final_read_csv_safe(path):
+    try:
+        import pandas as pd
+        if os.path.exists(path):
+            return pd.read_csv(path)
+    except Exception:
+        pass
+    return None
+
+
+def render_founder_dashboard():
+    try:
+        st.markdown("### Founder Dashboard")
+        st.caption("Simple product signals: usage, drop-off, and feedback. No CV text or documents are shown here.")
+        analytics = _wz_final_read_csv_safe("workzo_analytics.csv")
+        feedback = _wz_final_read_csv_safe("workzo_feedback.csv")
+        events = []
+        if analytics is not None and not analytics.empty:
+            col_event = "event" if "event" in analytics.columns else ("event_name" if "event_name" in analytics.columns else None)
+            if col_event:
+                events = [str(x) for x in analytics[col_event].fillna("").tolist()]
+        page_visits = sum(1 for e in events if "page" in e.lower())
+        cv_uploads = sum(1 for e in events if "cv" in e.lower() and ("upload" in e.lower() or "ready" in e.lower()))
+        interview_started = sum(1 for e in events if "interview" in e.lower() and ("start" in e.lower() or "started" in e.lower()))
+        interview_completed = sum(1 for e in events if "interview" in e.lower() and ("complete" in e.lower() or "completed" in e.lower()))
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Page visits", page_visits or (len(analytics) if analytics is not None else 0))
+        c2.metric("CV uploads", cv_uploads)
+        c3.metric("Interviews started", interview_started)
+        c4.metric("Interviews completed", interview_completed)
+        st.markdown("#### Drop-off")
+        if cv_uploads:
+            st.write(f"CV → Interview started: **{round(interview_started / max(cv_uploads, 1) * 100)}%**")
+        else:
+            st.info("No CV upload signal yet.")
+        if interview_started:
+            st.write(f"Interview started → completed: **{round(interview_completed / max(interview_started, 1) * 100)}%**")
+        else:
+            st.info("No interview start signal yet.")
+        st.markdown("#### Feedback")
+        if feedback is not None and not feedback.empty:
+            show_cols = [c for c in feedback.columns if any(k in c.lower() for k in ["try", "confus", "again", "feedback", "message", "email", "name"])]
+            if show_cols:
+                st.dataframe(feedback[show_cols].tail(20), use_container_width=True, hide_index=True)
+            else:
+                st.dataframe(feedback.tail(20), use_container_width=True, hide_index=True)
+        else:
+            st.info("No feedback yet. Keep the feedback button visible during testing.")
+        with st.expander("Raw analytics", expanded=False):
+            if analytics is not None and not analytics.empty:
+                st.dataframe(analytics.tail(50), use_container_width=True, hide_index=True)
+            else:
+                st.caption("No analytics file yet.")
+    except Exception as exc:
+        st.error(f"Founder dashboard could not load safely: {exc}")
+
+# 4) Keep Advanced Job Assist focused: Understand Job + Prepare for Job only.
+try:
+    _wz_final_old_job_assist = _wz84_render_job_assist_page
+except Exception:
+    _wz_final_old_job_assist = None
+
+
+def _wz84_render_job_assist_page():
+    """Clean Job Assist with main Find Jobs area + focused Advanced section."""
+    if callable(_wz_final_old_job_assist):
+        # Render the existing main Find Jobs page, but suppress the old Advanced expander by monkey-patching st.expander only for that label.
+        old_expander = st.expander
+        class _WZEmptyExpander:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def caption(self, *args, **kwargs): pass
+        def _patched_expander(label, *args, **kwargs):
+            if str(label or "").strip().lower() == "advanced job assist":
+                return _WZEmptyExpander()
+            return old_expander(label, *args, **kwargs)
+        try:
+            st.expander = _patched_expander
+            _wz_final_old_job_assist()
+        finally:
+            st.expander = old_expander
+    else:
+        st.info("Job Assist is available after your CV is loaded.")
+    with st.expander("Advanced Job Assist", expanded=False):
+        st.caption("Use this only for understanding or preparing for one specific job. Find Jobs is already available above.")
+        tab1, tab2 = st.tabs(["Understand Job", "Prepare for Job"])
+        with tab1:
+            if callable(globals().get("_wz51_render_understand_job")):
+                _wz51_render_understand_job()
+            else:
+                st.info("Understand Job is not available in this build.")
+        with tab2:
+            if callable(globals().get("_wz51_render_prepare_job")):
+                _wz51_render_prepare_job()
+            else:
+                st.info("Prepare for Job is not available in this build.")
+
+# 5) Re-wrap dashboard once: one header only, feedback at bottom, no duplicate logo card.
+try:
+    _wz_final_core_show_dashboard = show_dashboard
+    def show_dashboard():
+        try:
+            if callable(globals().get("render_workzo_header")):
+                render_workzo_header()
+        except Exception:
+            pass
+        result = _wz_final_core_show_dashboard()
+        return result
+except Exception:
+    pass
+
+
+# =========================================================
+# WorkZo MAX CONNECTED PRODUCT LAYER
+# Purpose: make WorkZo behave like a guided career system, not a feature menu.
+# Safe design: this is an additive wrapper. Existing CV, job, interview,
+# document, rules-engine and analytics logic stays untouched.
+# =========================================================
+
+def _wzmax_safe_label(value: str) -> str:
+    try:
+        if callable(globals().get("ui_label")):
+            return ui_label(value)
+    except Exception:
+        pass
+    return value
+
+
+def _wzmax_int(value, default=0):
+    try:
+        if value is None or value == "":
+            return default
+        return int(float(value))
+    except Exception:
+        return default
+
+
+def _wzmax_cv_text() -> str:
+    try:
+        return str(
+            st.session_state.get("cv_text")
+            or st.session_state.get("clean_structured_cv_text")
+            or st.session_state.get("structured_cv_profile")
+            or st.session_state.get("raw_cv_extraction")
+            or ""
+        ).strip()
+    except Exception:
+        return ""
+
+
+def _wzmax_has_job_context() -> bool:
+    try:
+        return bool(str(
+            st.session_state.get("selected_job_description")
+            or st.session_state.get("last_understand_job_description")
+            or st.session_state.get("improve_cv_for_job_desc")
+            or st.session_state.get("interview_jd_text_v117")
+            or st.session_state.get("current_job_description")
+            or ""
+        ).strip())
+    except Exception:
+        return False
+
+
+def _wzmax_interview_score() -> int:
+    return _wzmax_int(
+        st.session_state.get("latest_interview_score")
+        or st.session_state.get("interview_score_value")
+        or st.session_state.get("interview_readiness_score")
+        or 0
+    )
+
+
+def _wzmax_cv_score() -> int:
+    return _wzmax_int(
+        st.session_state.get("cv_score_value")
+        or st.session_state.get("ats_score_value")
+        or st.session_state.get("resume_score")
+        or st.session_state.get("job_fit_score_value")
+        or 0
+    )
+
+
+def _wzmax_job_score() -> int:
+    return _wzmax_int(
+        st.session_state.get("latest_job_fit_score")
+        or st.session_state.get("job_fit_score_value")
+        or st.session_state.get("selected_job_match_score")
+        or 0
+    )
+
+
+def _wzmax_state() -> dict:
+    cv_text = _wzmax_cv_text()
+    cv_words = len(cv_text.split()) if cv_text else 0
+    cv_loaded = cv_words >= 40 or bool(st.session_state.get("structured_cv_json"))
+    cv_score = _wzmax_cv_score()
+    job_ready = _wzmax_has_job_context()
+    job_score = _wzmax_job_score()
+    interview_score = _wzmax_interview_score()
+    interview_done = bool(
+        st.session_state.get("interview_completed")
+        or st.session_state.get("real_interview_completed")
+        or st.session_state.get("latest_interview_feedback")
+    )
+    cv_good = cv_loaded and (cv_score >= 70 or cv_score == 0)
+    job_good = job_ready and (job_score >= 60 or job_score == 0)
+    interview_good = interview_done and interview_score >= 65
+    country = st.session_state.get("migration_country") or st.session_state.get("country") or "your target country"
+    role = st.session_state.get("target_role") or st.session_state.get("current_role_detected") or st.session_state.get("detected_target_role") or "your target role"
+    return {
+        "cv_loaded": cv_loaded,
+        "cv_words": cv_words,
+        "cv_score": cv_score,
+        "cv_good": cv_good,
+        "job_ready": job_ready,
+        "job_score": job_score,
+        "job_good": job_good,
+        "interview_done": interview_done,
+        "interview_score": interview_score,
+        "interview_good": interview_good,
+        "country": country,
+        "role": role,
+    }
+
+
+def _wzmax_next_action(state: dict) -> dict:
+    """Opinionated next best action. This is the product brain."""
+    if not state["cv_loaded"]:
+        return {
+            "title": "Upload or create your CV first",
+            "why": "WorkZo needs your CV to personalize jobs, interview questions, and documents.",
+            "button": "Add CV",
+            "target": "onboarding",
+            "extra": {},
+            "status": "Required",
+            "tone": "danger",
+        }
+    if state["cv_score"] and state["cv_score"] < 65:
+        return {
+            "title": "Improve your CV before applying",
+            "why": "Your CV is likely too weak for strong job applications. Fix the top gaps first.",
+            "button": "Improve CV",
+            "target": "improve_cv",
+            "extra": {},
+            "status": "Fix first",
+            "tone": "warning",
+        }
+    if not state["job_ready"]:
+        return {
+            "title": "Find or analyze one real job",
+            "why": "Your CV is ready enough. Now WorkZo needs a job description to create precise interview practice.",
+            "button": "Open Job Assist",
+            "target": "job_assist",
+            "extra": {"job_assist_mode_key": "find"},
+            "status": "Next",
+            "tone": "info",
+        }
+    if state["job_score"] and state["job_score"] < 55:
+        return {
+            "title": "Do not apply yet — job fit is low",
+            "why": "This role looks like a stretch. Improve CV targeting or choose a safer job match.",
+            "button": "Understand Job",
+            "target": "job_assist",
+            "extra": {"job_assist_mode_key": "understand"},
+            "status": "Avoid for now",
+            "tone": "danger",
+        }
+    if not state["interview_done"] or (state["interview_score"] and state["interview_score"] < 65):
+        return {
+            "title": "Practice a real interview now",
+            "why": "You have CV and job context. The highest-value next step is interview readiness.",
+            "button": "Start Real Interview Practice",
+            "target": "interview",
+            "extra": {},
+            "status": "Recommended",
+            "tone": "success",
+        }
+    return {
+        "title": "Apply, then keep practicing",
+        "why": "You have CV, job context, and interview preparation. Apply to safe matches and repeat practice.",
+        "button": "Prepare Application",
+        "target": "job_assist",
+        "extra": {"job_assist_mode_key": "prepare"},
+        "status": "Ready",
+        "tone": "success",
+    }
+
+
+def _wzmax_go(target: str, extra: dict | None = None):
+    try:
+        extra = extra or {}
+        current = st.session_state.get("nav_page") or st.session_state.get("page") or "dashboard"
+        if "nav_stack" not in st.session_state or not isinstance(st.session_state.get("nav_stack"), list):
+            st.session_state["nav_stack"] = []
+        if current and current != target:
+            st.session_state["nav_stack"].append(current)
+        st.session_state["page"] = target
+        st.session_state["nav_page"] = target
+        for k, v in extra.items():
+            st.session_state[k] = v
+        try:
+            st.query_params["page"] = target
+        except Exception:
+            pass
+        st.rerun()
+    except Exception:
+        pass
+
+
+def _wzmax_progress_pct(state: dict) -> int:
+    steps = [state["cv_loaded"], state["cv_good"], state["job_ready"], state["interview_done"]]
+    return int(round(sum(bool(x) for x in steps) / len(steps) * 100))
+
+
+def _wzmax_render_command_center(force: bool = False):
+    try:
+        page_key = st.session_state.get("nav_page") or st.session_state.get("page") or "dashboard"
+        if not force and page_key not in {"dashboard", "home", "overview", ""}:
+            return
+        state = _wzmax_state()
+        action = _wzmax_next_action(state)
+        pct = _wzmax_progress_pct(state)
+        css = """
+        <style id="wzmax-command-center-css">
+        .wzmax-command{border:1px solid rgba(34,211,238,.28);background:linear-gradient(135deg,rgba(8,47,73,.88),rgba(15,23,42,.96));border-radius:26px;padding:1.35rem;margin:.6rem 0 1.1rem;box-shadow:0 18px 45px rgba(2,6,23,.24)}
+        .wzmax-kicker{color:#67e8f9;font-size:.74rem;font-weight:950;letter-spacing:.16em;text-transform:uppercase;margin-bottom:.45rem}.wzmax-title{color:#fff;font-size:clamp(1.35rem,3vw,2.05rem);font-weight:950;letter-spacing:-.04em;line-height:1.08;margin:0}.wzmax-why{color:#cbd5e1;margin:.55rem 0 1rem;line-height:1.45;max-width:780px}.wzmax-row{display:grid;grid-template-columns:1.2fr .8fr;gap:1rem;align-items:start}.wzmax-pill{display:inline-flex;align-items:center;gap:.35rem;color:#e0f2fe;border:1px solid rgba(103,232,249,.35);background:rgba(8,145,178,.18);border-radius:999px;padding:.34rem .66rem;font-size:.76rem;font-weight:900}.wzmax-bar{height:9px;border-radius:999px;background:rgba(148,163,184,.18);overflow:hidden;margin:.8rem 0 .65rem}.wzmax-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#22d3ee,#22c55e);width:VARPCT}.wzmax-mini{display:grid;grid-template-columns:repeat(4,1fr);gap:.45rem}.wzmax-step{border:1px solid rgba(148,163,184,.22);background:rgba(15,23,42,.45);border-radius:16px;padding:.65rem;color:#cbd5e1;font-size:.78rem;font-weight:800}.wzmax-step.done{border-color:rgba(34,197,94,.42);background:rgba(22,163,74,.16);color:#dcfce7}.wzmax-side{border:1px solid rgba(148,163,184,.20);background:rgba(15,23,42,.56);border-radius:20px;padding:1rem;color:#dbeafe}.wzmax-side b{color:#fff}@media(max-width:800px){.wzmax-row{grid-template-columns:1fr}.wzmax-mini{grid-template-columns:1fr 1fr}}
+        </style>
+        """.replace("VARPCT", f"{pct}%")
+        st.markdown(css, unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="wzmax-command">
+          <div class="wzmax-row">
+            <div>
+              <div class="wzmax-kicker">Guided Career System</div>
+              <div class="wzmax-title">{html.escape(action['title'])}</div>
+              <div class="wzmax-why">{html.escape(action['why'])}</div>
+              <span class="wzmax-pill">{html.escape(action['status'])}</span>
+              <div class="wzmax-bar"><div class="wzmax-fill"></div></div>
+              <div class="wzmax-mini">
+                <div class="wzmax-step {'done' if state['cv_loaded'] else ''}">1. CV loaded</div>
+                <div class="wzmax-step {'done' if state['cv_good'] else ''}">2. CV ready</div>
+                <div class="wzmax-step {'done' if state['job_ready'] else ''}">3. Job context</div>
+                <div class="wzmax-step {'done' if state['interview_done'] else ''}">4. Interview practice</div>
+              </div>
+            </div>
+            <div class="wzmax-side">
+              <b>Profile context</b><br>
+              Role: {html.escape(str(state['role']))}<br>
+              Country: {html.escape(str(state['country']))}<br>
+              CV words: {state['cv_words']}<br>
+              Readiness: {pct}%
+            </div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button(action["button"], type="primary", use_container_width=True, key="wzmax_one_primary_action"):
+            _wzmax_go(action["target"], action.get("extra") or {})
+    except Exception as exc:
+        st.caption(f"Career Brain could not load safely: {exc}")
+
+
+def _wzmax_bucket_for_job(job: dict, state: dict) -> tuple[str, str]:
+    score = _wzmax_int(job.get("match") or job.get("match_score") or job.get("fit_score") or job.get("score") or 0)
+    text = " ".join(str(job.get(k, "")) for k in ["title", "summary", "description", "location"]).lower()
+    role = str(state.get("role") or "").lower()
+    if score >= 72:
+        return "Apply now", "Strong match based on available score."
+    if score and score < 50:
+        return "Avoid for now", "Likely too far from your current profile."
+    if role and any(token in text for token in role.split() if len(token) > 3):
+        return "Apply now", "Role wording matches your target direction."
+    if any(x in text for x in ["senior", "lead", "principal", "manager"]):
+        return "Stretch role", "Could be possible, but prepare carefully."
+    return "Stretch role", "Analyze the JD before applying."
+
+
+def _wzmax_find_job_lists():
+    keys = [
+        "latest_jobs", "job_results", "live_jobs", "found_jobs", "cached_jobs", "search_results",
+        "latest_job_results", "workzo_job_results", "adzuna_jobs", "remotive_jobs"
+    ]
+    for key in keys:
+        val = st.session_state.get(key)
+        if isinstance(val, list) and val:
+            return val[:20]
+    return []
+
+
+def _wzmax_render_job_decision_layer():
+    try:
+        jobs = _wzmax_find_job_lists()
+        if not jobs:
+            return
+        state = _wzmax_state()
+        buckets = {"Apply now": [], "Stretch role": [], "Avoid for now": []}
+        for job in jobs:
+            if not isinstance(job, dict):
+                continue
+            bucket, reason = _wzmax_bucket_for_job(job, state)
+            buckets.setdefault(bucket, []).append((job, reason))
+        st.markdown("### Job decision layer")
+        st.caption("WorkZo groups jobs by action, not just by listing order.")
+        cols = st.columns(3)
+        order = [("Apply now", "✅"), ("Stretch role", "⚠️"), ("Avoid for now", "❌")]
+        for col, (bucket, icon) in zip(cols, order):
+            with col:
+                st.markdown(f"**{icon} {bucket}**")
+                items = buckets.get(bucket, [])[:4]
+                if not items:
+                    st.caption("No jobs here yet.")
+                for job, reason in items:
+                    title = html.escape(str(job.get("title") or job.get("role") or "Job"))
+                    company = html.escape(str(job.get("company") or ""))
+                    st.markdown(f"<div style='border:1px solid rgba(148,163,184,.22);border-radius:14px;padding:.65rem;margin:.45rem 0;'><b>{title}</b><br><span style='color:#64748b'>{company}</span><br><small>{html.escape(reason)}</small></div>", unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+# Upgrade Job Assist decisioning without removing existing job logic.
+try:
+    _wzmax_prev_job_assist = _wz84_render_job_assist_page
+except Exception:
+    _wzmax_prev_job_assist = None
+
+
+def _wz84_render_job_assist_page():
+    if callable(_wzmax_prev_job_assist):
+        _wzmax_prev_job_assist()
+    else:
+        st.info("Job Assist is available after your CV is loaded.")
+    _wzmax_render_job_decision_layer()
+
+
+# Final dashboard wrapper: dashboard gets command center; feature pages do not get the large panel.
+try:
+    _wzmax_previous_show_dashboard = show_dashboard
+    def show_dashboard():
+        page_key = st.session_state.get("nav_page") or st.session_state.get("page") or "dashboard"
+        try:
+            if callable(globals().get("render_workzo_header")):
+                # Existing header function contains its own duplicate guard in latest build.
+                render_workzo_header()
+        except Exception:
+            pass
+        if page_key in {"dashboard", "home", "overview", ""}:
+            _wzmax_render_command_center(force=True)
+        result = _wzmax_previous_show_dashboard()
         try:
             if callable(globals().get("render_feedback_button")):
                 render_feedback_button()

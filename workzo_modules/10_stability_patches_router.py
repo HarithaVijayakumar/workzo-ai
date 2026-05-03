@@ -822,9 +822,9 @@ def _workzo_run_router_if_available() -> None:
                     pass
 
         url_page = read_url_page(st.session_state.get("page", "landing"))
-        aliases = {"improve_cv": "cv_documents", "jobs": "job_assist", "interview": "interview_practice", "prepare_job": "job_assist"}
+        aliases = {"improve_cv": "cv_documents", "jobs": "job_assist", "interview": "real_interview", "interview_practice": "real_interview", "prepare_job": "job_assist", "edit_cv": "cv_editor", "preview_cv": "cv_editor"}
         url_page = aliases.get(url_page, url_page)
-        valid_pages = {"landing", "dashboard", "job_assist", "cv_documents", "workobot", "interview_practice", "founder_dashboard", "onboarding"}
+        valid_pages = {"landing", "dashboard", "job_assist", "cv_documents", "workobot", "interview_practice", "real_interview", "cv_editor", "founder_dashboard", "onboarding"}
 
         try:
             _home_param = st.query_params.get("home", "")
