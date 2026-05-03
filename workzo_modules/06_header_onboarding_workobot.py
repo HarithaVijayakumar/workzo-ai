@@ -379,9 +379,15 @@ def render_workzo_header() -> None:
     cv_mark = "✓" if cv_done else "1"
     job_mark = "✓" if job_done else "2"
     interview_mark = "✓" if interview_done else "3"
-    current_page = str(st.session_state.get("page", "landing") or "landing")
+    # Use deterministic Streamlit query navigation instead of javascript:history.back().
+    # JavaScript links are unreliable inside Streamlit markdown on some deployments.
+    current_page = str(st.session_state.get("nav_page") or st.session_state.get("page", "landing") or "landing")
     show_back = current_page not in {"landing", "dashboard"}
-    back_html = '<a class="workzo-back" href="javascript:history.back()">← Back</a>' if show_back else '<span></span>'
+    if current_page == "onboarding":
+        back_href = "?page=landing"
+    else:
+        back_href = "?page=dashboard&home=1"
+    back_html = f'<a class="workzo-back" href="{back_href}" target="_self">← Back</a>' if show_back else '<span></span>'
 
     st.markdown(f"""
     <style id="workzo-sticky-saas-header-css">
@@ -870,6 +876,12 @@ def render_resume_choice_card(icon: str, title: str, desc: str, active: bool = F
     """, unsafe_allow_html=True)
 
 def show_onboarding():
+    # WorkZo user insights: show once, inside render flow only. Never call at module import time.
+    try:
+        if callable(globals().get("show_user_identity_prompt")):
+            show_user_identity_prompt()
+    except Exception:
+        pass
     maybe_scroll_to_top()
     try:
         render_workzo_header()

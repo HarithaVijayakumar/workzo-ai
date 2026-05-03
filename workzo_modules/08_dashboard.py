@@ -21933,3 +21933,25 @@ try:
     st.session_state["workzo_smart_panel_auto_render_disabled"] = True
 except Exception:
     pass
+
+
+# =========================================================
+# WorkZo User Insights UI Placement
+# Correct placement: feedback/founder UI is rendered after dashboard content,
+# never at module import time. This prevents routing/onboarding interference.
+# =========================================================
+try:
+    _workzo_dashboard_before_user_insights = show_dashboard
+
+    def show_dashboard():
+        result = _workzo_dashboard_before_user_insights()
+        try:
+            if callable(globals().get("render_feedback_button")):
+                render_feedback_button()
+            if callable(globals().get("render_founder_message")):
+                render_founder_message()
+        except Exception:
+            pass
+        return result
+except Exception:
+    pass

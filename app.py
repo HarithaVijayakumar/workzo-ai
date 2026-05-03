@@ -14,6 +14,7 @@ MODULE_ORDER = [
     "03_resume_extraction_schema.py",
     "05_pdf_docx_generators.py",
     "07_document_tools.py",
+    "13_user_insights_feedback.py",
     "08_dashboard.py",
     "09_interview_assistant.py",
     "06_header_onboarding_workobot.py",
@@ -30,3 +31,13 @@ for module_name in MODULE_ORDER:
         raise FileNotFoundError(f"Required WorkZo module missing: {module_path}")
     code = module_path.read_text(encoding="utf-8")
     exec(compile(code, str(module_path), "exec"), globals(), globals())
+
+
+# WorkZo user insights init (after modules are loaded, so functions exist).
+try:
+    if callable(globals().get("init_user_insights")):
+        init_user_insights()
+    if callable(globals().get("track_event")):
+        track_event("page_visit", "App", {"source": "app_loader"})
+except Exception:
+    pass

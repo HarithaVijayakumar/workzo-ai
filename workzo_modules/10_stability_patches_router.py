@@ -802,6 +802,25 @@ def _workzo_run_router_if_available() -> None:
         pass
 
     try:
+        # Fresh browser/session rule:
+        # After stopping/restarting Streamlit, do not reopen the last query-param page
+        # (for example ?page=job_assist). Start clean from landing unless user data
+        # already exists in the current Streamlit session.
+        if not st.session_state.get("_workzo_runtime_session_started", False):
+            st.session_state["_workzo_runtime_session_started"] = True
+            has_active_profile = bool(
+                str(st.session_state.get("cv_text", "") or st.session_state.get("clean_structured_cv_text", "")).strip()
+                or st.session_state.get("structured_cv_json")
+            )
+            if not has_active_profile and not st.session_state.get("onboarding_complete", False):
+                st.session_state.page = "landing"
+                st.session_state.nav_page = "landing"
+                st.session_state.onboarding_complete = False
+                try:
+                    st.query_params["page"] = "landing"
+                except Exception:
+                    pass
+
         url_page = read_url_page(st.session_state.get("page", "landing"))
         aliases = {"improve_cv": "cv_documents", "jobs": "job_assist", "interview": "interview_practice", "prepare_job": "job_assist"}
         url_page = aliases.get(url_page, url_page)
