@@ -21925,16 +21925,11 @@ def workzo_get_job_decision_bucket(job_score):
     return "❌ Not recommended", "Find a better-fit job"
 
 
-# Render the smart layer on top of dashboard only. Existing feature pages remain unchanged.
+# WorkZo vNext: keep Career Brain available as a helper, but do NOT auto-render it
+# above every dashboard feature page. The previous wrapper injected the large
+# "Your next best step" panel before CV, Jobs, Interview, and Documents screens.
+# Feature pages now stay clean and unchanged.
 try:
-    if callable(globals().get("show_dashboard")) and globals().get("show_dashboard").__name__ != "_wz_smart_show_dashboard":
-        _wz_smart_previous_show_dashboard = globals().get("show_dashboard")
-        def _wz_smart_show_dashboard():
-            try:
-                render_workzo_smart_next_step("dashboard_top")
-            except Exception:
-                pass
-            return _wz_smart_previous_show_dashboard()
-        show_dashboard = _wz_smart_show_dashboard
+    st.session_state["workzo_smart_panel_auto_render_disabled"] = True
 except Exception:
     pass
