@@ -83,7 +83,7 @@ def show_document_tools():
     st.caption(txt("document_hub_caption"))
 
     show_country_builder = is_applying_abroad_status(st.session_state.get("user_status", ""))
-    tab_labels = [ui_label("Generate Cover Letter")]
+    tab_labels = [ui_label("Improve / Update CV")]
     if show_country_builder:
         tab_labels.append(ui_label("Country resume explorer"))
     tab_labels.append(ui_label("Cover Letter Generator + Language"))
@@ -91,13 +91,13 @@ def show_document_tools():
     cover_tab = tabs[2] if show_country_builder else tabs[1]
 
     # -----------------------------------------------------
-    # 1. Generate Cover Letter
+    # 1. Improve / Update CV
     # -----------------------------------------------------
     with tabs[0]:
-        st.markdown(f"### {ui_label('Generate Cover Letter')}")
+        st.markdown(f"### {ui_label('Improve / Update CV')}")
         st.caption(ui_label("Tailor your existing CV to a job description, update details, preview it in a country-aware template, then download it."))
 
-        # Generate Cover Letter uses the country chosen during onboarding, not the temporary country selected in the Country-Specific Resume Builder.
+        # Improve / Update CV uses the country chosen during onboarding, not the temporary country selected in the Country-Specific Resume Builder.
         selected_country_for_cv = onboarding_country_for_cv()
         user_status_for_template = st.session_state.get("user_status", "Not specified")
         template_options = get_cv_template_options(selected_country_for_cv, user_status_for_template)
@@ -735,87 +735,3 @@ def render_country_fit_cards(country_text: str):
 # current_job_description / last_understand_job_description.
 # The existing widgets in this file already read these values. Job Match and
 # Interview Practice now keep them updated so users do not re-enter details.
-
-
-# =========================================================
-# WorkZo v96 - Clean Generate Cover Letter document hub fallback
-# Removes duplicate Improve/Update CV from this module's document tools.
-# The dashboard CV page remains responsible for CV improve/edit/preview/download.
-# =========================================================
-def _wz96_generate_cover_letter_only_page():
-    try:
-        st.markdown("### Generate cover letter")
-        st.caption("Create a role-specific cover letter using your CV, selected country, language, and job description.")
-        cv_text = ""
-        try:
-            if callable(globals().get("get_clean_cv_source_for_tools")):
-                cv_text = get_clean_cv_source_for_tools()
-        except Exception:
-            cv_text = st.session_state.get("cv_text", "")
-        job_desc = st.text_area("Job description", value=st.session_state.get("last_prepare_job_description", ""), height=180, key="wz96_cover_letter_jd")
-        company = st.text_input("Company name (optional)", value=st.session_state.get("target_company_name", ""), key="wz96_cover_letter_company")
-        language = st.session_state.get("preferred_language", "English")
-        country = st.session_state.get("migration_country") or st.session_state.get("country", "")
-        if st.button("Generate cover letter", type="primary", use_container_width=True, key="wz96_generate_cover_letter_btn"):
-            if not str(cv_text or "").strip():
-                st.warning("Please upload or create a CV first.")
-            elif not str(job_desc or "").strip():
-                st.warning("Please paste a job description.")
-            else:
-                with st.spinner("Generating cover letter..."):
-                    try:
-                        if callable(globals().get("apply_cover_letter_prompt")):
-                            rules_prompt = apply_cover_letter_prompt(country, language, company)
-                        else:
-                            rules_prompt = f"Write a concise cover letter for {country} in {language}."
-                        if callable(globals().get("generate_cover_letter")):
-                            result = generate_cover_letter(cv_text, job_desc, company, rules_prompt)
-                        elif callable(globals().get("ask_ai")):
-                            result = ask_ai(f"{rules_prompt}\n\nCV:\n{cv_text}\n\nJob description:\n{job_desc}")
-                        else:
-                            result = "Cover letter generator is not available."
-                        st.session_state["latest_cover_letter"] = result
-                        try:
-                            if callable(globals().get("log_event")):
-                                log_event("cover_letter_generated", "Generate cover letter", {"country": country, "language": language})
-                        except Exception:
-                            pass
-                    except Exception as exc:
-                        result = f"Could not generate cover letter: {exc}"
-                    st.text_area("Cover letter", value=str(result or ""), height=320, key="wz96_cover_letter_result")
-                    st.download_button("Download cover letter", data=str(result or ""), file_name="workzo_cover_letter.txt", mime="text/plain", use_container_width=True)
-        elif st.session_state.get("latest_cover_letter"):
-            st.text_area("Cover letter", value=st.session_state.get("latest_cover_letter", ""), height=320, key="wz96_cover_letter_existing")
-            st.download_button("Download cover letter", data=str(st.session_state.get("latest_cover_letter", "")), file_name="workzo_cover_letter.txt", mime="text/plain", use_container_width=True)
-    except Exception as exc:
-        st.error(f"Generate cover letter could not load safely: {exc}")
-
-# Only override in this module. Later dashboard modules may provide a richer CV/Documents page.
-show_document_tools = _wz96_generate_cover_letter_only_page
-
-
-# =========================================================
-# WorkZo v99 final cleanup: focused Generate Cover Letter route
-# =========================================================
-try:
-    _wz99_previous_show_document_tools_07 = show_document_tools
-except Exception:
-    _wz99_previous_show_document_tools_07 = None
-
-
-def show_document_tools():
-    try:
-        st.markdown("### 📄 Generate Cover Letter")
-        st.caption("Create a cover letter using your CV, selected country, selected language, and job description.")
-        if callable(globals().get("_wz52_render_cover_letter_tool")):
-            _wz52_render_cover_letter_tool()
-            return
-        if callable(globals().get("show_cover_letter_generator")):
-            show_cover_letter_generator()
-            return
-        if callable(_wz99_previous_show_document_tools_07):
-            _wz99_previous_show_document_tools_07()
-            return
-        st.info("Cover letter generator is ready after your CV and job details are available.")
-    except Exception as exc:
-        st.warning(f"Generate cover letter is temporarily unavailable: {exc}")

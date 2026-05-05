@@ -97,5 +97,93 @@
     "application_readiness_value": 0,
     "cv_score_value": 75,
     "ats_score_value": 70
+  },
+  "f44e7602c5cf35eb": {
+    "country": "Germany",
+    "migration_country": "Germany",
+    "preferred_language": "English",
+    "user_status": "Career changer",
+    "target_role": null,
+    "selected_cv_template": "Career Pivot",
+    "application_readiness_value": 0,
+    "cv_score_value": 75,
+    "ats_score_value": 70
+  },
+  "95877f99c5851c3e": {
+    "country": "Germany",
+    "migration_country": "Germany",
+    "preferred_language": "English",
+    "user_status": "Career changer",
+    "target_role": "",
+    "selected_cv_template": "Career Pivot",
+    "application_readiness_value": 0,
+    "cv_score_value": 75,
+    "ats_score_value": 70
+  },
+  "dbbf2abfeb8e7048": {
+    "country": "Germany",
+    "migration_country": "Germany",
+    "preferred_language": "English",
+    "user_status": "Career changer",
+    "target_role": "",
+    "selected_cv_template": "Career Pivot",
+    "application_readiness_value": 0,
+    "cv_score_value": 75,
+    "ats_score_value": 70
+  },
+  "eeb112d43b3cc160": {
+    "country": "Germany",
+    "migration_country": "Germany",
+    "preferred_language": "English",
+    "user_status": "Career changer",
+    "target_role": null,
+    "selected_cv_template": "Career Pivot",
+    "application_readiness_value": 0,
+    "cv_score_value": 75,
+    "ats_score_value": 70
+  },
+  "84683778831a4c81": {
+    "country": "Germany",
+    "migration_country": "Germany",
+    "preferred_language": "English",
+    "user_status": "Career changer",
+    "target_role": null,
+    "selected_cv_template": "German ATS - No Photo",
+    "application_readiness_value": 0,
+    "cv_score_value": 75,
+    "ats_score_value": 70
+  },
+  "5cf7b653cf35849c": {
+    "country": "Germany",
+    "migration_country": "Germany",
+    "preferred_language": "English",
+    "user_status": "Career changer",
+    "target_role": "",
+    "selected_cv_template": "Career Pivot",
+    "application_readiness_value": 0,
+    "cv_score_value": 75,
+    "ats_score_value": 70
+  },
+  "081cc6d13c62e079": {
+    "country": "Germany",
+    "migration_country": "Germany",
+    "preferred_language": "English",
+    "user_status": "Career changer",
+    "target_role": null,
+    "selected_cv_template": "Career Pivot",
+    "application_readiness_value": 0,
+    "cv_score_value": 75,
+    "ats_score_value": 70
+  },
+  "f502f6deb36c3ac2": {
+    "country": "Germany",
+    "migration_country": "Germany",
+    "preferred_language": "English",
+    "user_status": "Career changer",
+    "target_role": "",
+    "selected_cv_template": "Career Pivot",
+    "application_readiness_value": 0,
+    "cv_score_value": 75,
+    "ats_score_value": 70
   }
 }

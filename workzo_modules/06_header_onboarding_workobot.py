@@ -3585,3 +3585,623 @@ def render_workzo_header() -> None:
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+
+# =========================================================
+# WorkZo FINAL SaaS Flow Override: Landing + 3-step onboarding
+# Appended as final definitions so older duplicate functions cannot override it.
+# =========================================================
+
+def _wzflow_go(page: str) -> None:
+    try:
+        if "nav_stack" not in st.session_state:
+            st.session_state.nav_stack = []
+        current = st.session_state.get("nav_page") or st.session_state.get("page")
+        if current and current != page and current not in ["landing", "identity"]:
+            st.session_state.nav_stack.append(current)
+        st.session_state.page = page
+        st.session_state.nav_page = page
+        try:
+            st.query_params["page"] = page
+        except Exception:
+            pass
+        request_scroll_to_top()
+        st.rerun()
+    except Exception:
+        st.session_state.page = page
+        st.session_state.nav_page = page
+        st.rerun()
+
+
+def _wzflow_logo_uri() -> str:
+    try:
+        return image_to_data_uri(ICON_PATH) or image_to_data_uri(LOGO_PATH) or ""
+    except Exception:
+        return ""
+
+
+def _wzflow_render_minimal_brand() -> None:
+    logo = _wzflow_logo_uri()
+    logo_html = f'<img src="{logo}" class="wzflow-logo" alt="WorkZo AI logo">' if logo else '<div class="wzflow-logo wzflow-logo-fallback">WZ</div>'
+    st.markdown(f"""
+    <style id="wzflow-landing-css">
+    .block-container {{ max-width: 1180px !important; padding-top: 1.2rem !important; }}
+    .wzflow-brand {{ display:flex; align-items:center; gap:.85rem; margin:.4rem 0 1.4rem 0; }}
+    .wzflow-logo {{ width:54px; height:54px; border-radius:15px; object-fit:cover; box-shadow:0 12px 28px rgba(14,165,233,.25); }}
+    .wzflow-logo-fallback {{ display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#06b6d4,#2563eb); color:white; font-weight:950; }}
+    .wzflow-brand-title {{ color:#fff; font-weight:950; font-size:1.55rem; letter-spacing:-.04em; }}
+    .wzflow-brand-title span {{ color:#22d3ee; }}
+    .wzflow-hero {{ border:1px solid rgba(34,211,238,.28); border-radius:32px; padding:clamp(2rem,5vw,4.2rem); background:radial-gradient(circle at 12% 12%, rgba(34,211,238,.18), transparent 32%), linear-gradient(135deg, rgba(8,47,73,.90), rgba(15,23,42,.96)); box-shadow:0 30px 90px rgba(2,6,23,.42); }}
+    .wzflow-hero h1 {{ color:#fff; font-size:clamp(2.4rem,6vw,5rem); line-height:1.02; letter-spacing:-.06em; margin:0 0 1rem 0; max-width:950px; }}
+    .wzflow-hero p {{ color:#cbd5e1; font-size:clamp(1rem,2vw,1.3rem); max-width:720px; line-height:1.5; margin:0; }}
+    .wzflow-how {{ display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-top:1.2rem; }}
+    .wzflow-step {{ border:1px solid rgba(148,163,184,.22); border-radius:20px; padding:1rem; background:rgba(15,23,42,.50); color:#e2e8f0; }}
+    .wzflow-step b {{ color:#67e8f9; }}
+    @media (max-width:760px) {{ .wzflow-how {{ grid-template-columns:1fr; }} .wzflow-hero {{ padding:1.4rem; border-radius:24px; }} }}
+    </style>
+    <div class="wzflow-brand">{logo_html}<div class="wzflow-brand-title">WorkZo <span>AI</span></div></div>
+    """, unsafe_allow_html=True)
+
+
+def show_landing_page():
+    """Final landing: one strong promise, two actions, three-step explanation."""
+    maybe_scroll_to_top()
+    _wzflow_render_minimal_brand()
+    st.markdown("""
+    <section class="wzflow-hero">
+      <h1>Face a real interview before the real one</h1>
+      <p>Practice an interview based on your CV and the job you want.</p>
+    </section>
+    """, unsafe_allow_html=True)
+    c1, c2, c3 = st.columns([1,1,2])
+    with c1:
+        if st.button("📄 Upload CV", type="primary", use_container_width=True, key="wzflow_upload_cv_landing"):
+            st.session_state["wz_onboarding_step"] = 1
+            _wzflow_go("onboarding")
+    with c2:
+        if st.button("✨ Try Demo", use_container_width=True, key="wzflow_try_demo_landing"):
+            st.session_state["wz_demo_requested"] = True
+            st.session_state["wz_onboarding_step"] = 3
+            # lightweight demo profile without forcing old dashboard routing
+            if not str(st.session_state.get("cv_text", "")).strip():
+                st.session_state["cv_text"] = SAMPLE_CV_TEXT if "SAMPLE_CV_TEXT" in globals() else "Demo CV: Junior Data Analyst with Python, SQL, support experience and customer-facing background."
+                st.session_state["clean_structured_cv_text"] = st.session_state["cv_text"]
+            if not str(st.session_state.get("selected_job_description", "")).strip():
+                jd = SAMPLE_JOB_DESCRIPTION if "SAMPLE_JOB_DESCRIPTION" in globals() else "Demo job description: Junior Data Analyst role requiring SQL, Python, dashboards, communication and problem solving."
+                st.session_state["selected_job_description"] = jd
+                st.session_state["current_job_description"] = jd
+                st.session_state["job_description"] = jd
+                st.session_state["selected_job"] = {"title":"Junior Data Analyst", "company":"Demo Company", "description": jd, "match_score": 74}
+            _wzflow_go("onboarding")
+    st.markdown("""
+    <div class="wzflow-how">
+      <div class="wzflow-step"><b>1. Upload your CV</b><br>WorkZo reads your real profile.</div>
+      <div class="wzflow-step"><b>2. Paste the job description</b><br>Use the role you want to prepare for.</div>
+      <div class="wzflow-step"><b>3. Start your real interview</b><br>Practice with CV + job context.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def _wzflow_store_cv_text(cv_text: str, mode: str = "Upload CV") -> None:
+    cv_text = str(cv_text or "").strip()
+    if not cv_text:
+        return
+    st.session_state["cv_text"] = cv_text
+    st.session_state["clean_structured_cv_text"] = cv_text
+    st.session_state["raw_cv_extraction"] = cv_text
+    st.session_state["uploaded_cv_text"] = cv_text
+    st.session_state["cv_mode"] = mode
+    st.session_state["onboarding_complete"] = True
+    try:
+        structured = extract_structured_resume_json(cv_text, st.session_state.get("country", "Germany"), st.session_state.get("user_status", ""))
+        if isinstance(structured, dict) and structured:
+            st.session_state["structured_cv_json"] = structured
+            try:
+                clean = _format_structured_resume_profile(structured)
+                if clean and len(clean) > 100:
+                    st.session_state["cv_text"] = clean
+                    st.session_state["clean_structured_cv_text"] = clean
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
+def _wzflow_store_job(title: str, desc: str, company: str = "") -> None:
+    title = str(title or "Target job").strip() or "Target job"
+    desc = str(desc or "").strip()
+    company = str(company or "").strip()
+    job = {"title": title, "company": company or "Company not set", "description": desc, "match_score": 70}
+    st.session_state["selected_job"] = job
+    st.session_state["selected_job_description"] = desc
+    st.session_state["current_job_description"] = desc
+    st.session_state["job_description"] = desc
+    st.session_state["last_understand_job_description"] = desc
+    st.session_state["improve_cv_for_job_desc"] = desc
+    st.session_state["interview_jd_text_v117"] = desc
+    sessions = st.session_state.get("workzo_job_sessions") or []
+    marker = (title + company).casefold()
+    if not any(((s.get("title","") + s.get("company","")).casefold() == marker) for s in sessions if isinstance(s, dict)):
+        sessions.insert(0, {"title": title, "company": company or "Company not set", "description": desc, "progress": 35, "last_activity": "Job added"})
+        st.session_state["workzo_job_sessions"] = sessions[:10]
+
+
+def show_onboarding():
+    """Final frictionless onboarding: Upload CV -> Paste job -> Start interview."""
+    maybe_scroll_to_top()
+    _wzflow_render_minimal_brand()
+    step = int(st.session_state.get("wz_onboarding_step", 1) or 1)
+    if step < 1 or step > 3:
+        step = 1
+    st.caption(f"Step {step} of 3")
+
+    st.markdown("""
+    <style id="wzflow-onboarding-css">
+    .wzflow-card { border:1px solid rgba(34,211,238,.26); border-radius:28px; padding:1.6rem; background:linear-gradient(135deg, rgba(8,47,73,.62), rgba(15,23,42,.94)); box-shadow:0 20px 60px rgba(2,6,23,.28); margin:.8rem 0 1.2rem; }
+    .wzflow-card h2 { color:#fff; font-size:clamp(1.8rem,4vw,3rem); line-height:1.08; letter-spacing:-.05em; margin:.2rem 0 .6rem; }
+    .wzflow-card p { color:#cbd5e1; font-size:1.05rem; line-height:1.5; margin:0; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    if step == 1:
+        st.markdown('<div class="wzflow-card"><h2>Upload your CV</h2><p>This lets WorkZo create interview questions based on your real experience.</p></div>', unsafe_allow_html=True)
+        uploaded = st.file_uploader("Upload PDF or TXT", type=["pdf", "txt"], key="wzflow_cv_upload")
+        if uploaded is not None:
+            try:
+                if uploaded.type == "text/plain":
+                    text = uploaded.read().decode("utf-8", errors="ignore")
+                else:
+                    text = extract_pdf_text(uploaded)
+                text = organize_cv_for_display(text) if callable(globals().get("organize_cv_for_display")) else str(text or "")
+                if len(str(text).strip()) < 80:
+                    st.error("CV upload worked, but text extraction looks too short. Try TXT or paste your CV details.")
+                else:
+                    _wzflow_store_cv_text(text, "Upload CV")
+                    st.success(f"CV loaded. {len(str(text).split())} words extracted.")
+            except Exception as exc:
+                st.error(f"Could not read CV safely: {exc}")
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("Continue", type="primary", use_container_width=True, key="wzflow_continue_after_cv"):
+                if not str(st.session_state.get("cv_text", "")).strip():
+                    st.warning("Please upload your CV or use the demo CV.")
+                else:
+                    st.session_state["wz_onboarding_step"] = 2
+                    st.rerun()
+        with c2:
+            if st.button("Skip with Demo CV", use_container_width=True, key="wzflow_demo_cv"):
+                demo_cv = SAMPLE_CV_TEXT if "SAMPLE_CV_TEXT" in globals() else "Demo CV: Junior Data Analyst with Python, SQL, support experience and customer-facing troubleshooting background."
+                _wzflow_store_cv_text(demo_cv, "Sample Resume")
+                st.session_state["wz_onboarding_step"] = 2
+                st.rerun()
+        return
+
+    if step == 2:
+        st.markdown('<div class="wzflow-card"><h2>Paste the job you want</h2><p>Add the role you want to prepare for. WorkZo will connect this job to CV improvement and interview practice.</p></div>', unsafe_allow_html=True)
+        title = st.text_input("Job title", value=st.session_state.get("target_role", ""), placeholder="Example: Data Analyst")
+        company = st.text_input("Company / employer", value=(st.session_state.get("selected_job") or {}).get("company", ""), placeholder="Example: Amazon")
+        jd_default = st.session_state.get("selected_job_description") or st.session_state.get("current_job_description") or ""
+        desc = st.text_area("Job description", value=jd_default, height=240, placeholder="Paste the job description here...")
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("Continue", type="primary", use_container_width=True, key="wzflow_continue_after_job"):
+                if not str(desc).strip():
+                    st.warning("Paste a job description or use the demo job.")
+                else:
+                    if title.strip():
+                        st.session_state["target_role"] = title.strip()
+                    _wzflow_store_job(title or st.session_state.get("target_role") or "Target job", desc, company)
+                    st.session_state["wz_onboarding_step"] = 3
+                    st.rerun()
+        with c2:
+            if st.button("Use Demo Job", use_container_width=True, key="wzflow_demo_job"):
+                jd = SAMPLE_JOB_DESCRIPTION if "SAMPLE_JOB_DESCRIPTION" in globals() else "Demo job description: Junior Data Analyst role requiring SQL, Python, dashboards, communication and stakeholder collaboration."
+                _wzflow_store_job("Junior Data Analyst", jd, "Demo Company")
+                st.session_state["wz_onboarding_step"] = 3
+                st.rerun()
+        return
+
+    st.markdown('<div class="wzflow-card"><h2>You\'re ready.</h2><p>Start your real interview now. WorkZo will use your CV, the selected job, country, and language.</p></div>', unsafe_allow_html=True)
+    if st.button("🎤 Start Real Interview", type="primary", use_container_width=True, key="wzflow_start_interview_now"):
+        st.session_state["onboarding_complete"] = True
+        _wzflow_go("real_interview")
+    if st.button("Open Dashboard", use_container_width=True, key="wzflow_open_dashboard"):
+        st.session_state["onboarding_complete"] = True
+        _wzflow_go("dashboard")
+
+
+# =========================================================
+# WorkZo FINAL SaaS Landing + 3-step onboarding override
+# Added: focused landing -> upload/demo -> job -> interview
+# =========================================================
+
+def _wz_final_safe_go(page_key: str) -> None:
+    try:
+        st.session_state["page"] = page_key
+        st.session_state["nav_page"] = page_key
+        try:
+            st.query_params["page"] = page_key
+        except Exception:
+            pass
+        request_scroll_to_top()
+        st.rerun()
+    except Exception:
+        pass
+
+
+def _wz_final_logo_html() -> str:
+    try:
+        src = image_to_data_uri(ICON_PATH) or image_to_data_uri(LOGO_PATH) or ""
+    except Exception:
+        src = ""
+    if src:
+        return f'<img src="{src}" class="wzfinal-logo" alt="WorkZo AI logo">'
+    return '<div class="wzfinal-logo wzfinal-logo-fallback">WZ</div>'
+
+
+def _wz_final_landing_css() -> None:
+    st.markdown("""
+    <style id="wz-final-landing-css">
+    [data-testid="stMainBlockContainer"], .block-container {max-width:1180px !important; padding-top:1.2rem !important;}
+    .wzfinal-top {display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:.6rem 0 3rem;}
+    .wzfinal-brand {display:flex; align-items:center; gap:.8rem;}
+    .wzfinal-logo {width:54px;height:54px;border-radius:15px;object-fit:cover;box-shadow:0 10px 24px rgba(14,165,233,.25);}
+    .wzfinal-logo-fallback {display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#06b6d4,#2563eb);color:white;font-weight:950;}
+    .wzfinal-title {font-size:1.45rem;font-weight:950;color:white;letter-spacing:-.04em}.wzfinal-title span{color:#22d3ee}
+    .wzfinal-sub {font-size:.86rem;color:#a8c2d8;font-weight:700;margin-top:.1rem}
+    .wzfinal-hero {border:1px solid rgba(34,211,238,.30);border-radius:34px;padding:clamp(2rem,6vw,5rem);background:radial-gradient(circle at 10% 8%,rgba(34,211,238,.19),transparent 31%),linear-gradient(135deg,rgba(8,47,73,.92),rgba(15,23,42,.98));box-shadow:0 28px 80px rgba(2,6,23,.44);text-align:center;}
+    .wzfinal-kicker {color:#67e8f9;text-transform:uppercase;letter-spacing:.22em;font-size:.78rem;font-weight:950;margin-bottom:1rem;}
+    .wzfinal-hero h1 {color:white;font-size:clamp(2.4rem,6vw,5rem);line-height:1.03;letter-spacing:-.06em;font-weight:950;max-width:920px;margin:0 auto 1rem;}
+    .wzfinal-hero p {color:#dbeafe;font-size:clamp(1rem,2vw,1.28rem);line-height:1.55;max-width:720px;margin:0 auto;}
+    .wzfinal-actions {display:flex;gap:1rem;justify-content:center;margin-top:2rem;flex-wrap:wrap;}
+    .wzfinal-how {display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.2rem;}
+    .wzfinal-step {border:1px solid rgba(148,163,184,.22);background:rgba(15,23,42,.55);border-radius:20px;padding:1.1rem;color:white;font-weight:850;}
+    .wzfinal-num {display:inline-flex;width:28px;height:28px;border-radius:999px;align-items:center;justify-content:center;background:rgba(34,211,238,.18);border:1px solid rgba(34,211,238,.4);color:#67e8f9;margin-right:.45rem;}
+    @media(max-width:760px){.wzfinal-how{grid-template-columns:1fr}.wzfinal-actions{display:block}.wzfinal-actions>*{margin-bottom:.6rem}.wzfinal-top{margin-bottom:1.4rem}.wzfinal-hero{text-align:left}}
+    </style>
+    """, unsafe_allow_html=True)
+
+
+def show_landing_page():
+    """Final SaaS landing page: one hook, two actions, 3-step explanation."""
+    try:
+        maybe_scroll_to_top()
+    except Exception:
+        pass
+    _wz_final_landing_css()
+    st.markdown(f"""
+    <div class="wzfinal-top">
+      <div class="wzfinal-brand">{_wz_final_logo_html()}<div><div class="wzfinal-title">WorkZo <span>AI</span></div><div class="wzfinal-sub">Real interview practice for job seekers</div></div></div>
+      <div style="color:#67e8f9;border:1px solid rgba(103,232,249,.35);border-radius:999px;padding:.45rem .8rem;font-weight:950;font-size:.75rem;">BETA</div>
+    </div>
+    <section class="wzfinal-hero">
+      <div class="wzfinal-kicker">Real Interview AI</div>
+      <h1>Face a real interview before the real one</h1>
+      <p>Practice an interview based on your CV and the job you want.</p>
+    </section>
+    """, unsafe_allow_html=True)
+    c1,c2,c3,c4 = st.columns([1,1.25,1.25,1])
+    with c2:
+        if st.button("📄 Upload CV", type="primary", use_container_width=True, key="wz_final_upload_cv_landing"):
+            st.session_state["onboarding_step_final"] = 1
+            st.session_state["onboarding_complete"] = False
+            _wz_final_safe_go("onboarding")
+    with c3:
+        if st.button("✨ Try Demo", use_container_width=True, key="wz_final_demo_landing"):
+            try:
+                load_workzo_sample_data()
+            except Exception:
+                st.session_state["cv_text"] = SAMPLE_CV_TEXT if "SAMPLE_CV_TEXT" in globals() else "Demo CV for a junior data analyst with Python, SQL and support experience."
+                st.session_state["current_job_description"] = SAMPLE_JOB_DESCRIPTION if "SAMPLE_JOB_DESCRIPTION" in globals() else "Demo job description for Data Analyst."
+                st.session_state["selected_job_description"] = st.session_state["current_job_description"]
+                st.session_state["selected_job"] = {"title":"Data Analyst","company":"Demo Company","description":st.session_state["current_job_description"]}
+                st.session_state["onboarding_complete"] = True
+            _wz_final_safe_go("dashboard")
+    st.markdown("""
+    <div class="wzfinal-how">
+      <div class="wzfinal-step"><span class="wzfinal-num">1</span>Upload your CV</div>
+      <div class="wzfinal-step"><span class="wzfinal-num">2</span>Paste the job description</div>
+      <div class="wzfinal-step"><span class="wzfinal-num">3</span>Start your real interview</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def _wz_final_save_cv_text(cv_text: str) -> None:
+    cv_text = str(cv_text or "").strip()
+    if not cv_text:
+        return
+    for k in ["cv_text","clean_structured_cv_text","raw_cv_extraction","workzo_live_cv_text","cv_editor_widget"]:
+        st.session_state[k] = cv_text
+    try:
+        if not isinstance(st.session_state.get("structured_cv_json"), dict) or not st.session_state.get("structured_cv_json"):
+            st.session_state["structured_cv_json"] = extract_structured_resume_json(cv_text, st.session_state.get("country","Germany"), st.session_state.get("user_status",""))
+    except Exception:
+        pass
+
+
+def show_onboarding():
+    """Final frictionless onboarding: CV -> job -> start interview."""
+    try:
+        maybe_scroll_to_top()
+    except Exception:
+        pass
+    _wz_final_landing_css()
+    step = int(st.session_state.get("onboarding_step_final", 1) or 1)
+    st.markdown(f"""
+    <div class="wzfinal-top">
+      <div class="wzfinal-brand">{_wz_final_logo_html()}<div><div class="wzfinal-title">WorkZo <span>AI</span></div><div class="wzfinal-sub">Setup takes less than 2 minutes</div></div></div>
+      <div style="color:#cbd5e1;font-weight:900;">Step {step} of 3</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if step == 1:
+        st.markdown("### Upload your CV")
+        st.caption("This makes every answer, job match, and interview question specific to your profile.")
+        up = st.file_uploader("Upload PDF or TXT", type=["pdf","txt"], key="wz_final_cv_upload")
+        if up is not None:
+            text = ""
+            try:
+                if up.type == "text/plain":
+                    text = up.read().decode("utf-8", errors="ignore")
+                else:
+                    text = extract_pdf_text(up)
+                text = organize_cv_for_display(text) if callable(globals().get("organize_cv_for_display")) else str(text or "")
+            except Exception as exc:
+                st.error(f"Could not read this CV: {exc}")
+            if text and len(text.strip()) > 80:
+                _wz_final_save_cv_text(text)
+                st.success(f"CV loaded successfully — {len(text.split())} words extracted.")
+                if st.button("Continue", type="primary", use_container_width=True, key="wz_final_step1_continue"):
+                    st.session_state["onboarding_step_final"] = 2
+                    _wz_final_safe_go("onboarding")
+            elif up is not None:
+                st.warning("The CV uploaded, but little or no text was extracted. Try a TXT file or paste your CV content later.")
+        if st.button("Skip with Demo CV", use_container_width=True, key="wz_final_demo_cv"):
+            try:
+                _wz_final_save_cv_text(SAMPLE_CV_TEXT)
+            except Exception:
+                _wz_final_save_cv_text("Demo CV: Junior Data Analyst with Python, SQL, Tableau, Excel, and technical support experience.")
+            st.session_state["onboarding_step_final"] = 2
+            _wz_final_safe_go("onboarding")
+        return
+
+    if step == 2:
+        st.markdown("### Paste the job you want")
+        st.caption("WorkZo will use this job to tailor your interview and CV guidance.")
+        job_title = st.text_input("Job title", value=st.session_state.get("target_role", ""), placeholder="Example: Data Analyst")
+        job_desc = st.text_area("Job description", value=st.session_state.get("selected_job_description", ""), height=240, placeholder="Paste the full job description here")
+        if st.button("Continue", type="primary", use_container_width=True, key="wz_final_job_continue"):
+            st.session_state["target_role"] = job_title.strip() or st.session_state.get("target_role", "Target role")
+            st.session_state["selected_job_description"] = job_desc.strip()
+            st.session_state["current_job_description"] = job_desc.strip()
+            st.session_state["improve_cv_for_job_desc"] = job_desc.strip()
+            st.session_state["interview_jd_text_v117"] = job_desc.strip()
+            st.session_state["selected_job"] = {"title": st.session_state["target_role"], "company": "Target company", "description": job_desc.strip()}
+            st.session_state["onboarding_step_final"] = 3
+            _wz_final_safe_go("onboarding")
+        return
+
+    st.markdown("### You're ready.")
+    st.caption("Start your interview now. WorkZo will use your CV, selected job, country, and language.")
+    if st.button("🎤 Start Real Interview", type="primary", use_container_width=True, key="wz_final_start_interview_ready"):
+        st.session_state["onboarding_complete"] = True
+        _wz_final_safe_go("real_interview")
+    if st.button("Go to dashboard", use_container_width=True, key="wz_final_dashboard_ready"):
+        st.session_state["onboarding_complete"] = True
+        _wz_final_safe_go("dashboard")
+
+
+# =========================================================
+# WorkZo FINAL PATCH - clean CV-first onboarding
+# Fixes: upload/create mixed UI, missing continue after upload, clearer CV ready state.
+# This final definition intentionally overrides older duplicate show_onboarding/show_landing_page definitions.
+# =========================================================
+def _wz_final_safe_rerun():
+    try:
+        st.rerun()
+    except Exception:
+        try:
+            st.experimental_rerun()
+        except Exception:
+            pass
+
+
+def _wz_final_go(page: str):
+    try:
+        current = st.session_state.get("nav_page") or st.session_state.get("page")
+        if current and current != page:
+            st.session_state.setdefault("nav_stack", []).append(current)
+        st.session_state["page"] = page
+        st.session_state["nav_page"] = page
+        try:
+            st.query_params["page"] = page
+        except Exception:
+            pass
+        request_scroll_to_top()
+    except Exception:
+        pass
+    _wz_final_safe_rerun()
+
+
+def _wz_final_set_cv_text(cv_text: str, mode: str = "Upload CV") -> bool:
+    cv_text = str(cv_text or "").strip()
+    if not cv_text:
+        return False
+    try:
+        cv_text = organize_cv_for_display(cv_text) if callable(globals().get("organize_cv_for_display")) else cv_text
+    except Exception:
+        pass
+    # Single source of truth used across dashboard, jobs, interview, documents, Work-O-Bot.
+    for key in [
+        "cv_text", "clean_structured_cv_text", "structured_cv_profile", "raw_cv_extraction",
+        "uploaded_cv_text", "workzo_live_cv_text", "cv_editor_widget"
+    ]:
+        try:
+            st.session_state[key] = cv_text
+        except Exception:
+            pass
+    st.session_state["cv_mode"] = mode
+    st.session_state["cv_ready"] = True
+    st.session_state["prepare_cv_uploaded"] = True
+    # Best-effort structured extraction; never block onboarding.
+    try:
+        if callable(globals().get("extract_structured_resume_json")):
+            country = st.session_state.get("country") or st.session_state.get("migration_country") or "International"
+            status = st.session_state.get("user_status") or "Not specified"
+            structured = extract_structured_resume_json(cv_text, country, status)
+            if isinstance(structured, dict) and structured:
+                st.session_state["structured_cv_json"] = structured
+                st.session_state["approved_structured_cv_json"] = structured
+                if callable(globals().get("_format_structured_resume_profile")):
+                    clean = _format_structured_resume_profile(structured)
+                    if str(clean or "").strip():
+                        for key in ["cv_text", "clean_structured_cv_text", "structured_cv_profile", "workzo_live_cv_text", "cv_editor_widget"]:
+                            st.session_state[key] = clean
+    except Exception:
+        pass
+    try:
+        if callable(globals().get("track_event")):
+            track_event("cv_uploaded", "Onboarding", {"mode": mode})
+    except Exception:
+        pass
+    return True
+
+
+def show_landing_page():
+    """Ultra-simple SaaS landing: one message, two actions, one how-it-works row."""
+    try: maybe_scroll_to_top()
+    except Exception: pass
+    apply_workzo_v75_global_css()
+    try: render_workzo_header()
+    except Exception: pass
+    st.markdown("""
+    <style id="wz-final-landing-clean-css">
+    .wz-landing-clean{max-width:1120px;margin:2rem auto 1rem;padding:clamp(1.6rem,4vw,3.4rem);border:1px solid rgba(34,211,238,.26);border-radius:30px;background:radial-gradient(circle at 12% 15%,rgba(20,184,166,.22),transparent 28%),linear-gradient(135deg,rgba(8,47,73,.96),rgba(15,23,42,.98));box-shadow:0 24px 70px rgba(2,6,23,.40)}
+    .wz-landing-k{color:#67e8f9;letter-spacing:.18em;text-transform:uppercase;font-size:.78rem;font-weight:950;margin-bottom:.8rem}.wz-landing-clean h1{color:#fff;font-size:clamp(2.25rem,5vw,4.6rem);line-height:1.02;letter-spacing:-.055em;margin:0 0 .85rem;font-weight:950;max-width:920px}.wz-landing-clean p{color:#cbd5e1;font-size:1.12rem;line-height:1.55;max-width:720px}.wz-how{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;max-width:1120px;margin:1rem auto}.wz-how div{border:1px solid rgba(148,163,184,.22);border-radius:18px;background:rgba(15,23,42,.55);padding:1rem;color:#dbeafe;font-weight:800}.wz-how span{display:block;color:#94a3b8;font-weight:500;margin-top:.3rem;font-size:.92rem}@media(max-width:800px){.wz-how{grid-template-columns:1fr}.wz-landing-clean{margin-top:1rem}}
+    </style>
+    <section class="wz-landing-clean"><div class="wz-landing-k">Real Interview AI</div><h1>Face a real interview before the real one</h1><p>Practice an interview based on your CV and the job you want.</p></section>
+    """, unsafe_allow_html=True)
+    c1,c2,c3 = st.columns([1,1,2])
+    with c1:
+        if st.button("📄 Upload CV", type="primary", use_container_width=True, key="wz_final_landing_upload"):
+            st.session_state["onboarding_step_final"] = 1
+            _wz_final_go("onboarding")
+    with c2:
+        if st.button("⚡ Try Demo", use_container_width=True, key="wz_final_landing_demo"):
+            try:
+                load_workzo_sample_data()
+            except Exception:
+                _wz_final_set_cv_text(SAMPLE_CV_TEXT if "SAMPLE_CV_TEXT" in globals() else "Sample CV", "Sample Demo")
+                st.session_state["selected_job_description"] = SAMPLE_JOB_DESCRIPTION if "SAMPLE_JOB_DESCRIPTION" in globals() else "Sample job description"
+                st.session_state["current_job_description"] = st.session_state["selected_job_description"]
+                st.session_state["onboarding_complete"] = True
+                _wz_final_go("dashboard")
+            _wz_final_safe_rerun()
+    st.markdown("""
+    <div class="wz-how"><div>1. Upload your CV<span>WorkZo reads your real profile.</span></div><div>2. Paste the job description<span>Prepare for one target role.</span></div><div>3. Start your real interview<span>Practice with CV + job context.</span></div></div>
+    """, unsafe_allow_html=True)
+
+
+def show_onboarding():
+    """Frictionless onboarding: CV -> Job -> Start interview."""
+    try: maybe_scroll_to_top()
+    except Exception: pass
+    apply_workzo_v75_global_css()
+    step = int(st.session_state.get("onboarding_step_final", 1) or 1)
+    if step < 1 or step > 3:
+        step = 1
+    st.markdown("""
+    <style id="wz-onboarding-final-clean-css">
+    .wz-onb{max-width:1120px;margin:1.4rem auto}.wz-onb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.8rem}.wz-onb-brand{display:flex;align-items:center;gap:.8rem}.wz-onb-logo{width:58px;height:58px;border-radius:16px}.wz-onb-title{font-size:1.4rem;color:#fff;font-weight:950}.wz-onb-sub{color:#cbd5e1;font-weight:700;font-size:.9rem}.wz-onb-step{color:#dbeafe;font-weight:900}.wz-onb-card{border:1px solid rgba(34,211,238,.24);background:linear-gradient(135deg,rgba(8,47,73,.72),rgba(15,23,42,.96));border-radius:28px;padding:clamp(1.2rem,3vw,2rem);box-shadow:0 20px 55px rgba(2,6,23,.28);margin-bottom:1rem}.wz-onb-card h2{color:#fff;font-size:clamp(2rem,4vw,3rem);letter-spacing:-.04em;margin:.2rem 0 .6rem}.wz-onb-card p{color:#cbd5e1;font-size:1rem;line-height:1.5}.wz-ready{border:1px solid rgba(34,197,94,.28);background:rgba(20,83,45,.22);border-radius:16px;padding:.9rem 1rem;color:#bbf7d0;font-weight:850;margin:.8rem 0}.wz-note{border:1px solid rgba(148,163,184,.22);border-radius:16px;padding:.8rem 1rem;color:#cbd5e1;background:rgba(15,23,42,.55)}
+    </style>
+    """, unsafe_allow_html=True)
+    logo_src = None
+    try: logo_src = image_to_data_uri(ICON_PATH) or image_to_data_uri(LOGO_PATH)
+    except Exception: logo_src = None
+    logo = f'<img src="{logo_src}" class="wz-onb-logo">' if logo_src else '<div class="wz-onb-logo">WZ</div>'
+    st.markdown(f'<div class="wz-onb"><div class="wz-onb-head"><div class="wz-onb-brand">{logo}<div><div class="wz-onb-title">WorkZo <span style="color:#22d3ee">AI</span></div><div class="wz-onb-sub">Setup takes less than 2 minutes</div></div></div><div class="wz-onb-step">Step {step} of 3</div></div>', unsafe_allow_html=True)
+
+    if step == 1:
+        st.markdown('<section class="wz-onb-card"><h2>Upload your CV</h2><p>This makes every answer, job match, and interview question specific to your profile.</p></section>', unsafe_allow_html=True)
+        c1,c2 = st.columns([2,1])
+        with c1:
+            st.markdown("### 📄 Use your own CV")
+            uploaded = st.file_uploader("Upload PDF or TXT", type=["pdf","txt"], key="wz_final_cv_upload")
+            if uploaded is not None:
+                extracted = ""
+                try:
+                    if str(getattr(uploaded, 'type', '') or '').lower() == "text/plain" or str(getattr(uploaded, 'name', '')).lower().endswith('.txt'):
+                        extracted = uploaded.read().decode('utf-8', errors='ignore')
+                    else:
+                        extracted = extract_pdf_text(uploaded) if callable(globals().get("extract_pdf_text")) else ""
+                except Exception as exc:
+                    st.warning(f"Could not read the uploaded CV: {exc}")
+                if str(extracted or "").strip():
+                    _wz_final_set_cv_text(extracted, "Upload CV")
+                    st.success("CV is ready")
+                else:
+                    st.warning("The file uploaded, but text could not be extracted. Use the paste option below.")
+            with st.expander("Paste CV text instead", expanded=not bool(st.session_state.get("cv_text"))):
+                pasted = st.text_area("Paste your CV text", height=180, key="wz_final_paste_cv_text")
+                if st.button("Use pasted CV", key="wz_final_use_pasted_cv"):
+                    if _wz_final_set_cv_text(pasted, "Paste CV"):
+                        st.success("CV is ready")
+                    else:
+                        st.warning("Please paste your CV text first.")
+        with c2:
+            st.markdown("### ⚡ Try demo")
+            st.caption("No CV ready? Explore WorkZo with sample data.")
+            if st.button("Skip with Demo CV", use_container_width=True, key="wz_final_skip_demo_cv"):
+                if "SAMPLE_CV_TEXT" in globals():
+                    _wz_final_set_cv_text(SAMPLE_CV_TEXT, "Sample Demo")
+                if "SAMPLE_JOB_DESCRIPTION" in globals():
+                    st.session_state["selected_job_description"] = SAMPLE_JOB_DESCRIPTION
+                    st.session_state["current_job_description"] = SAMPLE_JOB_DESCRIPTION
+                    st.session_state["improve_cv_for_job_desc"] = SAMPLE_JOB_DESCRIPTION
+                    st.session_state["interview_jd_text_v117"] = SAMPLE_JOB_DESCRIPTION
+                    st.session_state["selected_job"] = {"title":"Junior Data Analyst / IT Support Analyst", "company":"Demo Company", "description":SAMPLE_JOB_DESCRIPTION}
+                st.session_state["onboarding_step_final"] = 3
+                _wz_final_safe_rerun()
+        st.markdown('<div class="wz-note">Privacy: WorkZo uses your CV to personalize guidance. Avoid sharing sensitive details you do not want analyzed.</div>', unsafe_allow_html=True)
+        if st.session_state.get("cv_text"):
+            if st.button("Continue to job", type="primary", use_container_width=True, key="wz_final_continue_to_job"):
+                st.session_state["onboarding_step_final"] = 2
+                _wz_final_safe_rerun()
+
+    elif step == 2:
+        st.markdown('<section class="wz-onb-card"><h2>Paste the job you want</h2><p>Add one job description so WorkZo can tailor the CV, questions, and feedback to that exact role.</p></section>', unsafe_allow_html=True)
+        title = st.text_input("Job title", value=st.session_state.get("target_role") or "", placeholder="Example: Data Analyst", key="wz_final_job_title")
+        company = st.text_input("Company / employer (optional)", value=st.session_state.get("selected_company") or "", placeholder="Example: Amazon", key="wz_final_company")
+        jd = st.text_area("Job description", height=260, value=st.session_state.get("selected_job_description") or st.session_state.get("current_job_description") or "", key="wz_final_jd_text")
+        c1,c2 = st.columns([1,1])
+        with c1:
+            if st.button("Back", use_container_width=True, key="wz_final_back_to_cv"):
+                st.session_state["onboarding_step_final"] = 1
+                _wz_final_safe_rerun()
+        with c2:
+            if st.button("Continue", type="primary", use_container_width=True, key="wz_final_save_job"):
+                if not str(jd or "").strip():
+                    st.warning("Please paste the job description, or use demo mode.")
+                else:
+                    st.session_state["target_role"] = title.strip() or st.session_state.get("target_role") or "Target role"
+                    st.session_state["selected_company"] = company.strip()
+                    job = {"title": st.session_state["target_role"], "company": company.strip() or "Target company", "description": jd, "location": st.session_state.get("country", "")}
+                    st.session_state["selected_job"] = job
+                    for key in ["selected_job_description", "current_job_description", "last_understand_job_description", "last_prepare_job_description", "improve_cv_for_job_desc", "job_description", "interview_jd_text_v117"]:
+                        st.session_state[key] = jd
+                    st.session_state["prepare_job_selected"] = True
+                    st.session_state["onboarding_step_final"] = 3
+                    _wz_final_safe_rerun()
+
+    else:
+        st.markdown('<section class="wz-onb-card"><h2>You’re ready.</h2><p>Your interview will use your CV and target job context.</p></section>', unsafe_allow_html=True)
+        st.success("CV is ready")
+        if st.session_state.get("selected_job_description"):
+            st.success("Job is ready")
+        if st.button("🎤 Start Real Interview", type="primary", use_container_width=True, key="wz_final_start_interview"):
+            st.session_state["onboarding_complete"] = True
+            _wz_final_go("real_interview")
+        if st.button("Go to dashboard", use_container_width=True, key="wz_final_go_dashboard"):
+            st.session_state["onboarding_complete"] = True
+            _wz_final_go("dashboard")
+    st.markdown('</div>', unsafe_allow_html=True)

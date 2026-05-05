@@ -7,7 +7,7 @@ from __future__ import annotations
 import csv
 import os
 import time
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -29,7 +29,7 @@ _wz_founder_message_rendered_guard = False
 
 
 def _now_iso() -> str:
-    return datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def _safe_session_get(key: str, default: Any = "") -> Any:
