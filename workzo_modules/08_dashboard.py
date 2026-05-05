@@ -27131,3 +27131,338 @@ try:
         globals()['_wz119_show_dashboard_wrapped'] = True
 except Exception:
     pass
+
+
+# =========================================================
+# WorkZo v120 - Behavior intelligence + short copilot prompts
+# Purpose:
+# - Founder dashboard: drop-off, completion, time-on-feature, button usage
+# - Helper prompts: shorter, more actionable, less generic
+# - Safe analytics only; no CV/JD/answer text stored.
+# =========================================================
+try:
+    import datetime as _wz120_dt
+except Exception:
+    pass
+
+
+def _wz120_parse_ts(ts):
+    try:
+        return _wz120_dt.datetime.strptime(str(ts)[:19], '%Y-%m-%d %H:%M:%S')
+    except Exception:
+        try:
+            return _wz120_dt.datetime.fromisoformat(str(ts).replace('Z','')[:19])
+        except Exception:
+            return None
+
+
+def _wz120_group_sessions(rows):
+    grouped = {}
+    for r in rows or []:
+        sid = r.get('session_id') or 'unknown'
+        grouped.setdefault(sid, []).append(r)
+    for sid in grouped:
+        grouped[sid].sort(key=lambda x: str(x.get('timestamp') or ''))
+    return grouped
+
+
+def _wz120_session_duration_minutes(items):
+    times = [_wz120_parse_ts(x.get('timestamp')) for x in items]
+    times = [t for t in times if t]
+    if len(times) < 2:
+        return 0
+    return round((max(times) - min(times)).total_seconds() / 60, 1)
+
+
+def _wz120_feature_time_estimates(items):
+    """Approximate time on page from consecutive page_view events. Privacy-safe."""
+    totals = {}
+    page_events = [x for x in items if str(x.get('event')) == 'page_view']
+    for a, b in zip(page_events, page_events[1:]):
+        t1, t2 = _wz120_parse_ts(a.get('timestamp')), _wz120_parse_ts(b.get('timestamp'))
+        if not t1 or not t2:
+            continue
+        seconds = max(0, min(1800, (t2 - t1).total_seconds()))
+        page = a.get('page') or 'Unknown'
+        totals[page] = totals.get(page, 0) + seconds
+    return {k: round(v/60, 1) for k, v in totals.items() if v > 0}
+
+
+def render_founder_dashboard():
+    """Founder Dashboard v120: behavior intelligence, not just raw counts."""
+    try:
+        st.markdown('## Founder Dashboard')
+        st.caption('Safe analytics only: movement, feature actions, funnel stages, feedback, and completion signals. No CV/JD/answer text is stored.')
+        analytics_rows = _wz119_read_csv_dicts(_wz119_analytics_file()) if callable(globals().get('_wz119_read_csv_dicts')) else []
+        feedback_rows = _wz119_read_csv_dicts(_wz119_feedback_file()) if callable(globals().get('_wz119_read_csv_dicts')) else []
+        try:
+            _wz119_write_event('founder_dashboard_opened', 'Founder Dashboard', {'source': 'founder'})
+        except Exception:
+            pass
+        grouped = _wz120_group_sessions(analytics_rows)
+        sessions = list(grouped.keys())
+        events = [r.get('event') or 'event' for r in analytics_rows]
+        pages = [r.get('page') or 'Unknown' for r in analytics_rows]
+        stages = [r.get('stage') or 'unknown' for r in analytics_rows]
+        completion = sum(1 for r in analytics_rows if str(r.get('event')) in {'interview_completed', 'final_readiness_report', 'answer_submitted'})
+        starts = sum(1 for r in analytics_rows if str(r.get('event')) in {'interview_started', 'start_recruiter_call', 'button_click'} and 'interview' in str(r.get('page','')).lower() + str(r.get('details','')).lower())
+        duration_vals = [_wz120_session_duration_minutes(v) for v in grouped.values()]
+        avg_duration = round(sum(duration_vals) / max(1, len([d for d in duration_vals if d > 0])), 1) if duration_vals else 0
+        ratings = [str(r.get('rating') or '').lower() for r in feedback_rows]
+        like_count = sum(1 for r in ratings if r in {'like','liked','👍','positive'})
+        dislike_count = sum(1 for r in ratings if r in {'dislike','disliked','👎','negative'})
+        c1, c2, c3, c4 = st.columns(4)
+        with c1: _wz119_metric('Sessions', len([s for s in sessions if s != 'unknown']) or len(sessions) or 1)
+        with c2: _wz119_metric('Avg session', f'{avg_duration} min')
+        with c3: _wz119_metric('Interview signals', completion, 'Answers/completions/readiness events')
+        with c4: _wz119_metric('👍 / 👎', f'{like_count} / {dislike_count}')
+
+        st.markdown('### Drop-off / funnel signals')
+        f1, f2, f3 = st.columns(3)
+        with f1: _wz119_metric('Started interview', starts or 0)
+        with f2: _wz119_metric('Completed / answered', completion or 0)
+        with f3:
+            rate = int(round((completion / starts) * 100)) if starts else 0
+            _wz119_metric('Completion signal', f'{rate}%')
+
+        st.markdown('### User movement')
+        p1, p2 = st.columns(2)
+        with p1:
+            st.markdown('**Top pages**')
+            page_counts = dict(_wz119_Counter(pages).most_common(10)) if callable(globals().get('_wz119_Counter')) else {}
+            st.bar_chart(page_counts) if page_counts else st.info('No page movement tracked yet.')
+        with p2:
+            st.markdown('**Most used actions/buttons**')
+            action_counts = dict(_wz119_Counter(events).most_common(12)) if callable(globals().get('_wz119_Counter')) else {}
+            st.bar_chart(action_counts) if action_counts else st.info('No actions tracked yet.')
+
+        st.markdown('### Approx. time by feature')
+        total_time = {}
+        for items in grouped.values():
+            for page, mins in _wz120_feature_time_estimates(items).items():
+                total_time[page] = total_time.get(page, 0) + mins
+        total_time = dict(sorted(total_time.items(), key=lambda x: x[1], reverse=True)[:10])
+        st.bar_chart(total_time) if total_time else st.info('Time-on-feature will appear after users navigate between pages.')
+
+        st.markdown('### Funnel stage')
+        stage_counts = dict(_wz119_Counter(stages).most_common()) if callable(globals().get('_wz119_Counter')) else {}
+        st.bar_chart(stage_counts) if stage_counts else st.info('No funnel data yet.')
+
+        st.markdown('### Recent feedback')
+        if feedback_rows:
+            for r in list(reversed(feedback_rows[-12:])):
+                ts = _wz119_safe_str(r.get('timestamp'), 30)
+                page = _wz119_safe_str(r.get('page'), 60)
+                rating = _wz119_safe_str(r.get('rating'), 20)
+                text = _wz119_safe_str(r.get('feedback') or r.get('details') or '', 500)
+                icon = '👍' if rating == 'like' else ('👎' if rating == 'dislike' else '💬')
+                st.markdown(f'**{icon} {page}** · {ts}  \n{text}')
+                st.markdown('---')
+        else:
+            st.info('No feedback submitted yet.')
+        with st.expander('Raw safe analytics rows', expanded=False):
+            try:
+                import pandas as _wz120_pd
+                st.dataframe(_wz120_pd.DataFrame(analytics_rows[-250:]), use_container_width=True)
+            except Exception:
+                st.write(analytics_rows[-80:])
+    except Exception as exc:
+        st.error(f'Founder dashboard could not load safely: {exc}')
+
+
+def _wz113_make_helper_prompt(action_key: str) -> str:
+    """v120 shorter, more useful invisible-coach prompts."""
+    try:
+        ctx = _wz110_get_current_interview_context() if callable(globals().get('_wz110_get_current_interview_context')) else {}
+    except Exception:
+        ctx = {}
+    current_q = (ctx.get('current_question') or st.session_state.get('current_interview_question') or '').strip()
+    latest_answer = (ctx.get('latest_answer') or st.session_state.get('wz_ri_latest_answer') or '').strip()
+    role = st.session_state.get('wz_ri_role') or st.session_state.get('target_role') or 'target role'
+    company = st.session_state.get('wz_ri_company') or st.session_state.get('target_company') or 'target company'
+    base = (
+        f'Role: {role}\nCompany: {company}\nCurrent question: {current_q or "current interview question"}\n'
+        f'Latest answer: {latest_answer or "No draft yet"}\n\n'
+        'Be an invisible interview coach. Keep it SHORT, truthful, and spoken. Do not invent numbers or experience. '
+        'Use CV/JD context from the app. Output maximum 6 lines.'
+    )
+    if action_key == 'help':
+        return base + '\nReturn: 1) what recruiter is testing, 2) 4-sentence answer draft, 3) one truth-check note.'
+    if action_key == '45sec':
+        return base + '\nReturn only one 45-second spoken answer plus one tiny note: “change the metric only if true”.'
+    if action_key == 'star':
+        return base + '\nReturn STAR in 4 short bullets: Situation, Task, Action, Result.'
+    if action_key == 'improve':
+        return base + '\nReturn: improved answer in 5 sentences, then 2 fixes.'
+    return base
+
+
+# =========================================================
+# WorkZo v121 - remaining intelligence + founder analytics hardening
+# Safe additive patch: no routing or working feature rewrites.
+# =========================================================
+
+try:
+    import time as _wz121_time
+    import json as _wz121_json
+    from collections import Counter as _wz121_Counter
+except Exception:
+    pass
+
+
+def _wz121_safe_int(value, default=0):
+    try:
+        return int(float(value or 0))
+    except Exception:
+        return default
+
+
+def _wz121_event_contains(row, *needles):
+    try:
+        blob = ' '.join(str(row.get(k, '')) for k in ['event', 'page', 'stage', 'details']).lower()
+        return any(str(n).lower() in blob for n in needles)
+    except Exception:
+        return False
+
+
+def _wz121_classify_behavior_event(row):
+    """Founder-friendly event groups. Does not read/store CV/JD/answer text."""
+    try:
+        if _wz121_event_contains(row, 'start_recruiter', 'interview_started'):
+            return 'Started interview'
+        if _wz121_event_contains(row, 'answer_submitted', 'spoken_answer', 'typed_answer'):
+            return 'Submitted answer'
+        if _wz121_event_contains(row, 'final_readiness', 'interview_completed'):
+            return 'Finished interview/report'
+        if _wz121_event_contains(row, 'workobot', 'coach', 'helper', 'copilot'):
+            return 'Asked coach/Work-O-Bot'
+        if _wz121_event_contains(row, 'improve cv', 'cv_improved', 'cv_documents'):
+            return 'Used CV tool'
+        if _wz121_event_contains(row, 'cover', 'letter'):
+            return 'Used cover letter'
+        if _wz121_event_contains(row, 'find job', 'job_search', 'matching jobs'):
+            return 'Searched jobs'
+        if _wz121_event_contains(row, 'understand', 'job_analyzed'):
+            return 'Analyzed job'
+        if _wz121_event_contains(row, 'feedback'):
+            return 'Gave feedback'
+        if _wz121_event_contains(row, 'navigation', 'page_view'):
+            return 'Navigation'
+    except Exception:
+        pass
+    return 'Other action'
+
+
+def _wz121_detect_rage_or_confusion(rows):
+    """Approximate confusion/rage clicks: many rapid navigation/actions in one session. Privacy-safe heuristic."""
+    alerts = []
+    try:
+        groups = _wz120_group_sessions(rows) if callable(globals().get('_wz120_group_sessions')) else {}
+        for sid, items in groups.items():
+            if not items:
+                continue
+            navs = [r for r in items if _wz121_event_contains(r, 'navigation', 'button_click', 'page_view')]
+            if len(navs) >= 10:
+                alerts.append({'session_id': sid, 'signal': 'many clicks/navigation', 'count': len(navs)})
+            # repeated same event/button can indicate stuck user
+            labels = [str(r.get('event','')) + ' / ' + str(r.get('page','')) for r in items]
+            common = _wz121_Counter(labels).most_common(1) if ' _wz121_Counter' else []
+            if common and common[0][1] >= 5:
+                alerts.append({'session_id': sid, 'signal': 'repeated same action', 'count': common[0][1]})
+    except Exception:
+        pass
+    return alerts[:10]
+
+
+def _wz121_feature_conversion(rows):
+    counts = {}
+    try:
+        for r in rows or []:
+            label = _wz121_classify_behavior_event(r)
+            counts[label] = counts.get(label, 0) + 1
+    except Exception:
+        pass
+    return dict(sorted(counts.items(), key=lambda x: x[1], reverse=True))
+
+
+# Wrap existing track_event once more to record behavior groups for founder analytics.
+try:
+    if not globals().get('_wz121_behavior_track_wrapped'):
+        _wz121_prev_track_event = globals().get('track_event')
+        def track_event(event_name, page='General', details=None):
+            try:
+                if callable(_wz121_prev_track_event):
+                    _wz121_prev_track_event(event_name, page, details or {})
+            except Exception:
+                pass
+            try:
+                group = _wz121_classify_behavior_event({'event': event_name, 'page': page, 'details': details or {}})
+                if callable(globals().get('_wz119_write_event')):
+                    _wz119_write_event('behavior_signal', page, {'action': group, 'source': 'v121'})
+            except Exception:
+                pass
+        globals()['_wz121_behavior_track_wrapped'] = True
+except Exception:
+    pass
+
+
+try:
+    _wz121_previous_founder_dashboard = render_founder_dashboard
+    def render_founder_dashboard():
+        """Founder Dashboard v121: adds behavior intelligence without replacing existing dashboard."""
+        try:
+            _wz121_previous_founder_dashboard()
+        except Exception as exc:
+            try:
+                st.warning(f'Base founder dashboard could not load fully: {exc}')
+            except Exception:
+                pass
+        try:
+            st.markdown('---')
+            st.markdown('### Behavior intelligence')
+            st.caption('Shows what users actually do, where they may get stuck, and which actions lead toward interview completion. Safe: no CV/JD/answer text stored.')
+            rows = _wz119_read_csv_dicts(_wz119_analytics_file()) if callable(globals().get('_wz119_read_csv_dicts')) else []
+            conversions = _wz121_feature_conversion(rows)
+            c1, c2 = st.columns(2)
+            with c1:
+                st.markdown('**Action groups**')
+                st.bar_chart(conversions) if conversions else st.info('No behavior signals yet.')
+            with c2:
+                starts = sum(1 for r in rows if _wz121_event_contains(r, 'start_recruiter', 'interview_started'))
+                answers = sum(1 for r in rows if _wz121_event_contains(r, 'answer_submitted', 'spoken_answer', 'typed_answer'))
+                reports = sum(1 for r in rows if _wz121_event_contains(r, 'final_readiness', 'interview_completed'))
+                st.metric('Interview starts', starts)
+                st.metric('Answer submissions', answers)
+                st.metric('Final reports', reports)
+                rate = int(round((reports / starts) * 100)) if starts else 0
+                st.metric('Start → report conversion', f'{rate}%')
+            alerts = _wz121_detect_rage_or_confusion(rows)
+            st.markdown('### Confusion signals')
+            if alerts:
+                for a in alerts:
+                    st.warning(f"Session {str(a.get('session_id',''))[-6:]}: {a.get('signal')} ({a.get('count')})")
+            else:
+                st.success('No strong confusion/rage-click signal detected yet.')
+            st.markdown('### What to watch next')
+            st.info('If many users open CV/Cover Letter but do not start an interview, bring those actions back into the interview page. If many users start but do not submit answers, simplify the interview room or reduce pressure.')
+        except Exception as exc:
+            try:
+                st.warning(f'Behavior intelligence panel could not load: {exc}')
+            except Exception:
+                pass
+except Exception:
+    pass
+
+
+# Stronger short prompts for CV/Cover Letter so they feel tied to interview, not generic utilities.
+def _wz121_context_aware_application_prompt(kind='cv'):
+    try:
+        role = st.session_state.get('wz_ri_role') or st.session_state.get('target_role') or 'target role'
+        company = st.session_state.get('wz_ri_company') or st.session_state.get('target_company') or 'target company'
+        return (
+            f'Tailor this {kind} for {role} at {company}. Use CV + JD context only. '
+            'Make it interview-supporting: every important claim should help the user answer a recruiter question. '
+            'Separate: Safe to use / Use only if true / Do not add unless proven. Do not invent metrics.'
+        )
+    except Exception:
+        return 'Use CV + JD context only. Do not invent metrics or experience.'
