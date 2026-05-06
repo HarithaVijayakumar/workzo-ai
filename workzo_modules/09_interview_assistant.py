@@ -4494,3 +4494,888 @@ def _wz124_live_interruption_notice():
     except Exception:
         pass
 
+# =========================================================
+# WorkZo v160 - Interview Memory + Weak-Area Practice Loop
+# Additive patch: preserves the original interview module above.
+# Adds:
+# - Interview history saved in session_state and optional local JSON file
+# - Weak-area memory across sessions
+# - Strongest / weakest answer tracking
+# - Next practice goal before the next interview starts
+# - More recruiter-like follow-ups for vague, generic, metric-free answers
+# =========================================================
+
+import json as _wz160_json
+import time as _wz160_time
+import re as _wz160_re
+from pathlib import Path as _wz160_Path
+
+_WZ160_HISTORY_FILE = _wz160_Path("workzo_interview_history.json")
+
+
+def _wz160_safe_int(value, default=0):
+    try:
+        return int(float(value))
+    except Exception:
+        return default
+
+
+def _wz160_as_list(value):
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(x).strip() for x in value if str(x).strip()]
+    if isinstance(value, str):
+        parts = [_p.strip(" -•\t") for _p in value.split("\n")]
+        return [p for p in parts if p]
+    return [str(value)] if str(value).strip() else []
+
+
+def _wz160_load_history():
+    """Load interview history from session_state first, then optional local JSON."""
+    try:
+        existing = st.session_state.get("wz_interview_history")
+        if isinstance(existing, list):
+            return existing
+    except Exception:
+        pass
+
+    history = []
+    try:
+        if _WZ160_HISTORY_FILE.exists():
+            raw = _WZ160_HISTORY_FILE.read_text(encoding="utf-8")
+            parsed = _wz160_json.loads(raw or "[]")
+            if isinstance(parsed, list):
+                history = parsed[-20:]
+    except Exception:
+        history = []
+
+    try:
+        st.session_state["wz_interview_history"] = history
+    except Exception:
+        pass
+    return history
+
+
+def _wz160_save_history(history):
+    """Save interview history in Streamlit session and best-effort local JSON."""
+    if not isinstance(history, list):
+        history = []
+    history = history[-20:]
+    try:
+        st.session_state["wz_interview_history"] = history
+    except Exception:
+        pass
+    try:
+        _WZ160_HISTORY_FILE.write_text(_wz160_json.dumps(history, indent=2, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass
+    return history
+
+
+def _wz160_answer_text(item):
+    try:
+        if isinstance(item, dict):
+            return str(item.get("answer", "") or "").strip()
+    except Exception:
+        pass
+    return str(item or "").strip()
+
+
+def _wz160_question_text(item):
+    try:
+        if isinstance(item, dict):
+            return str(item.get("question", "") or "").strip()
+    except Exception:
+        pass
+    return ""
+
+
+def _wz160_detect_weak_areas_from_answers(qa_pairs, reactions=None, result=None, jd=""):
+    """Deterministic weak-area detection so history works even if AI JSON is incomplete."""
+    reactions = reactions if isinstance(reactions, list) else []
+    result = result if isinstance(result, dict) else {}
+    weak = []
+
+    for item in _wz160_as_list(result.get("top_3_mistakes")):
+        weak.append(item)
+    for item in _wz160_as_list(result.get("what_hurt_you_most")):
+        weak.append(item)
+    for item in _wz160_as_list(result.get("missed_opportunities")):
+        weak.append(item)
+
+    all_answers = "\n".join(_wz160_answer_text(x) for x in (qa_pairs or []))
+    lower = all_answers.lower()
+    words = len(all_answers.split())
+
+    if words < 80:
+        weak.append("Answers were too short and did not give enough proof.")
+    if not any(x in lower for x in ["%", "result", "impact", "improved", "reduced", "increased", "saved", "measured", "outcome"]):
+        weak.append("Missing measurable impact or business result.")
+    if not any(x in lower for x in ["situation", "task", "action", "result", "when", "during", "i did", "i used", "i built", "i handled"]):
+        weak.append("Weak STAR structure.")
+    if jd:
+        jd_words = {w for w in _wz160_re.findall(r"[a-zA-Z]{4,}", jd.lower()) if len(w) > 4}
+        answer_words = set(_wz160_re.findall(r"[a-zA-Z]{4,}", lower))
+        overlap = len(jd_words.intersection(answer_words))
+        if jd_words and overlap < 5:
+            weak.append("Answers did not connect strongly enough to the job description.")
+
+    for r in reactions:
+        if isinstance(r, dict):
+            reason = str(r.get("interruption_reason") or "").strip().lower()
+            if reason and reason != "none":
+                weak.append(f"Interviewer flagged: {reason}.")
+
+    # Deduplicate while preserving order
+    seen = set()
+    clean = []
+    for item in weak:
+        key = str(item).strip().lower()
+        if key and key not in seen:
+            seen.add(key)
+            clean.append(str(item).strip())
+    return clean[:6]
+
+
+def _wz160_pick_strongest_answer(qa_pairs):
+    best = {"question": "", "answer": "", "reason": ""}
+    best_score = -1
+    for item in qa_pairs or []:
+        ans = _wz160_answer_text(item)
+        if not ans:
+            continue
+        lower = ans.lower()
+        score = 0
+        score += min(30, len(ans.split()) // 3)
+        score += 20 if any(x in lower for x in ["result", "impact", "improved", "reduced", "increased", "%", "outcome"]) else 0
+        score += 15 if any(x in lower for x in ["example", "project", "case", "customer", "team", "stakeholder"]) else 0
+        score += 15 if any(x in lower for x in ["i did", "i used", "i built", "i created", "i handled", "i solved", "i analyzed"]) else 0
+        if score > best_score:
+            best_score = score
+            best = {
+                "question": _wz160_question_text(item),
+                "answer": ans[:800],
+                "reason": "This answer had the clearest proof, structure, or relevance compared with the others.",
+            }
+    return best
+
+
+def _wz160_pick_weakest_answer(qa_pairs, result=None):
+    result = result if isinstance(result, dict) else {}
+    try:
+        wanted = int(result.get("weakest_answer_question_number", 1)) - 1
+    except Exception:
+        wanted = 0
+    if isinstance(qa_pairs, list) and 0 <= wanted < len(qa_pairs):
+        item = qa_pairs[wanted]
+        return {
+            "question": _wz160_question_text(item),
+            "answer": _wz160_answer_text(item)[:800],
+            "reason": "Marked as weakest by the final interview evaluation.",
+        }
+
+    worst = {"question": "", "answer": "", "reason": ""}
+    worst_score = 10**9
+    for item in qa_pairs or []:
+        ans = _wz160_answer_text(item)
+        if not ans:
+            continue
+        lower = ans.lower()
+        score = len(ans.split())
+        score += 25 if any(x in lower for x in ["result", "impact", "improved", "reduced", "increased", "%", "outcome"]) else 0
+        score += 15 if any(x in lower for x in ["example", "project", "case", "customer", "team"]) else 0
+        if score < worst_score:
+            worst_score = score
+            worst = {
+                "question": _wz160_question_text(item),
+                "answer": ans[:800],
+                "reason": "This answer looked least specific or least measurable.",
+            }
+    return worst
+
+
+def _wz160_next_practice_goal(weak_areas):
+    text = " ".join(_wz160_as_list(weak_areas)).lower()
+    if "measurable" in text or "impact" in text or "result" in text:
+        return "Today we’ll focus on giving numbers, outcomes, or measurable impact in every answer."
+    if "star" in text or "structure" in text:
+        return "Today we’ll focus on STAR structure: situation, task, action, result."
+    if "job description" in text or "keyword" in text or "relevance" in text:
+        return "Today we’ll focus on connecting every answer directly to the target job description."
+    if "too short" in text or "proof" in text or "vague" in text:
+        return "Today we’ll focus on proving claims with one specific example."
+    return "Today we’ll focus on making every answer specific, concise, and recruiter-ready."
+
+
+def _wz160_build_history_entry(result, company="", role="", language=""):
+    qa_pairs = list(st.session_state.get("wz_ri_answers", []) or [])
+    reactions = list(st.session_state.get("wz_ri_live_reactions", []) or [])
+    jd = str(st.session_state.get("real_interview_jd_saved") or st.session_state.get("last_understand_job_description") or "")
+    result = result if isinstance(result, dict) else {}
+    weak_areas = _wz160_detect_weak_areas_from_answers(qa_pairs, reactions, result, jd)
+    strongest = _wz160_pick_strongest_answer(qa_pairs)
+    weakest = _wz160_pick_weakest_answer(qa_pairs, result)
+    next_goal = _wz160_next_practice_goal(weak_areas)
+    score = _wz160_safe_int(result.get("overall_score"), 0)
+
+    return {
+        "created_at": _wz160_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "company": str(company or st.session_state.get("target_company", "") or ""),
+        "role": str(role or st.session_state.get("target_role", "") or st.session_state.get("target_job_title", "") or ""),
+        "language": str(language or st.session_state.get("wz_ri_interview_language", "English") or "English"),
+        "score": score,
+        "hiring_decision": str(result.get("hiring_decision") or result.get("final_readiness_message") or ""),
+        "weak_areas": weak_areas,
+        "strongest_answer": strongest,
+        "weakest_answer": weakest,
+        "next_practice_goal": next_goal,
+        "answer_count": len([x for x in qa_pairs if _wz160_answer_text(x)]),
+    }
+
+
+def _wz160_store_interview_result(result, company="", role="", language=""):
+    try:
+        entry = _wz160_build_history_entry(result, company, role, language)
+        history = _wz160_load_history()
+        # Avoid duplicate save on rerun for the same final result
+        latest_key = f"{entry.get('created_at')}::{entry.get('score')}::{entry.get('role')}::{entry.get('answer_count')}"
+        if st.session_state.get("wz160_last_saved_history_key") != latest_key:
+            history.append(entry)
+            _wz160_save_history(history)
+            st.session_state["wz160_last_saved_history_key"] = latest_key
+            st.session_state["wz_last_interview_weak_areas"] = entry.get("weak_areas", [])
+            st.session_state["wz_last_interview_next_goal"] = entry.get("next_practice_goal", "")
+        return entry
+    except Exception:
+        return {}
+
+
+def _wz160_render_history_preview():
+    """Show before-start memory so users feel WorkZo remembers their last interview."""
+    try:
+        history = _wz160_load_history()
+        if not history:
+            return
+        last = history[-1]
+        weak = _wz160_as_list(last.get("weak_areas"))[:3]
+        goal = str(last.get("next_practice_goal") or _wz160_next_practice_goal(weak))
+        score = last.get("score", "—")
+        role = last.get("role") or "your last role"
+        st.markdown(
+            f"""
+            <div style="border:1px solid rgba(59,130,246,.28);border-radius:18px;padding:16px;background:rgba(15,23,42,.45);margin:12px 0;">
+              <div style="color:#93c5fd;font-size:.78rem;font-weight:850;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Last interview memory</div>
+              <div style="color:#f8fafc;font-weight:850;font-size:1.02rem;margin-bottom:6px;">Last score: {html.escape(str(score))}/100 · {html.escape(str(role))}</div>
+              <div style="color:#cbd5e1;font-size:.92rem;line-height:1.45;">{html.escape(goal)}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if weak:
+            with st.expander("Weak areas from last interview", expanded=False):
+                for item in weak:
+                    st.markdown(f"- {html.escape(str(item))}")
+    except Exception:
+        pass
+
+
+def _wz160_render_history_panel():
+    try:
+        history = _wz160_load_history()
+        if not history:
+            return
+        st.markdown("### Interview history & next practice loop")
+        latest = history[-1]
+        st.info(str(latest.get("next_practice_goal") or "Practice again with stronger examples."))
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Last score", f"{latest.get('score', '—')}/100")
+        c2.metric("Answers saved", str(latest.get("answer_count", 0)))
+        c3.metric("Sessions", str(len(history)))
+
+        weak = _wz160_as_list(latest.get("weak_areas"))
+        if weak:
+            st.markdown("#### Saved weak areas")
+            for item in weak[:5]:
+                st.markdown(f"- {item}")
+
+        strongest = latest.get("strongest_answer") if isinstance(latest.get("strongest_answer"), dict) else {}
+        weakest = latest.get("weakest_answer") if isinstance(latest.get("weakest_answer"), dict) else {}
+        a, b = st.columns(2)
+        with a:
+            with st.expander("Strongest answer", expanded=False):
+                st.caption(str(strongest.get("question") or ""))
+                st.write(strongest.get("answer") or "No strongest answer saved yet.")
+                st.caption(strongest.get("reason") or "")
+        with b:
+            with st.expander("Weakest answer to retry", expanded=True):
+                st.caption(str(weakest.get("question") or ""))
+                st.write(weakest.get("answer") or "No weakest answer saved yet.")
+                st.caption(str(weakest.get("reason") or ""))
+
+        if len(history) >= 2:
+            prev_score = _wz160_safe_int(history[-2].get("score"), 0)
+            cur_score = _wz160_safe_int(history[-1].get("score"), 0)
+            delta = cur_score - prev_score
+            if delta > 0:
+                st.success(f"Progress: your score improved by {delta} points from the previous session.")
+            elif delta < 0:
+                st.warning(f"Your score dropped by {abs(delta)} points. Repeat the weakest-answer practice before the next full interview.")
+            else:
+                st.caption("Score stayed the same. Focus on the saved weak area next.")
+    except Exception:
+        pass
+
+
+# Capture existing functions and extend them safely.
+try:
+    _wz160_previous_react_to_answer = _wz_ri_react_to_answer
+except Exception:
+    _wz160_previous_react_to_answer = None
+
+
+def _wz_ri_react_to_answer(question: str, answer: str, cv_text: str, jd: str, qa_pairs: list, language: str, personality: str):
+    """Recruiter-style reaction override with sharper detection and memory-aware probing."""
+    try:
+        flags = _wz_ri_answer_quality_flags(answer, jd) if callable(globals().get("_wz_ri_answer_quality_flags")) else {}
+    except Exception:
+        flags = {}
+
+    answer_text = str(answer or "").strip()
+    lower = answer_text.lower()
+    words = len(answer_text.split())
+    history = _wz160_load_history()
+    last_goal = str(history[-1].get("next_practice_goal", "")) if history else ""
+
+    has_metric = bool(_wz160_re.search(r"\b\d+\s*(%|percent|users?|customers?|tickets?|minutes?|hours?|days?|weeks?|months?|years?|€|\$|k|m)?\b", lower))
+    has_result = any(x in lower for x in ["result", "impact", "improved", "reduced", "increased", "saved", "measured", "outcome", "faster", "better"])
+    has_example = any(x in lower for x in ["for example", "one example", "in my previous", "in my role", "during", "project", "case", "customer"])
+    jd_words = {w for w in _wz160_re.findall(r"[a-zA-Z]{5,}", str(jd or "").lower())}
+    answer_words = set(_wz160_re.findall(r"[a-zA-Z]{5,}", lower))
+    jd_overlap = len(jd_words.intersection(answer_words)) if jd_words else 99
+
+    if words < 25:
+        return {
+            "reaction": "That’s too short. I don’t have enough evidence to evaluate you.",
+            "needs_followup": True,
+            "followup_question": "Prove it with one example. What happened, what did you do, and what changed?",
+            "interruption_reason": "too short",
+            "coach_note": "Give one specific example, not a general statement.",
+        }
+    if words > 145 or flags.get("too_long"):
+        return {
+            "reaction": "I’m going to stop you there — you’re losing me.",
+            "needs_followup": True,
+            "followup_question": "Answer in 45 seconds: result first, then one example, then why it matters for this job.",
+            "interruption_reason": "too long",
+            "coach_note": "Lead with the result and cut background details.",
+        }
+    if not has_example:
+        return {
+            "reaction": "That sounds generic.",
+            "needs_followup": True,
+            "followup_question": "Give me one real example from your CV. What exactly did you do?",
+            "interruption_reason": "vague claim",
+            "coach_note": "Recruiters need proof, not broad claims.",
+        }
+    if not has_metric and not has_result:
+        return {
+            "reaction": "I’m missing the impact.",
+            "needs_followup": True,
+            "followup_question": "Give me numbers. By how much did it improve, how did you measure it, or what changed operationally?",
+            "interruption_reason": "missing metric",
+            "coach_note": "Add a truthful number, outcome, speed, quality, customer result, or business impact.",
+        }
+    if jd_words and jd_overlap < 4:
+        return {
+            "reaction": "I’m not hearing the connection to this job yet.",
+            "needs_followup": True,
+            "followup_question": "Connect that answer to the job description. Which requirement does this prove?",
+            "interruption_reason": "not relevant to JD",
+            "coach_note": "Use job keywords only if they are true for your experience.",
+        }
+    if last_goal and any(x in last_goal.lower() for x in ["numbers", "measurable", "impact"]) and not has_metric:
+        return {
+            "reaction": "This is the same issue as last time: no measurable outcome.",
+            "needs_followup": True,
+            "followup_question": "Try again with a number, comparison, customer result, or measurable improvement.",
+            "interruption_reason": "repeated weak area",
+            "coach_note": last_goal,
+        }
+
+    if callable(_wz160_previous_react_to_answer):
+        try:
+            data = _wz160_previous_react_to_answer(question, answer, cv_text, jd, qa_pairs, language, personality)
+            if isinstance(data, dict):
+                data.setdefault("coach_note", "Good. Keep answers specific, measurable, and tied to the job.")
+                return data
+        except Exception:
+            pass
+
+    return {
+        "reaction": "Good. That gives me something concrete to evaluate.",
+        "needs_followup": False,
+        "followup_question": "",
+        "interruption_reason": "none",
+        "coach_note": "This answer had enough proof to move forward.",
+    }
+
+
+try:
+    _wz160_previous_finish_and_score = _wz_ri_finish_and_score
+except Exception:
+    _wz160_previous_finish_and_score = None
+
+
+def _wz_ri_finish_and_score(cv_text: str, jd: str, company: str, role: str, website: str, language: str):
+    """Finish interview and save history immediately when final score is created."""
+    st.markdown("### Closing")
+    st.info("That’s all from my side. We’ll wrap up here.")
+
+    if st.button("Show Final Feedback", key="wz_ri_show_final_feedback_v160", use_container_width=True):
+        answers = list(st.session_state.get("wz_ri_answers", []))
+        with st.spinner("Reconstructing interviewer impression and saving your practice memory..."):
+            _wz160_time.sleep(1.0)
+            result = _wz_ri_score_full_interview(
+                cv_text=cv_text,
+                jd=jd,
+                company=company,
+                role=role,
+                qa_pairs=answers,
+                reactions=st.session_state.get("wz_ri_live_reactions", []),
+                language=language,
+            )
+            entry = _wz160_store_interview_result(result, company, role, language)
+            if isinstance(result, dict):
+                result["saved_practice_memory"] = entry
+        st.session_state["wz_ri_final_score"] = result
+        st.session_state["interview_score"] = result.get("overall_score", 0) if isinstance(result, dict) else 0
+        st.session_state["wz_ri_closing_reached"] = False
+        st.rerun()
+
+
+try:
+    _wz160_previous_render_final_score = _wz_ri_render_final_score
+except Exception:
+    _wz160_previous_render_final_score = None
+
+
+def _wz_ri_render_final_score(result: dict, company: str, role: str, website: str, language: str):
+    """Render original final score plus persistent weak-area loop."""
+    try:
+        _wz160_store_interview_result(result, company, role, language)
+    except Exception:
+        pass
+
+    if callable(_wz160_previous_render_final_score):
+        _wz160_previous_render_final_score(result, company, role, website, language)
+    else:
+        st.markdown("## Interview Result")
+        st.metric("Interview Readiness Score", f"{_wz160_safe_int(result.get('overall_score'), 0)}/100")
+
+    _wz160_render_history_panel()
+
+
+try:
+    _wz160_previous_render_real_interview_simulation = render_real_interview_simulation
+except Exception:
+    _wz160_previous_render_real_interview_simulation = None
+
+
+def render_real_interview_simulation():
+    """Show memory before the original interview UI, then run the full existing interview experience."""
+    try:
+        if not bool(st.session_state.get("wz_ri_started")) and not bool(st.session_state.get("wz_ri_final_score")):
+            _wz160_render_history_preview()
+    except Exception:
+        pass
+
+    if callable(_wz160_previous_render_real_interview_simulation):
+        return _wz160_previous_render_real_interview_simulation()
+    st.error("Interview module could not load the previous interview renderer.")
+
+
+def show_workobot():
+    render_real_interview_simulation()
+
+# =========================================================
+# End WorkZo v160 patch
+# =========================================================
+
+# =========================================================
+# WorkZo v170 - Real Hiring Decision Feedback Layer
+# Adds: HR screen pass/fail, hiring manager pass/fail,
+# trust-damaging answer, strongest answer, rejection risk,
+# next practice target, and stronger decision-style final feedback.
+# Additive patch: keeps all previous WorkZo interview features intact.
+# =========================================================
+
+try:
+    _wz170_json = json
+except Exception:
+    import json as _wz170_json
+
+try:
+    _wz170_html = html
+except Exception:
+    import html as _wz170_html
+
+
+def _wz170_safe_text(value, default=""):
+    try:
+        text = str(value if value is not None else default)
+        return text.strip() if text.strip() else default
+    except Exception:
+        return default
+
+
+def _wz170_safe_list(value):
+    if isinstance(value, list):
+        return [str(x).strip() for x in value if str(x).strip()]
+    if isinstance(value, str) and value.strip():
+        return [value.strip()]
+    return []
+
+
+def _wz170_safe_score(value, default=0):
+    try:
+        return max(0, min(100, int(float(value))))
+    except Exception:
+        return default
+
+
+def _wz170_answer_words(answer):
+    try:
+        return len(str(answer or "").split())
+    except Exception:
+        return 0
+
+
+def _wz170_extract_answer_signal(qa_pairs):
+    """Deterministic fallback signal if AI does not return full hiring details."""
+    qa_pairs = qa_pairs if isinstance(qa_pairs, list) else []
+    if not qa_pairs:
+        return {
+            "strongest_answer_number": 1,
+            "weakest_answer_number": 1,
+            "answer_that_helped": "No strong answer was captured yet.",
+            "answer_that_damaged_trust": "No answer was captured yet.",
+        }
+
+    scored = []
+    for idx, item in enumerate(qa_pairs, start=1):
+        answer = str((item or {}).get("answer", "") or "")
+        lower = answer.lower()
+        score = 0
+        words = _wz170_answer_words(answer)
+        if 45 <= words <= 120:
+            score += 2
+        if any(x in lower for x in ["result", "impact", "improved", "reduced", "increased", "%", "measured", "outcome"]):
+            score += 3
+        if any(x in lower for x in ["example", "project", "customer", "client", "dashboard", "analysis", "support", "stakeholder"]):
+            score += 2
+        if words < 25:
+            score -= 2
+        if words > 150:
+            score -= 1
+        scored.append((score, idx, answer))
+
+    strongest = max(scored, key=lambda x: x[0])
+    weakest = min(scored, key=lambda x: x[0])
+    return {
+        "strongest_answer_number": strongest[1],
+        "weakest_answer_number": weakest[1],
+        "answer_that_helped": strongest[2][:260] or "The strongest answer had the clearest proof.",
+        "answer_that_damaged_trust": weakest[2][:260] or "The weakest answer lacked proof or clarity.",
+    }
+
+
+def _wz170_normalize_hiring_decision(result, qa_pairs=None, reactions=None):
+    """Ensure the final result always contains realistic hiring-decision fields."""
+    if not isinstance(result, dict):
+        result = {}
+    qa_pairs = qa_pairs if isinstance(qa_pairs, list) else st.session_state.get("wz_ri_answers", [])
+    reactions = reactions if isinstance(reactions, list) else st.session_state.get("wz_ri_live_reactions", [])
+    score = _wz170_safe_score(result.get("overall_score"), 0)
+    signals = _wz170_extract_answer_signal(qa_pairs)
+
+    repeated_reasons = []
+    for r in reactions or []:
+        if isinstance(r, dict):
+            reason = str(r.get("interruption_reason") or "").strip()
+            if reason and reason != "none":
+                repeated_reasons.append(reason)
+
+    if score >= 80:
+        hr_decision = "Likely pass HR screen"
+        hm_decision = "Possible pass to hiring manager / next round"
+        final_decision = "Pass to next round"
+        rejection_risk = "Low to medium"
+    elif score >= 65:
+        hr_decision = "Could pass HR screen, but not strongly"
+        hm_decision = "Borderline for hiring manager round"
+        final_decision = "Borderline"
+        rejection_risk = "Medium"
+    else:
+        hr_decision = "May fail HR screen"
+        hm_decision = "Unlikely to pass hiring manager round yet"
+        final_decision = "Not ready"
+        rejection_risk = "High"
+
+    weakest_number = result.get("weakest_answer_question_number") or signals.get("weakest_answer_number", 1)
+    strongest_number = result.get("strongest_answer_question_number") or signals.get("strongest_answer_number", 1)
+
+    main_reject_reason = _wz170_safe_text(
+        result.get("biggest_reason_for_rejection")
+        or result.get("hiring_reason")
+        or ("Answers were not specific enough and did not prove measurable impact." if score < 80 else "No major rejection reason, but answers can still be sharper."),
+        "Answers need stronger proof and clearer business impact."
+    )
+
+    damaged = _wz170_safe_text(
+        result.get("answer_that_damaged_trust")
+        or signals.get("answer_that_damaged_trust")
+        or "The weakest answer felt too generic or lacked measurable proof.",
+        "The weakest answer felt too generic or lacked measurable proof."
+    )
+
+    helped = _wz170_safe_text(
+        result.get("answer_that_helped")
+        or signals.get("answer_that_helped")
+        or "The strongest answer gave the clearest evidence of role fit.",
+        "The strongest answer gave the clearest evidence of role fit."
+    )
+
+    next_target = _wz170_safe_text(
+        result.get("next_practice_target")
+        or result.get("next_action")
+        or result.get("retry_instruction")
+        or "Practice one answer with: result first, one example, measurable impact, and job relevance.",
+        "Practice one answer with: result first, one example, measurable impact, and job relevance."
+    )
+
+    result["hiring_decision"] = _wz170_safe_text(result.get("hiring_decision"), final_decision)
+    result["hr_screen_decision"] = _wz170_safe_text(result.get("hr_screen_decision"), hr_decision)
+    result["hiring_manager_decision"] = _wz170_safe_text(result.get("hiring_manager_decision"), hm_decision)
+    result["biggest_reason_for_rejection"] = main_reject_reason
+    result["rejection_risk"] = _wz170_safe_text(result.get("rejection_risk"), rejection_risk)
+    result["answer_that_damaged_trust"] = damaged
+    result["answer_that_helped"] = helped
+    result["strongest_answer_question_number"] = _wz170_safe_score(strongest_number, 1)
+    result["weakest_answer_question_number"] = _wz170_safe_score(weakest_number, 1)
+    result["next_practice_target"] = next_target
+    result["recruiter_decision_summary"] = _wz170_safe_text(
+        result.get("recruiter_decision_summary"),
+        f"{result['hr_screen_decision']}. {result['hiring_manager_decision']}. Main risk: {result['biggest_reason_for_rejection']}"
+    )
+    result["trust_risk_flags"] = _wz170_safe_list(result.get("trust_risk_flags")) or sorted(set(repeated_reasons))[:5]
+    result["what_to_fix_before_real_interview"] = _wz170_safe_list(result.get("what_to_fix_before_real_interview")) or [
+        "Lead with the result instead of long background.",
+        "Give one specific example for every claim.",
+        "Add truthful numbers, volume, speed, quality, customer outcome, or business impact.",
+        "Connect each answer to the job description.",
+    ]
+    result["would_pass_summary"] = {
+        "hr_screen": result["hr_screen_decision"],
+        "hiring_manager": result["hiring_manager_decision"],
+        "final_decision": result["hiring_decision"],
+        "risk": result["rejection_risk"],
+    }
+    return result
+
+
+try:
+    _wz170_previous_score_full_interview = _wz_ri_score_full_interview
+except Exception:
+    _wz170_previous_score_full_interview = None
+
+
+def _wz_ri_score_full_interview(cv_text: str, jd: str, company: str, role: str, qa_pairs: list, reactions: list, language: str) -> dict:
+    """Final scoring with recruiter-style pass/fail decision fields."""
+    base_result = {}
+    if callable(_wz170_previous_score_full_interview):
+        try:
+            base_result = _wz170_previous_score_full_interview(cv_text, jd, company, role, qa_pairs, reactions, language)
+        except Exception:
+            base_result = {}
+
+    prompt = f"""
+You are not a friendly coach. You are a realistic recruiter and hiring manager making a hiring decision.
+
+Candidate CV:
+{str(cv_text or '')[:7000]}
+
+Job Description:
+{str(jd or '')[:7000]}
+
+Company: {company or 'Not specified'}
+Role: {role or 'Not specified'}
+
+Interview answers:
+{_wz170_json.dumps(qa_pairs or [], ensure_ascii=False)}
+
+Live interviewer reactions:
+{_wz170_json.dumps(reactions or [], ensure_ascii=False)}
+
+Existing score object from WorkZo:
+{_wz170_json.dumps(base_result if isinstance(base_result, dict) else {}, ensure_ascii=False)}
+
+Return ONLY valid JSON with this exact structure:
+{{
+  "overall_score": 0,
+  "target_score": 80,
+  "hiring_decision": "Pass to next round|Borderline|Not ready",
+  "hr_screen_decision": "Likely pass HR screen|Could pass HR screen, but not strongly|May fail HR screen",
+  "hiring_manager_decision": "Possible pass to hiring manager / next round|Borderline for hiring manager round|Unlikely to pass hiring manager round yet",
+  "rejection_risk": "Low|Low to medium|Medium|High",
+  "biggest_reason_for_rejection": "specific reason",
+  "answer_that_damaged_trust": "which answer damaged trust and why",
+  "answer_that_helped": "which answer helped and why",
+  "strongest_answer_question_number": 1,
+  "weakest_answer_question_number": 1,
+  "trust_risk_flags": ["generic claim", "missing metric"],
+  "what_to_fix_before_real_interview": ["fix 1", "fix 2", "fix 3"],
+  "next_practice_target": "one focused practice target for the next session",
+  "recruiter_decision_summary": "short realistic recruiter summary",
+  "scores": {{
+    "relevance": 0,
+    "depth": 0,
+    "structure_star": 0,
+    "clarity": 0,
+    "confidence": 0,
+    "job_keyword_match": 0,
+    "honesty": 0
+  }},
+  "strengths": [],
+  "top_3_mistakes": [],
+  "what_hurt_you_most": [],
+  "missed_opportunities": [],
+  "interviewer_impression": "",
+  "missing_keywords": [],
+  "improved_version_of_weakest_answer": "",
+  "better_answer_formula": "Situation → Task → Action → Result → Why it matters for this job",
+  "final_readiness_message": ""
+}}
+
+Rules:
+- Be strict, realistic, and recruiter-like.
+- Say whether the candidate would likely pass HR screen and hiring manager round.
+- Identify the single biggest reason they might be rejected.
+- Identify one answer that damaged trust and one answer that helped.
+- Penalize vague claims, missing metrics, weak STAR, and low job relevance.
+- Do not invent achievements.
+- Keep feedback in {language}.
+"""
+    try:
+        raw = _wz_ri_ai(prompt, json_mode=True, language=language)
+        ai_result = _wz_ri_json(raw, {})
+        if isinstance(ai_result, dict) and ai_result:
+            merged = dict(base_result if isinstance(base_result, dict) else {})
+            merged.update(ai_result)
+            return _wz170_normalize_hiring_decision(merged, qa_pairs, reactions)
+    except Exception:
+        pass
+
+    return _wz170_normalize_hiring_decision(base_result if isinstance(base_result, dict) else {}, qa_pairs, reactions)
+
+
+def _wz170_render_hiring_decision_panel(result: dict):
+    result = _wz170_normalize_hiring_decision(result)
+    score = _wz170_safe_score(result.get("overall_score"), 0)
+    decision = _wz170_safe_text(result.get("hiring_decision"), "Borderline")
+    risk = _wz170_safe_text(result.get("rejection_risk"), "Medium")
+
+    st.markdown("### 🧑‍💼 Recruiter hiring decision")
+    d1, d2, d3 = st.columns(3)
+    with d1:
+        if score >= 80:
+            st.success(decision)
+        elif score >= 60:
+            st.warning(decision)
+        else:
+            st.error(decision)
+    with d2:
+        st.metric("Rejection risk", risk)
+    with d3:
+        st.metric("Target readiness", f"{score}/100")
+
+    st.markdown(
+        f"""
+        <div class="wz-interview-card">
+            <div class="wz-interview-label">WOULD YOU PASS?</div>
+            <div class="wz-interview-title">{_wz170_html.escape(_wz170_safe_text(result.get('recruiter_decision_summary'), 'Decision summary unavailable.'))}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("#### HR screen")
+        st.info(_wz170_safe_text(result.get("hr_screen_decision"), "Could pass HR screen, but not strongly"))
+    with c2:
+        st.markdown("#### Hiring manager round")
+        st.info(_wz170_safe_text(result.get("hiring_manager_decision"), "Borderline for hiring manager round"))
+
+    st.markdown("#### Biggest reason you may be rejected")
+    st.error(_wz170_safe_text(result.get("biggest_reason_for_rejection"), "Answers need stronger proof and clearer business impact."))
+
+    c3, c4 = st.columns(2)
+    with c3:
+        st.markdown("#### Answer that damaged trust")
+        st.warning(_wz170_safe_text(result.get("answer_that_damaged_trust"), "The weakest answer felt too generic or lacked proof."))
+    with c4:
+        st.markdown("#### Answer that helped you")
+        st.success(_wz170_safe_text(result.get("answer_that_helped"), "The strongest answer gave the clearest evidence of fit."))
+
+    flags = _wz170_safe_list(result.get("trust_risk_flags"))
+    if flags:
+        st.markdown("#### Trust risk flags")
+        st.caption("These are the parts that may make a recruiter doubt the answer.")
+        for item in flags[:6]:
+            st.markdown(f"- {item}")
+
+    fixes = _wz170_safe_list(result.get("what_to_fix_before_real_interview"))
+    if fixes:
+        st.markdown("#### Fix before the real interview")
+        for item in fixes[:6]:
+            st.markdown(f"- {item}")
+
+    st.markdown("#### Next practice target")
+    st.info(_wz170_safe_text(result.get("next_practice_target"), "Practice one answer with result first, one example, measurable impact, and job relevance."))
+
+
+try:
+    _wz170_previous_render_final_score = _wz_ri_render_final_score
+except Exception:
+    _wz170_previous_render_final_score = None
+
+
+def _wz_ri_render_final_score(result: dict, company: str, role: str, website: str, language: str):
+    """Render hiring decision first, then preserve the existing full feedback/history UI."""
+    result = _wz170_normalize_hiring_decision(result)
+    try:
+        st.session_state["wz_ri_final_score"] = result
+    except Exception:
+        pass
+
+    _wz170_render_hiring_decision_panel(result)
+
+    if callable(_wz170_previous_render_final_score):
+        try:
+            st.markdown("---")
+            _wz170_previous_render_final_score(result, company, role, website, language)
+            return
+        except Exception:
+            pass
+
+    st.markdown("---")
+    st.markdown("## Full Interview Feedback")
+    st.metric("Interview Readiness Score", f"{_wz170_safe_score(result.get('overall_score'), 0)}/100")
+
+
+# =========================================================
+# End WorkZo v170 patch
+# =========================================================
+

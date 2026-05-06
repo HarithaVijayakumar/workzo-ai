@@ -4076,6 +4076,33 @@ def show_landing_page():
     except Exception: pass
     st.markdown("""
     <style id="wz-final-landing-clean-css">
+
+    /* WorkZo v125: stronger landing CTA buttons */
+    .st-key-wz_final_landing_upload button,
+    .st-key-wz_final_landing_demo button,
+    .st-key-wzflow_upload_cv_landing button,
+    .st-key-wz_final_upload_cv_landing button,
+    .st-key-landing_start_with_cv button,
+    .st-key-wz_final_continue_to_job button,
+    .st-key-wz_final_start_interview button {
+        min-height: 66px !important;
+        border-radius: 20px !important;
+        font-size: 1.16rem !important;
+        font-weight: 950 !important;
+        padding: 1rem 1.5rem !important;
+        box-shadow: 0 16px 42px rgba(37,99,235,.30) !important;
+    }
+    .st-key-wz_final_landing_upload button:hover,
+    .st-key-wz_final_landing_demo button:hover,
+    .st-key-wzflow_upload_cv_landing button:hover,
+    .st-key-wz_final_upload_cv_landing button:hover,
+    .st-key-landing_start_with_cv button:hover,
+    .st-key-wz_final_continue_to_job button:hover,
+    .st-key-wz_final_start_interview button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 20px 52px rgba(37,99,235,.40) !important;
+    }
+
     .wz-landing-clean{max-width:1120px;margin:2rem auto 1rem;padding:clamp(1.6rem,4vw,3.4rem);border:1px solid rgba(34,211,238,.26);border-radius:30px;background:radial-gradient(circle at 12% 15%,rgba(20,184,166,.22),transparent 28%),linear-gradient(135deg,rgba(8,47,73,.96),rgba(15,23,42,.98));box-shadow:0 24px 70px rgba(2,6,23,.40)}
     .wz-landing-k{color:#67e8f9;letter-spacing:.18em;text-transform:uppercase;font-size:.78rem;font-weight:950;margin-bottom:.8rem}.wz-landing-clean h1{color:#fff;font-size:clamp(2.25rem,5vw,4.6rem);line-height:1.02;letter-spacing:-.055em;margin:0 0 .85rem;font-weight:950;max-width:920px}.wz-landing-clean p{color:#cbd5e1;font-size:1.12rem;line-height:1.55;max-width:720px}.wz-how{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;max-width:1120px;margin:1rem auto}.wz-how div{border:1px solid rgba(148,163,184,.22);border-radius:18px;background:rgba(15,23,42,.55);padding:1rem;color:#dbeafe;font-weight:800}.wz-how span{display:block;color:#94a3b8;font-weight:500;margin-top:.3rem;font-size:.92rem}@media(max-width:800px){.wz-how{grid-template-columns:1fr}.wz-landing-clean{margin-top:1rem}}
     </style>
@@ -4205,3 +4232,1068 @@ def show_onboarding():
             st.session_state["onboarding_complete"] = True
             _wz_final_go("dashboard")
     st.markdown('</div>', unsafe_allow_html=True)
+
+
+# =========================================================
+# WorkZo v125 - landing CTA final size patch
+# Keeps the existing landing page, only makes the main CTA buttons bigger.
+# =========================================================
+try:
+    _wz125_previous_show_landing_page = show_landing_page
+    def show_landing_page():
+        st.markdown("""
+        <style id="workzo-v125-landing-cta-size-final">
+        .st-key-wz_final_landing_upload button,
+        .st-key-wz_final_landing_demo button,
+        .st-key-wzflow_upload_cv_landing button,
+        .st-key-wz_final_upload_cv_landing button,
+        .st-key-landing_start_with_cv button,
+        .st-key-wz_final_continue_to_job button,
+        .st-key-wz_final_start_interview button {
+            min-height: 66px !important;
+            border-radius: 20px !important;
+            font-size: 1.16rem !important;
+            font-weight: 950 !important;
+            padding: 1rem 1.5rem !important;
+            box-shadow: 0 16px 42px rgba(37,99,235,.30) !important;
+        }
+        .st-key-wz_final_landing_upload button:hover,
+        .st-key-wz_final_landing_demo button:hover,
+        .st-key-wzflow_upload_cv_landing button:hover,
+        .st-key-wz_final_upload_cv_landing button:hover,
+        .st-key-landing_start_with_cv button:hover,
+        .st-key-wz_final_continue_to_job button:hover,
+        .st-key-wz_final_start_interview button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 20px 52px rgba(37,99,235,.40) !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        return _wz125_previous_show_landing_page()
+except Exception:
+    pass
+
+
+# =========================================================
+# WorkZo v126 - Final landing polish requested May 6
+# - Remove progress from logo/name card
+# - Remove Try Demo button from landing
+# - Rename Upload CV to Let's start now
+# - Make main CTA larger
+# =========================================================
+
+def _wz126_landing_polish_css():
+    try:
+        st.markdown("""
+        <style id="workzo-v126-landing-polish-css">
+        /* Hide progress in landing/header card */
+        .workzo-progress-wrap,
+        .workzo-progress-top,
+        .workzo-progress-bar,
+        .workzo-progress-fill,
+        .workzo-progress-steps {
+            display: none !important;
+        }
+        .workzo-header,
+        .workzo-topbar,
+        .workzo-brand-shell,
+        .workzo-brand-card {
+            border-radius: 26px !important;
+            border: 1px solid rgba(34,211,238,.26) !important;
+            background: linear-gradient(135deg, rgba(8,47,73,.72), rgba(15,23,42,.96)) !important;
+            box-shadow: 0 20px 58px rgba(2,6,23,.34) !important;
+        }
+        .workzo-title { font-size: 1.35rem !important; letter-spacing: -.04em !important; }
+        .workzo-subtitle { color: #cbd5e1 !important; font-size: .9rem !important; font-weight: 800 !important; }
+        .st-key-wz126_landing_start button,
+        .st-key-wz_final_landing_upload button,
+        .st-key-wzflow_upload_cv_landing button,
+        .st-key-wz_final_upload_cv_landing button,
+        .st-key-landing_start_with_cv button {
+            min-height: 72px !important;
+            border-radius: 22px !important;
+            font-size: 1.22rem !important;
+            font-weight: 950 !important;
+            padding: 1.05rem 1.65rem !important;
+            background: linear-gradient(135deg, #ff4b4b, #ef4444) !important;
+            box-shadow: 0 18px 48px rgba(239,68,68,.30) !important;
+        }
+        .st-key-wz126_landing_start button:hover,
+        .st-key-wz_final_landing_upload button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 22px 58px rgba(239,68,68,.42) !important;
+        }
+        .wz-landing-clean{
+            margin-top: 2.2rem !important;
+            border-radius: 32px !important;
+            border-color: rgba(34,211,238,.28) !important;
+            box-shadow: 0 26px 75px rgba(2,6,23,.42) !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def show_landing_page():
+    """v126: clean landing with one bigger CTA and no demo button."""
+    try: maybe_scroll_to_top()
+    except Exception: pass
+    try: apply_workzo_v75_global_css()
+    except Exception: pass
+    try: _wz126_landing_polish_css()
+    except Exception: pass
+    try: render_workzo_header()
+    except Exception: pass
+    try: _wz126_landing_polish_css()
+    except Exception: pass
+
+    st.markdown("""
+    <style id="wz126-landing-clean-css">
+    .wz-landing-clean{max-width:1120px;margin:2rem auto 1rem;padding:clamp(1.6rem,4vw,3.4rem);border:1px solid rgba(34,211,238,.26);border-radius:30px;background:radial-gradient(circle at 12% 15%,rgba(20,184,166,.22),transparent 28%),linear-gradient(135deg,rgba(8,47,73,.96),rgba(15,23,42,.98));box-shadow:0 24px 70px rgba(2,6,23,.40)}
+    .wz-landing-k{color:#67e8f9;letter-spacing:.18em;text-transform:uppercase;font-size:.78rem;font-weight:950;margin-bottom:.8rem}
+    .wz-landing-clean h1{color:#fff;font-size:clamp(2.25rem,5vw,4.6rem);line-height:1.02;letter-spacing:-.055em;margin:0 0 .85rem;font-weight:950;max-width:920px}
+    .wz-landing-clean p{color:#cbd5e1;font-size:1.12rem;line-height:1.55;max-width:720px}
+    .wz-how{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;max-width:1120px;margin:1rem auto}
+    .wz-how div{border:1px solid rgba(148,163,184,.22);border-radius:18px;background:rgba(15,23,42,.55);padding:1rem;color:#dbeafe;font-weight:800}
+    .wz-how span{display:block;color:#94a3b8;font-weight:500;margin-top:.3rem;font-size:.92rem}
+    @media(max-width:800px){.wz-how{grid-template-columns:1fr}.wz-landing-clean{margin-top:1rem}}
+    </style>
+    <section class="wz-landing-clean">
+      <div class="wz-landing-k">Real Interview AI</div>
+      <h1>Face a real interview before the real one</h1>
+      <p>Practice an interview based on your CV and the job you want.</p>
+    </section>
+    """, unsafe_allow_html=True)
+
+    c1, c2 = st.columns([1.25, 2.75])
+    with c1:
+        if st.button("Let’s start now", type="primary", use_container_width=True, key="wz126_landing_start"):
+            st.session_state["onboarding_step_final"] = 1
+            _wz_final_go("onboarding")
+    st.markdown("""
+    <div class="wz-how">
+      <div>1. Upload your CV<span>WorkZo reads your real profile.</span></div>
+      <div>2. Paste the job description<span>Prepare for one target role.</span></div>
+      <div>3. Start your real interview<span>Practice with CV + job context.</span></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# =========================================================
+# WorkZo v127 - Landing CTA final polish
+# - Pastel rainbow CTA matching dark background
+# - Remove progress + demo button from landing/header
+# - Rename primary CTA to Let's start now
+# =========================================================
+def _wz127_landing_pastel_css():
+    try:
+        st.markdown("""
+        <style id="workzo-v127-landing-pastel-css">
+        .workzo-progress-wrap,.workzo-progress-top,.workzo-progress-bar,.workzo-progress-fill,.workzo-progress-steps{display:none!important;}
+        .st-key-wz_final_landing_demo,.st-key-wzflow_try_demo_landing,.st-key-wz_final_demo_landing,.st-key-wz_final_landing_demo{display:none!important;}
+        .workzo-header,.workzo-topbar,.workzo-brand-shell,.workzo-brand-card{
+            max-width:1120px!important;margin-left:auto!important;margin-right:auto!important;
+            border-radius:28px!important;border:1px solid rgba(125,211,252,.28)!important;
+            background:linear-gradient(135deg,rgba(8,47,73,.78),rgba(15,23,42,.96))!important;
+            box-shadow:0 22px 60px rgba(2,6,23,.38)!important;
+        }
+        .workzo-title{font-size:1.45rem!important;letter-spacing:-.04em!important;font-weight:950!important;}
+        .workzo-subtitle{color:#dbeafe!important;font-size:.95rem!important;font-weight:800!important;}
+        .st-key-wz127_landing_start button,
+        .st-key-wz126_landing_start button,
+        .st-key-wz_final_landing_upload button,
+        .st-key-wzflow_upload_cv_landing button,
+        .st-key-wz_final_upload_cv_landing button,
+        .st-key-landing_start_with_cv button{
+            min-height:78px!important;border-radius:24px!important;padding:1.12rem 1.8rem!important;
+            font-size:1.22rem!important;font-weight:950!important;color:#07111f!important;
+            border:1px solid rgba(255,255,255,.42)!important;
+            background:linear-gradient(135deg,#fde68a 0%,#fbcfe8 34%,#bae6fd 67%,#bbf7d0 100%)!important;
+            box-shadow:0 20px 55px rgba(125,211,252,.22),0 12px 38px rgba(251,207,232,.16)!important;
+        }
+        .st-key-wz127_landing_start button p,
+        .st-key-wz126_landing_start button p,
+        .st-key-wz_final_landing_upload button p,
+        .st-key-wzflow_upload_cv_landing button p,
+        .st-key-wz_final_upload_cv_landing button p,
+        .st-key-landing_start_with_cv button p{font-size:1.22rem!important;font-weight:950!important;color:#07111f!important;}
+        .st-key-wz127_landing_start button:hover,
+        .st-key-wz126_landing_start button:hover,
+        .st-key-wz_final_landing_upload button:hover,
+        .st-key-wzflow_upload_cv_landing button:hover,
+        .st-key-wz_final_upload_cv_landing button:hover,
+        .st-key-landing_start_with_cv button:hover{
+            transform:translateY(-2px)!important;
+            box-shadow:0 24px 68px rgba(125,211,252,.32),0 16px 46px rgba(251,207,232,.22)!important;
+            filter:saturate(1.04)!important;
+        }
+        .wz-landing-clean{
+            margin-top:2.25rem!important;border-radius:32px!important;
+            border-color:rgba(125,211,252,.30)!important;
+            background:radial-gradient(circle at 10% 12%,rgba(34,211,238,.20),transparent 30%),linear-gradient(135deg,rgba(8,47,73,.92),rgba(15,23,42,.98))!important;
+            box-shadow:0 28px 78px rgba(2,6,23,.42)!important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def show_landing_page():
+    """v127: final landing page with one pastel CTA only."""
+    try: maybe_scroll_to_top()
+    except Exception: pass
+    try: apply_workzo_v75_global_css()
+    except Exception: pass
+    try: _wz127_landing_pastel_css()
+    except Exception: pass
+    try: render_workzo_header()
+    except Exception: pass
+    try: _wz127_landing_pastel_css()
+    except Exception: pass
+
+    st.markdown("""
+    <style id="wz127-landing-clean-css">
+    .wz-landing-clean{max-width:1120px;margin:2rem auto 1rem;padding:clamp(1.65rem,4vw,3.5rem);border:1px solid rgba(34,211,238,.26);border-radius:30px;background:radial-gradient(circle at 12% 15%,rgba(20,184,166,.22),transparent 28%),linear-gradient(135deg,rgba(8,47,73,.96),rgba(15,23,42,.98));box-shadow:0 24px 70px rgba(2,6,23,.40)}
+    .wz-landing-k{color:#67e8f9;letter-spacing:.18em;text-transform:uppercase;font-size:.78rem;font-weight:950;margin-bottom:.8rem}
+    .wz-landing-clean h1{color:#fff;font-size:clamp(2.2rem,5vw,4.6rem);line-height:1.02;letter-spacing:-.055em;margin:0 0 .85rem;font-weight:950;max-width:980px}
+    .wz-landing-clean p{color:#dbeafe;font-size:1.12rem;line-height:1.55;max-width:760px}
+    .wz-how{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;max-width:1120px;margin:1.1rem auto}
+    .wz-how div{border:1px solid rgba(148,163,184,.22);border-radius:18px;background:rgba(15,23,42,.55);padding:1rem;color:#dbeafe;font-weight:850}
+    .wz-how span{display:block;color:#94a3b8;font-weight:600;margin-top:.3rem;font-size:.92rem}
+    @media(max-width:800px){.wz-how{grid-template-columns:1fr}.wz-landing-clean{margin-top:1rem}}
+    </style>
+    <section class="wz-landing-clean">
+      <div class="wz-landing-k">Real Interview AI</div>
+      <h1>Practice a real interview using your CV and job description.</h1>
+      <p>Upload your CV, improve it for the role, and prepare with WorkZo AI.</p>
+    </section>
+    """, unsafe_allow_html=True)
+
+    c1, c2, c3 = st.columns([1, 1.35, 1])
+    with c2:
+        if st.button("🚀 Let’s start now", type="primary", use_container_width=True, key="wz127_landing_start"):
+            st.session_state["onboarding_step_final"] = 1
+            try:
+                _wz_final_go("onboarding")
+            except Exception:
+                st.session_state["page"] = "onboarding"
+                st.session_state["nav_page"] = "onboarding"
+                st.rerun()
+
+    st.markdown("""
+    <div class="wz-how">
+      <div>1. Upload your CV<span>WorkZo reads your real profile.</span></div>
+      <div>2. Paste the job description<span>Prepare for one target role.</span></div>
+      <div>3. Start your real interview<span>Practice with CV + job context.</span></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+
+# =========================================================
+# WorkZo v128 - Landing page conversion upgrade
+# Purpose:
+# - Make hero feel alive with animated interview preview
+# - Place primary CTA visually inside hero area
+# - Make CTA large pastel/rainbow and premium
+# - Remove demo/progress clutter
+# - Reduce top brand card height
+# - Add credibility signal and connected 3-step flow
+# =========================================================
+
+def _wz128_landing_live_preview_css():
+    try:
+        st.markdown("""
+        <style id="workzo-v128-landing-live-preview-css">
+        /* Compact brand card / navbar */
+        .workzo-progress-wrap,
+        .workzo-progress-top,
+        .workzo-progress-bar,
+        .workzo-progress-fill,
+        .workzo-progress-steps,
+        .st-key-wz_final_landing_demo,
+        .st-key-wzflow_try_demo_landing,
+        .st-key-wz_final_demo_landing {
+            display:none!important;
+        }
+
+        .workzo-header,
+        .workzo-topbar,
+        .workzo-brand-shell,
+        .workzo-brand-card{
+            max-width:1120px!important;
+            min-height:76px!important;
+            padding:14px 18px!important;
+            margin-left:auto!important;
+            margin-right:auto!important;
+            border-radius:24px!important;
+            border:1px solid rgba(34,211,238,.26)!important;
+            background:linear-gradient(135deg,rgba(8,47,73,.72),rgba(15,23,42,.96))!important;
+            box-shadow:0 18px 52px rgba(2,6,23,.34)!important;
+        }
+        .workzo-title{
+            font-size:1.32rem!important;
+            letter-spacing:-.045em!important;
+            font-weight:950!important;
+        }
+        .workzo-subtitle{
+            color:#dbeafe!important;
+            font-size:.88rem!important;
+            font-weight:800!important;
+        }
+
+        /* Hero */
+        .wz128-hero{
+            max-width:1120px;
+            margin:clamp(1.1rem,3vw,2.1rem) auto 1.1rem;
+            padding:clamp(1.35rem,3vw,2.6rem);
+            border-radius:34px;
+            border:1px solid rgba(125,211,252,.30);
+            background:
+                radial-gradient(circle at 8% 10%,rgba(45,212,191,.24),transparent 28%),
+                radial-gradient(circle at 90% 18%,rgba(168,85,247,.16),transparent 26%),
+                linear-gradient(135deg,rgba(8,47,73,.94),rgba(15,23,42,.98));
+            box-shadow:0 30px 85px rgba(2,6,23,.46);
+            position:relative;
+            overflow:hidden;
+        }
+        .wz128-hero:before{
+            content:"";
+            position:absolute;
+            inset:-45%;
+            background:conic-gradient(from 180deg,transparent,rgba(34,211,238,.10),rgba(251,207,232,.10),rgba(187,247,208,.08),transparent);
+            animation:wz128GlowSpin 9s linear infinite;
+            opacity:.55;
+        }
+        @keyframes wz128GlowSpin{to{transform:rotate(360deg)}}
+        .wz128-hero-inner{
+            position:relative;
+            display:grid;
+            grid-template-columns:minmax(0,1.05fr) minmax(330px,.72fr);
+            gap:clamp(1.2rem,3vw,2.2rem);
+            align-items:center;
+        }
+        .wz128-kicker{
+            color:#67e8f9;
+            letter-spacing:.18em;
+            text-transform:uppercase;
+            font-size:.78rem;
+            font-weight:950;
+            margin-bottom:.9rem;
+        }
+        .wz128-title{
+            color:#fff;
+            font-size:clamp(2.35rem,5.5vw,4.85rem);
+            line-height:1.01;
+            letter-spacing:-.062em;
+            margin:0 0 1rem;
+            font-weight:950;
+            max-width:850px;
+        }
+        .wz128-subtitle{
+            color:#dbeafe;
+            font-size:clamp(1.02rem,1.4vw,1.18rem);
+            line-height:1.58;
+            max-width:710px;
+            margin:0 0 1rem;
+        }
+        .wz128-proof-row{
+            display:flex;
+            flex-wrap:wrap;
+            gap:.55rem;
+            margin:.95rem 0 1.15rem;
+        }
+        .wz128-proof-pill{
+            border:1px solid rgba(186,230,253,.24);
+            background:rgba(15,23,42,.46);
+            color:#bfdbfe;
+            border-radius:999px;
+            padding:.48rem .72rem;
+            font-size:.84rem;
+            font-weight:850;
+        }
+
+        /* Live interview preview */
+        .wz128-preview{
+            border:1px solid rgba(148,163,184,.22);
+            border-radius:28px;
+            background:linear-gradient(180deg,rgba(15,23,42,.84),rgba(2,6,23,.78));
+            box-shadow:0 22px 60px rgba(2,6,23,.38);
+            padding:1rem;
+            position:relative;
+        }
+        .wz128-preview-top{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:.7rem;
+            margin-bottom:.85rem;
+        }
+        .wz128-recruiter{
+            display:flex;
+            align-items:center;
+            gap:.7rem;
+        }
+        .wz128-avatar{
+            width:44px;height:44px;
+            border-radius:16px;
+            display:grid;place-items:center;
+            background:linear-gradient(135deg,#67e8f9,#818cf8);
+            box-shadow:0 14px 34px rgba(96,165,250,.22);
+            animation:wz128Pulse 2.2s ease-in-out infinite;
+        }
+        @keyframes wz128Pulse{0%,100%{transform:scale(1);box-shadow:0 14px 34px rgba(96,165,250,.22)}50%{transform:scale(1.04);box-shadow:0 16px 42px rgba(45,212,191,.34)}}
+        .wz128-rec-name{color:#f8fafc;font-weight:950;font-size:.98rem;line-height:1.1}
+        .wz128-rec-status{color:#94a3b8;font-size:.78rem;font-weight:700;margin-top:.18rem}
+        .wz128-timer{
+            color:#fecaca;
+            background:rgba(127,29,29,.22);
+            border:1px solid rgba(248,113,113,.24);
+            border-radius:999px;
+            padding:.36rem .58rem;
+            font-weight:950;
+            font-size:.82rem;
+            min-width:58px;
+            text-align:center;
+        }
+        .wz128-chat-bubble{
+            border-radius:20px;
+            padding:.85rem .95rem;
+            margin:.6rem 0;
+            font-size:.92rem;
+            line-height:1.45;
+        }
+        .wz128-chat-bubble.ai{
+            color:#e0f2fe;
+            background:rgba(30,41,59,.74);
+            border:1px solid rgba(125,211,252,.16);
+        }
+        .wz128-chat-bubble.user{
+            color:#f8fafc;
+            background:rgba(37,99,235,.20);
+            border:1px solid rgba(96,165,250,.22);
+            margin-left:2.2rem;
+        }
+        .wz128-listening{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:.8rem;
+            margin-top:.8rem;
+            border:1px solid rgba(45,212,191,.20);
+            background:rgba(20,184,166,.10);
+            border-radius:18px;
+            padding:.72rem .8rem;
+            color:#ccfbf1;
+            font-size:.82rem;
+            font-weight:850;
+        }
+        .wz128-dots{display:flex;gap:.24rem;align-items:center}
+        .wz128-dots span{
+            width:7px;height:7px;border-radius:99px;background:#67e8f9;
+            animation:wz128Dot 1.2s infinite ease-in-out;
+        }
+        .wz128-dots span:nth-child(2){animation-delay:.16s}
+        .wz128-dots span:nth-child(3){animation-delay:.32s}
+        @keyframes wz128Dot{0%,80%,100%{opacity:.28;transform:translateY(0)}40%{opacity:1;transform:translateY(-4px)}}
+        .wz128-feedback-mini{
+            margin-top:.75rem;
+            border-radius:18px;
+            padding:.72rem .85rem;
+            background:linear-gradient(135deg,rgba(250,204,21,.12),rgba(251,207,232,.10));
+            border:1px solid rgba(253,224,71,.18);
+            color:#fde68a;
+            font-size:.82rem;
+            font-weight:850;
+        }
+
+        /* CTA: deliberately oversized and pastel/rainbow */
+        .st-key-wz128_landing_start{
+            max-width:1120px!important;
+            margin:-105px auto 1.45rem!important;
+            padding-left:clamp(1.35rem,3vw,2.6rem)!important;
+            position:relative!important;
+            z-index:9!important;
+        }
+        .st-key-wz128_landing_start button{
+            width:min(430px,100%)!important;
+            min-height:82px!important;
+            border-radius:26px!important;
+            padding:1.15rem 2rem!important;
+            font-size:1.22rem!important;
+            font-weight:950!important;
+            color:#07111f!important;
+            border:1px solid rgba(255,255,255,.50)!important;
+            background:linear-gradient(135deg,#fde68a 0%,#fbcfe8 32%,#bae6fd 66%,#bbf7d0 100%)!important;
+            box-shadow:0 26px 70px rgba(125,211,252,.28),0 18px 52px rgba(251,207,232,.20)!important;
+            transition:all .18s ease!important;
+        }
+        .st-key-wz128_landing_start button p{
+            color:#07111f!important;
+            font-size:1.22rem!important;
+            font-weight:950!important;
+        }
+        .st-key-wz128_landing_start button:hover{
+            transform:translateY(-3px) scale(1.012)!important;
+            filter:saturate(1.05)!important;
+            box-shadow:0 30px 82px rgba(125,211,252,.38),0 22px 62px rgba(251,207,232,.26)!important;
+        }
+
+        /* Hide old landing CTA variants if they appear from previous overrides */
+        .st-key-wz127_landing_start,
+        .st-key-wz126_landing_start,
+        .st-key-wz_final_landing_upload,
+        .st-key-wzflow_upload_cv_landing,
+        .st-key-wz_final_upload_cv_landing,
+        .st-key-landing_start_with_cv{
+            display:none!important;
+        }
+
+        /* Three-step flow */
+        .wz128-flow{
+            max-width:1120px;
+            margin:1rem auto 0;
+            display:grid;
+            grid-template-columns:repeat(3,minmax(0,1fr));
+            gap:.9rem;
+            position:relative;
+        }
+        .wz128-step{
+            border:1px solid rgba(148,163,184,.20);
+            border-radius:22px;
+            background:rgba(15,23,42,.56);
+            padding:1.05rem;
+            color:#dbeafe;
+            font-weight:900;
+            min-height:118px;
+            position:relative;
+            overflow:hidden;
+        }
+        .wz128-step:before{
+            content:"";
+            position:absolute;inset:auto 14px 14px auto;
+            width:54px;height:54px;border-radius:18px;
+            background:rgba(34,211,238,.10);
+        }
+        .wz128-step-icon{
+            font-size:1.55rem;
+            margin-bottom:.45rem;
+        }
+        .wz128-step span{
+            display:block;
+            color:#94a3b8;
+            font-weight:650;
+            margin-top:.35rem;
+            font-size:.92rem;
+            line-height:1.38;
+        }
+        .wz128-step-arrow{
+            position:absolute;
+            top:48%;right:-18px;
+            color:#67e8f9;
+            font-weight:950;
+            z-index:3;
+            opacity:.65;
+        }
+
+        @media(max-width:920px){
+            .wz128-hero-inner{grid-template-columns:1fr;}
+            .wz128-preview{margin-top:.5rem;}
+            .st-key-wz128_landing_start{margin:-18px auto 1.25rem!important;padding:0 1rem!important;}
+            .st-key-wz128_landing_start button{width:100%!important;min-height:74px!important;}
+            .wz128-flow{grid-template-columns:1fr;margin-left:1rem;margin-right:1rem;}
+            .wz128-step-arrow{display:none;}
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def show_landing_page():
+    """v128: animated interview landing page with stronger conversion-focused hero."""
+    try:
+        maybe_scroll_to_top()
+    except Exception:
+        pass
+    try:
+        apply_workzo_v75_global_css()
+    except Exception:
+        pass
+    try:
+        _wz128_landing_live_preview_css()
+    except Exception:
+        pass
+    try:
+        render_workzo_header()
+    except Exception:
+        pass
+    try:
+        _wz128_landing_live_preview_css()
+    except Exception:
+        pass
+
+    st.markdown("""
+    <section class="wz128-hero">
+      <div class="wz128-hero-inner">
+        <div>
+          <div class="wz128-kicker">Real Interview AI</div>
+          <h1 class="wz128-title">Face a real interview before the real one</h1>
+          <p class="wz128-subtitle">Practice realistic interviews with pressure, recruiter-style follow-ups, and feedback based on your CV and target job.</p>
+          <div class="wz128-proof-row">
+            <span class="wz128-proof-pill">No generic mock questions</span>
+            <span class="wz128-proof-pill">Personalized from CV + JD</span>
+            <span class="wz128-proof-pill">Recruiter-style follow-ups</span>
+          </div>
+        </div>
+
+        <div class="wz128-preview" aria-label="Live interview preview">
+          <div class="wz128-preview-top">
+            <div class="wz128-recruiter">
+              <div class="wz128-avatar">🤖</div>
+              <div>
+                <div class="wz128-rec-name">AI Recruiter</div>
+                <div class="wz128-rec-status">Listening for proof and impact</div>
+              </div>
+            </div>
+            <div class="wz128-timer">00:45</div>
+          </div>
+          <div class="wz128-chat-bubble ai">Tell me about yourself — but keep it relevant to this role.</div>
+          <div class="wz128-chat-bubble user">I worked in technical support and handled customer issues...</div>
+          <div class="wz128-listening">
+            <span>Recruiter is typing a follow-up</span>
+            <div class="wz128-dots"><span></span><span></span><span></span></div>
+          </div>
+          <div class="wz128-feedback-mini">⚠️ You’re losing me — give me one measurable result.</div>
+        </div>
+      </div>
+    </section>
+    """, unsafe_allow_html=True)
+
+    if st.button("✨ Let’s start now", type="primary", use_container_width=False, key="wz128_landing_start"):
+        st.session_state["onboarding_step_final"] = 1
+        try:
+            _wz_final_go("onboarding")
+        except Exception:
+            st.session_state["page"] = "onboarding"
+            st.session_state["nav_page"] = "onboarding"
+            st.rerun()
+
+    st.markdown("""
+    <div class="wz128-flow">
+      <div class="wz128-step"><div class="wz128-step-icon">📄</div>1. Upload your CV<span>WorkZo reads your real profile and interview context.</span><div class="wz128-step-arrow">→</div></div>
+      <div class="wz128-step"><div class="wz128-step-icon">🎯</div>2. Paste the job description<span>The interview becomes specific to the role you want.</span><div class="wz128-step-arrow">→</div></div>
+      <div class="wz128-step"><div class="wz128-step-icon">🎤</div>3. Start your real interview<span>Answer under pressure and get recruiter-style feedback.</span></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# =========================================================
+# WorkZo v129 - Landing live preview render fix
+# Purpose: override previous landing hero so the interview preview
+# renders as HTML instead of showing raw <div> text.
+# =========================================================
+def show_landing_page():
+    """v129: fixed animated landing page. Preview HTML is minified to avoid Markdown code rendering."""
+    try:
+        maybe_scroll_to_top()
+    except Exception:
+        pass
+    try:
+        apply_workzo_v75_global_css()
+    except Exception:
+        pass
+    try:
+        _wz128_landing_live_preview_css()
+    except Exception:
+        pass
+    try:
+        render_workzo_header()
+    except Exception:
+        pass
+    try:
+        _wz128_landing_live_preview_css()
+    except Exception:
+        pass
+
+    hero_html = (
+        '<section class="wz128-hero">'
+        '<div class="wz128-hero-inner">'
+        '<div>'
+        '<div class="wz128-kicker">Real Interview AI</div>'
+        '<h1 class="wz128-title">Face a real interview before the real one</h1>'
+        '<p class="wz128-subtitle">Practice realistic interviews with pressure, recruiter-style follow-ups, and feedback based on your CV and target job.</p>'
+        '<div class="wz128-proof-row">'
+        '<span class="wz128-proof-pill">No generic mock questions</span>'
+        '<span class="wz128-proof-pill">Personalized from CV + JD</span>'
+        '<span class="wz128-proof-pill">Recruiter-style follow-ups</span>'
+        '</div>'
+        '</div>'
+        '<div class="wz128-preview" aria-label="Live interview preview">'
+        '<div class="wz128-preview-top">'
+        '<div class="wz128-recruiter">'
+        '<div class="wz128-avatar">🤖</div>'
+        '<div><div class="wz128-rec-name">AI Recruiter</div><div class="wz128-rec-status">Listening for proof and impact</div></div>'
+        '</div>'
+        '<div class="wz128-timer">00:45</div>'
+        '</div>'
+        '<div class="wz128-chat-bubble ai">Tell me about yourself — but keep it relevant to this role.</div>'
+        '<div class="wz128-chat-bubble user">I worked in technical support and handled customer issues...</div>'
+        '<div class="wz128-listening"><span>Recruiter is typing a follow-up</span><div class="wz128-dots"><span></span><span></span><span></span></div></div>'
+        '<div class="wz128-feedback-mini">⚠️ You’re losing me — give me one measurable result.</div>'
+        '</div>'
+        '</div>'
+        '</section>'
+    )
+    st.markdown(hero_html, unsafe_allow_html=True)
+
+    if st.button("✨ Let’s start now", type="primary", use_container_width=False, key="wz128_landing_start"):
+        st.session_state["onboarding_step_final"] = 1
+        try:
+            _wz_final_go("onboarding")
+        except Exception:
+            st.session_state["page"] = "onboarding"
+            st.session_state["nav_page"] = "onboarding"
+            st.rerun()
+
+    flow_html = (
+        '<div class="wz128-flow">'
+        '<div class="wz128-step"><div class="wz128-step-icon">📄</div>1. Upload your CV<span>WorkZo reads your real profile and interview context.</span><div class="wz128-step-arrow">→</div></div>'
+        '<div class="wz128-step"><div class="wz128-step-icon">🎯</div>2. Paste the job description<span>The interview becomes specific to the role you want.</span><div class="wz128-step-arrow">→</div></div>'
+        '<div class="wz128-step"><div class="wz128-step-icon">🎤</div>3. Start your real interview<span>Answer under pressure and get recruiter-style feedback.</span></div>'
+        '</div>'
+    )
+    st.markdown(flow_html, unsafe_allow_html=True)
+
+
+# =========================================================
+# WorkZo v130 - Serious interview landing polish
+# Purpose:
+# - Replace pastel CTA with serious neon/electric interview-tech CTA
+# - Keep CTA visually inside hero without breaking Streamlit navigation
+# - Add believable live-interview details: waveform, confidence meter, live tag
+# - Add one emotional trust/proof line
+# - Reduce navbar/brand vertical height for better above-the-fold view
+# =========================================================
+
+def _wz130_landing_serious_cta_css():
+    try:
+        st.markdown("""
+        <style id="workzo-v130-landing-serious-cta-css">
+        /* Make top brand/header less tall */
+        .workzo-header,
+        .workzo-topbar,
+        .workzo-brand-shell,
+        .workzo-brand-card{
+            max-width:1120px!important;
+            min-height:66px!important;
+            padding:10px 16px!important;
+            border-radius:22px!important;
+            margin-top:.5rem!important;
+            margin-bottom:.8rem!important;
+            background:linear-gradient(135deg,rgba(8,47,73,.72),rgba(15,23,42,.94))!important;
+            border:1px solid rgba(34,211,238,.24)!important;
+            box-shadow:0 16px 46px rgba(2,6,23,.30)!important;
+        }
+        .workzo-logo,
+        .workzo-sidebar-logo,
+        .wzfinal-logo,
+        .wzflow-logo{
+            width:52px!important;
+            height:52px!important;
+        }
+        .workzo-title{font-size:1.24rem!important;line-height:1.05!important;}
+        .workzo-subtitle{font-size:.82rem!important;line-height:1.2!important;}
+
+        /* Hide older landing CTA variants */
+        .st-key-wz128_landing_start,
+        .st-key-wz127_landing_start,
+        .st-key-wz126_landing_start,
+        .st-key-wz_final_landing_upload,
+        .st-key-wzflow_upload_cv_landing,
+        .st-key-wz_final_upload_cv_landing,
+        .st-key-landing_start_with_cv{
+            display:none!important;
+        }
+
+        .wz130-hero{
+            max-width:1120px;
+            margin:clamp(.85rem,2vw,1.45rem) auto 1.1rem;
+            padding:clamp(1.3rem,2.8vw,2.45rem) clamp(1.35rem,3vw,2.7rem) clamp(6.4rem,7.5vw,7.4rem);
+            border-radius:34px;
+            border:1px solid rgba(34,211,238,.32);
+            background:
+                radial-gradient(circle at 5% 8%,rgba(45,212,191,.25),transparent 28%),
+                radial-gradient(circle at 82% 12%,rgba(37,99,235,.28),transparent 30%),
+                linear-gradient(135deg,rgba(8,47,73,.96),rgba(15,23,42,.98));
+            box-shadow:0 30px 88px rgba(2,6,23,.52), inset 0 1px 0 rgba(255,255,255,.04);
+            position:relative;
+            overflow:hidden;
+        }
+        .wz130-hero:before{
+            content:"";
+            position:absolute;
+            inset:-30%;
+            background:conic-gradient(from 180deg,transparent,rgba(34,211,238,.11),rgba(59,130,246,.13),transparent 58%);
+            animation:wz130GlowSpin 10s linear infinite;
+            opacity:.64;
+        }
+        @keyframes wz130GlowSpin{to{transform:rotate(360deg)}}
+        .wz130-hero-inner{
+            position:relative;
+            display:grid;
+            grid-template-columns:minmax(0,1.02fr) minmax(340px,.72fr);
+            gap:clamp(1.25rem,3vw,2.35rem);
+            align-items:center;
+        }
+        .wz130-kicker{
+            color:#67e8f9;
+            letter-spacing:.18em;
+            text-transform:uppercase;
+            font-size:.76rem;
+            font-weight:950;
+            margin-bottom:.85rem;
+        }
+        .wz130-title{
+            color:#fff;
+            font-size:clamp(2.25rem,5.3vw,4.6rem);
+            line-height:1.015;
+            letter-spacing:-.061em;
+            margin:0 0 .95rem;
+            font-weight:950;
+            max-width:820px;
+        }
+        .wz130-subtitle{
+            color:#dbeafe;
+            font-size:clamp(1.02rem,1.35vw,1.16rem);
+            line-height:1.55;
+            max-width:700px;
+            margin:0 0 .95rem;
+        }
+        .wz130-proof-line{
+            display:inline-flex;
+            align-items:center;
+            gap:.45rem;
+            color:#a7f3d0;
+            background:rgba(20,184,166,.09);
+            border:1px solid rgba(45,212,191,.18);
+            border-radius:999px;
+            padding:.5rem .75rem;
+            font-size:.84rem;
+            font-weight:850;
+            margin:.1rem 0 .85rem;
+        }
+        .wz130-proof-row{display:flex;flex-wrap:wrap;gap:.55rem;margin:.25rem 0 0;}
+        .wz130-proof-pill{
+            border:1px solid rgba(186,230,253,.22);
+            background:rgba(15,23,42,.50);
+            color:#bfdbfe;
+            border-radius:999px;
+            padding:.46rem .70rem;
+            font-size:.82rem;
+            font-weight:850;
+        }
+
+        /* Serious neon CTA - visually placed inside hero */
+        .st-key-wz130_landing_start{
+            max-width:1120px!important;
+            margin:clamp(-6.95rem,-7vw,-5.7rem) auto 2.15rem!important;
+            padding-left:clamp(1.35rem,3vw,2.7rem)!important;
+            padding-right:clamp(1.35rem,3vw,2.7rem)!important;
+            position:relative!important;
+            z-index:20!important;
+        }
+        .st-key-wz130_landing_start button{
+            width:min(340px,100%)!important;
+            min-height:66px!important;
+            border-radius:20px!important;
+            padding:1rem 1.35rem!important;
+            font-size:1.08rem!important;
+            font-weight:950!important;
+            letter-spacing:-.02em!important;
+            color:#eff6ff!important;
+            border:1px solid rgba(125,211,252,.62)!important;
+            background:
+                radial-gradient(circle at 15% 10%,rgba(103,232,249,.42),transparent 34%),
+                linear-gradient(135deg,#0f172a 0%,#075985 48%,#1d4ed8 100%)!important;
+            box-shadow:0 0 0 1px rgba(34,211,238,.16),0 18px 52px rgba(14,165,233,.32),0 12px 34px rgba(37,99,235,.25)!important;
+            transition:all .18s ease!important;
+        }
+        .st-key-wz130_landing_start button p{
+            color:#eff6ff!important;
+            font-size:1.08rem!important;
+            font-weight:950!important;
+        }
+        .st-key-wz130_landing_start button:hover{
+            transform:translateY(-2px) scale(1.01)!important;
+            border-color:rgba(165,243,252,.86)!important;
+            box-shadow:0 0 0 1px rgba(34,211,238,.25),0 24px 70px rgba(14,165,233,.42),0 15px 42px rgba(37,99,235,.32)!important;
+            filter:saturate(1.08)!important;
+        }
+
+        /* Live interview card */
+        .wz130-preview{
+            border:1px solid rgba(148,163,184,.22);
+            border-radius:28px;
+            background:linear-gradient(180deg,rgba(15,23,42,.88),rgba(2,6,23,.82));
+            box-shadow:0 22px 60px rgba(2,6,23,.42);
+            padding:1rem;
+            position:relative;
+        }
+        .wz130-preview:after{
+            content:"LIVE";
+            position:absolute;
+            top:12px;
+            right:12px;
+            font-size:.62rem;
+            letter-spacing:.12em;
+            font-weight:950;
+            color:#fecaca;
+            background:rgba(127,29,29,.24);
+            border:1px solid rgba(248,113,113,.26);
+            border-radius:999px;
+            padding:.24rem .42rem;
+        }
+        .wz130-preview-top{display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin-bottom:.85rem;padding-right:2.4rem;}
+        .wz130-recruiter{display:flex;align-items:center;gap:.7rem;}
+        .wz130-avatar{
+            width:44px;height:44px;border-radius:16px;display:grid;place-items:center;
+            background:linear-gradient(135deg,#67e8f9,#2563eb);
+            box-shadow:0 14px 34px rgba(96,165,250,.25);
+            animation:wz130AvatarPulse 2.2s ease-in-out infinite;
+        }
+        @keyframes wz130AvatarPulse{0%,100%{transform:scale(1);box-shadow:0 14px 34px rgba(96,165,250,.25)}50%{transform:scale(1.045);box-shadow:0 16px 44px rgba(45,212,191,.40)}}
+        .wz130-rec-name{color:#f8fafc;font-weight:950;font-size:.98rem;line-height:1.1;}
+        .wz130-rec-status{color:#94a3b8;font-size:.78rem;font-weight:700;margin-top:.18rem;}
+        .wz130-timer{color:#fecaca;background:rgba(127,29,29,.22);border:1px solid rgba(248,113,113,.24);border-radius:999px;padding:.36rem .58rem;font-weight:950;font-size:.82rem;min-width:58px;text-align:center;}
+        .wz130-chat-bubble{border-radius:20px;padding:.82rem .92rem;margin:.58rem 0;font-size:.9rem;line-height:1.43;}
+        .wz130-chat-bubble.ai{color:#e0f2fe;background:rgba(30,41,59,.78);border:1px solid rgba(125,211,252,.16);}
+        .wz130-chat-bubble.user{color:#f8fafc;background:rgba(37,99,235,.21);border:1px solid rgba(96,165,250,.22);margin-left:2.1rem;}
+        .wz130-wave{
+            height:34px;
+            display:flex;
+            gap:.24rem;
+            align-items:center;
+            padding:.2rem .25rem;
+            margin:.55rem 0 .35rem;
+        }
+        .wz130-wave span{
+            width:5px;
+            border-radius:999px;
+            background:linear-gradient(180deg,#67e8f9,#2563eb);
+            opacity:.85;
+            animation:wz130Wave 1.15s ease-in-out infinite;
+        }
+        .wz130-wave span:nth-child(1){height:12px;animation-delay:.05s}.wz130-wave span:nth-child(2){height:22px;animation-delay:.14s}.wz130-wave span:nth-child(3){height:30px;animation-delay:.22s}.wz130-wave span:nth-child(4){height:18px;animation-delay:.30s}.wz130-wave span:nth-child(5){height:26px;animation-delay:.38s}.wz130-wave span:nth-child(6){height:14px;animation-delay:.46s}.wz130-wave span:nth-child(7){height:24px;animation-delay:.54s}
+        @keyframes wz130Wave{0%,100%{transform:scaleY(.55);opacity:.45}50%{transform:scaleY(1.05);opacity:1}}
+        .wz130-listening{display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin-top:.75rem;border:1px solid rgba(45,212,191,.20);background:rgba(20,184,166,.10);border-radius:18px;padding:.7rem .78rem;color:#ccfbf1;font-size:.81rem;font-weight:850;}
+        .wz130-dots{display:flex;gap:.24rem;align-items:center}.wz130-dots span{width:7px;height:7px;border-radius:99px;background:#67e8f9;animation:wz130Dot 1.2s infinite ease-in-out}.wz130-dots span:nth-child(2){animation-delay:.16s}.wz130-dots span:nth-child(3){animation-delay:.32s}@keyframes wz130Dot{0%,80%,100%{opacity:.28;transform:translateY(0)}40%{opacity:1;transform:translateY(-4px)}}
+        .wz130-meter{margin:.72rem 0 .55rem;}
+        .wz130-meter-row{display:flex;justify-content:space-between;color:#94a3b8;font-size:.72rem;font-weight:850;margin-bottom:.32rem;}
+        .wz130-meter-track{height:8px;border-radius:999px;background:rgba(148,163,184,.18);overflow:hidden;}
+        .wz130-meter-fill{width:42%;height:100%;border-radius:999px;background:linear-gradient(90deg,#f59e0b,#22d3ee);animation:wz130Meter 3.2s ease-in-out infinite;}
+        @keyframes wz130Meter{0%,100%{width:38%}50%{width:58%}}
+        .wz130-feedback-mini{margin-top:.68rem;border-radius:18px;padding:.70rem .82rem;background:linear-gradient(135deg,rgba(250,204,21,.13),rgba(15,23,42,.36));border:1px solid rgba(253,224,71,.20);color:#fde68a;font-size:.81rem;font-weight:850;}
+        .wz130-tag{display:inline-flex;margin-top:.55rem;border-radius:999px;padding:.32rem .54rem;background:rgba(251,113,133,.10);border:1px solid rgba(251,113,133,.18);color:#fecdd3;font-size:.72rem;font-weight:900;}
+
+        .wz130-flow{max-width:1120px;margin:1.15rem auto 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.9rem;position:relative;}
+        .wz130-step{border:1px solid rgba(148,163,184,.20);border-radius:22px;background:rgba(15,23,42,.56);padding:1.05rem;color:#dbeafe;font-weight:900;min-height:118px;position:relative;overflow:hidden;}
+        .wz130-step:before{content:"";position:absolute;inset:auto 14px 14px auto;width:54px;height:54px;border-radius:18px;background:rgba(34,211,238,.10);}
+        .wz130-step-icon{font-size:1.55rem;margin-bottom:.45rem;}.wz130-step span{display:block;color:#94a3b8;font-weight:650;margin-top:.35rem;font-size:.92rem;line-height:1.38;}.wz130-step-arrow{position:absolute;top:48%;right:-18px;color:#67e8f9;font-weight:950;z-index:3;opacity:.65;}
+
+        @media(max-width:920px){
+            .wz130-hero{padding-bottom:1.35rem;margin-left:1rem;margin-right:1rem;}
+            .wz130-hero-inner{grid-template-columns:1fr;}
+            .wz130-preview{margin-top:.5rem;}
+            .st-key-wz130_landing_start{margin:.2rem 1rem 1.2rem!important;padding:0!important;}
+            .st-key-wz130_landing_start button{width:100%!important;min-height:66px!important;}
+            .wz130-flow{grid-template-columns:1fr;margin-left:1rem;margin-right:1rem;}
+            .wz130-step-arrow{display:none;}
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def show_landing_page():
+    """v130: serious animated interview landing page with recruiter-tech CTA."""
+    try:
+        maybe_scroll_to_top()
+    except Exception:
+        pass
+    try:
+        apply_workzo_v75_global_css()
+    except Exception:
+        pass
+    try:
+        _wz128_landing_live_preview_css()
+    except Exception:
+        pass
+    try:
+        _wz130_landing_serious_cta_css()
+    except Exception:
+        pass
+    try:
+        render_workzo_header()
+    except Exception:
+        pass
+    try:
+        _wz128_landing_live_preview_css()
+        _wz130_landing_serious_cta_css()
+    except Exception:
+        pass
+
+    hero_html = (
+        '<section class="wz130-hero">'
+        '<div class="wz130-hero-inner">'
+        '<div>'
+        '<div class="wz130-kicker">Real Interview AI</div>'
+        '<h1 class="wz130-title">Face a real interview before the real one</h1>'
+        '<p class="wz130-subtitle">Train for interviews that actually feel real — with pressure, recruiter-style follow-ups, and feedback based on your CV and target job.</p>'
+        '<div class="wz130-proof-line">⚡ Built to simulate real interview pressure</div>'
+        '<div class="wz130-proof-row">'
+        '<span class="wz130-proof-pill">No generic mock questions</span>'
+        '<span class="wz130-proof-pill">Personalized from CV + JD</span>'
+        '<span class="wz130-proof-pill">Recruiter-style follow-ups</span>'
+        '</div>'
+        '</div>'
+        '<div class="wz130-preview" aria-label="Live interview preview">'
+        '<div class="wz130-preview-top">'
+        '<div class="wz130-recruiter">'
+        '<div class="wz130-avatar">🤖</div>'
+        '<div><div class="wz130-rec-name">AI Recruiter</div><div class="wz130-rec-status">Listening for proof and impact</div></div>'
+        '</div>'
+        '<div class="wz130-timer">00:45</div>'
+        '</div>'
+        '<div class="wz130-chat-bubble ai">Tell me about yourself — but keep it relevant to this role.</div>'
+        '<div class="wz130-chat-bubble user">I worked in technical support and handled customer issues...</div>'
+        '<div class="wz130-wave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>'
+        '<div class="wz130-listening"><span>Recruiter is typing a follow-up</span><div class="wz130-dots"><span></span><span></span><span></span></div></div>'
+        '<div class="wz130-meter"><div class="wz130-meter-row"><span>Answer confidence</span><span>42%</span></div><div class="wz130-meter-track"><div class="wz130-meter-fill"></div></div></div>'
+        '<div class="wz130-feedback-mini">⚠️ You’re losing me — give me one measurable result.</div>'
+        '<div class="wz130-tag">Live tag: Answer too generic</div>'
+        '</div>'
+        '</div>'
+        '</section>'
+    )
+    st.markdown(hero_html, unsafe_allow_html=True)
+
+    if st.button("🎤 Let’s start now", type="primary", use_container_width=False, key="wz130_landing_start"):
+        st.session_state["onboarding_step_final"] = 1
+        try:
+            _wz_final_go("onboarding")
+        except Exception:
+            st.session_state["page"] = "onboarding"
+            st.session_state["nav_page"] = "onboarding"
+            st.rerun()
+
+    flow_html = (
+        '<div class="wz130-flow">'
+        '<div class="wz130-step"><div class="wz130-step-icon">📄</div>1. Upload your CV<span>WorkZo reads your real profile and interview context.</span><div class="wz130-step-arrow">→</div></div>'
+        '<div class="wz130-step"><div class="wz130-step-icon">🎯</div>2. Paste the job description<span>The interview becomes specific to the role you want.</span><div class="wz130-step-arrow">→</div></div>'
+        '<div class="wz130-step"><div class="wz130-step-icon">🎤</div>3. Start your real interview<span>Answer under pressure and get recruiter-style feedback.</span></div>'
+        '</div>'
+    )
+    st.markdown(flow_html, unsafe_allow_html=True)
