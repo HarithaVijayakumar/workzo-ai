@@ -29552,3 +29552,327 @@ try:
     render_job_assist_page = _wz84_render_job_assist_page
 except Exception:
     pass
+
+
+# =========================================================
+# WorkZo v189 - FINAL SHARED LAYOUT + NEW SIMULATOR DASHBOARD RESTORE
+# Purpose:
+# - Force the new compact simulator dashboard as the ONLY dashboard view.
+# - Stop old "Practice like a real recruiter call" hero from replacing the new layout.
+# - Use one shared topbar/logo card across dashboard and feature pages.
+# - Make the logo a reliable Home button.
+# - Keep Toolbox routes explicit: Improve CV, Cover Letter, Find Jobs, Understand Job, Prepare Job.
+# - Keep Work-O-Bot as a small floating robot icon everywhere.
+# - Reduce heavy glow/animations for better Streamlit speed.
+# =========================================================
+
+import html as _wz189_html
+
+
+def _wz189_safe_text(value, fallback=''):
+    try:
+        value = str(value or '').strip()
+        return value if value else fallback
+    except Exception:
+        return fallback
+
+
+def _wz189_set_route(target: str, **state):
+    try:
+        target = str(target or 'real_interview').strip()
+        for k, v in (state or {}).items():
+            st.session_state[k] = v
+        st.session_state['page'] = target
+        st.session_state['nav_page'] = target
+        st.session_state['current_page'] = target
+        st.session_state['_wz_force_page'] = target
+        try:
+            st.query_params['page'] = target
+            st.query_params['nav_page'] = target
+            st.query_params['wz_page'] = target
+            if 'job_assist_mode_key' in state:
+                st.query_params['job_mode'] = str(state.get('job_assist_mode_key') or '')
+        except Exception:
+            pass
+        try:
+            request_scroll_to_top()
+        except Exception:
+            pass
+        st.rerun()
+    except Exception:
+        pass
+
+
+def _wz104_go_to_action(action: str):
+    """v189: final single toolbox router."""
+    try:
+        action = str(action or '').strip().lower().replace(' ', '_').replace('-', '_')
+        aliases = {
+            'home':'real_interview', 'dashboard':'real_interview', 'start':'real_interview',
+            'interview':'real_interview', 'real_interview':'real_interview',
+            'improve':'improve_cv', 'improve_resume':'improve_cv', 'resume_review':'improve_cv',
+            'cover':'cover_letter', 'cover_letters':'cover_letter',
+            'find_jobs':'find_job', 'find_job':'find_job',
+            'understand':'understand_job', 'understand_job':'understand_job',
+            'prepare':'prepare_job', 'prepare_job':'prepare_job',
+            'work_o_bot':'workobot', 'workbot':'workobot', 'workobot':'workobot',
+            'settings':'settings', 'founder':'founder_dashboard', 'founder_dashboard':'founder_dashboard',
+        }
+        action = aliases.get(action, action)
+        if action == 'real_interview':
+            return _wz189_set_route('real_interview')
+        if action == 'workobot':
+            return _wz189_set_route('workobot')
+        if action == 'improve_cv':
+            return _wz189_set_route('cv_documents', document_tools_mode='Improve / Update CV', cv_documents_mode='improve_cv', wz108_direct_document_tool='improve_cv', wz104_last_tool_action='Improve CV')
+        if action == 'cover_letter':
+            return _wz189_set_route('cv_documents', document_tools_mode='Cover Letter Generator + Language', cv_documents_mode='cover_letter', wz108_direct_document_tool='cover_letter', wz104_last_tool_action='Cover Letter')
+        if action == 'find_job':
+            return _wz189_set_route('job_assist', job_assist_mode_key='find', wz108_direct_job_mode='find', wz187_job_mode='find', wz104_last_tool_action='Find Jobs')
+        if action == 'understand_job':
+            return _wz189_set_route('job_assist', job_assist_mode_key='understand', wz108_direct_job_mode='understand', wz187_job_mode='understand', wz104_last_tool_action='Understand Job')
+        if action == 'prepare_job':
+            return _wz189_set_route('job_assist', job_assist_mode_key='prepare', wz108_direct_job_mode='prepare', wz187_job_mode='prepare', wz104_last_tool_action='Prepare Job')
+        if action == 'founder_dashboard':
+            return _wz189_set_route('founder_dashboard')
+        if action == 'settings':
+            st.session_state['wz189_settings_open'] = not bool(st.session_state.get('wz189_settings_open'))
+            st.rerun()
+            return
+        return _wz189_set_route('real_interview')
+    except Exception:
+        pass
+
+
+def _wz189_css():
+    st.markdown(f"""
+    <style>
+    :root{{
+      --wz-bg:#0b1224; --wz-panel:#0e172b; --wz-card:#101a31; --wz-line:rgba(148,163,184,.18);
+      --wz-text:#f8fafc; --wz-muted:#9fb3c8; --wz-cyan:#22d3ee; --wz-blue:#3b82f6; --wz-purple:#8b5cf6;
+    }}
+    section.main > div.block-container{{max-width:1540px!important;padding-top:1.4rem!important;padding-left:1.4rem!important;padding-right:1.4rem!important;}}
+    .wz189-shell{{font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;color:var(--wz-text);}}
+    .wz189-topbar{{position:sticky;top:.5rem;z-index:50;margin:0 auto 1.1rem;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 16px;border:1px solid var(--wz-line);border-radius:22px;background:rgba(6,12,26,.88);box-shadow:0 20px 70px rgba(2,6,23,.42);backdrop-filter:blur(10px);}}
+    .wz189-brand{{display:flex;align-items:center;gap:12px;min-width:230px;}}
+    .wz189-logo{{width:58px;height:58px;border-radius:15px;object-fit:cover;box-shadow:0 0 22px rgba(34,211,238,.20);}}
+    .wz189-brand-title{{font-size:1.2rem;font-weight:950;line-height:1;color:#fff;}}
+    .wz189-brand-sub{{font-size:.78rem;font-weight:850;color:#22d3ee;margin-top:6px;}}
+    .wz189-hero-grid{{display:grid;grid-template-columns:minmax(420px,.9fr) minmax(540px,1.25fr);gap:18px;margin-top:.8rem;}}
+    .wz189-card{{border:1px solid rgba(59,130,246,.28);border-radius:24px;background:linear-gradient(140deg,rgba(5,50,70,.72),rgba(15,23,42,.78) 52%,rgba(50,24,92,.70));box-shadow:0 22px 80px rgba(2,6,23,.45);}}
+    .wz189-hero-left{{padding:30px 34px;min-height:430px;display:flex;flex-direction:column;justify-content:center;}}
+    .wz189-live{{display:inline-flex;align-items:center;gap:10px;width:max-content;border:1px solid rgba(34,211,238,.25);border-radius:14px;padding:10px 16px;background:rgba(8,47,73,.46);font-weight:900;color:#e0f2fe;margin-bottom:42px;}}
+    .wz189-live .dot{{width:11px;height:11px;border-radius:999px;background:#22c55e;box-shadow:0 0 14px rgba(34,197,94,.75);}}
+    .wz189-wave{{display:inline-block;width:138px;height:18px;background:repeating-linear-gradient(90deg,rgba(34,211,238,.85) 0 3px,transparent 3px 12px);opacity:.75;mask-image:linear-gradient(90deg,transparent,black 15%,black 75%,transparent);}}
+    .wz189-title{{font-size:clamp(2.6rem,5.2vw,5.7rem);line-height:.98;letter-spacing:-.07em;font-weight:1000;margin:0 0 22px;}}
+    .wz189-grad{{background:linear-gradient(90deg,#22d3ee,#3b82f6,#c084fc,#f472b6);-webkit-background-clip:text;background-clip:text;color:transparent;}}
+    .wz189-sub{{font-size:1.06rem;line-height:1.45;color:#cbd5e1;max-width:650px;margin:0 0 24px;}}
+    .wz189-chip-row{{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:8px 0 22px;}}
+    .wz189-chip{{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(148,163,184,.18);border-radius:999px;background:rgba(15,23,42,.52);padding:11px 16px;font-weight:900;color:#f8fafc;}}
+    .wz189-live-panel{{padding:28px 32px;min-height:430px;display:grid;grid-template-columns:220px 1fr;gap:28px;}}
+    .wz189-kicker{{font-size:.82rem;text-transform:uppercase;letter-spacing:.18em;color:#93c5fd;font-weight:950;margin-bottom:10px;}}
+    .wz189-timer{{font-size:3.35rem;line-height:1;font-weight:1000;letter-spacing:-.04em;margin-bottom:14px;}}
+    .wz189-small{{color:#9fb3c8;font-weight:850;line-height:1.35;}}
+    .wz189-meter{{height:10px;border-radius:999px;background:rgba(51,65,85,.75);overflow:hidden;margin:14px 0 30px;}}
+    .wz189-meter span{{display:block;height:100%;width:62%;background:linear-gradient(90deg,#22d3ee,#facc15,#fb7185);}}
+    .wz189-reaction-list{{display:grid;gap:10px;margin-top:8px;}}
+    .wz189-reaction{{border:1px solid rgba(148,163,184,.14);border-radius:12px;background:rgba(15,23,42,.42);padding:10px 12px;font-weight:900;color:#f8fafc;}}
+    .wz189-reaction i{{display:inline-block;width:9px;height:9px;border-radius:99px;margin-right:10px;}}
+    .wz189-atmo{{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;}}
+    .wz189-atmo div{{border:1px solid rgba(148,163,184,.16);border-radius:14px;background:rgba(15,23,42,.36);padding:18px 14px;text-align:center;font-weight:950;}}
+    .wz189-atmo .active{{border-color:rgba(34,197,94,.65);background:rgba(6,78,59,.26);box-shadow:0 0 22px rgba(34,197,94,.10);}}
+    .wz189-state{{display:grid;gap:14px;margin-top:10px;}}
+    .wz189-state-row{{display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:900;color:#f8fafc;}}
+    .wz189-state-row span:last-child{{color:#67e8f9;}}
+    .wz189-intel{{margin-top:18px;border:1px solid rgba(34,211,238,.18);border-radius:14px;background:rgba(14,116,144,.12);padding:12px 16px;color:#67e8f9;font-weight:950;}}
+    .wz189-micro{{font-size:.86rem;color:#9fd5ff;font-weight:850;text-align:center;margin-top:10px;}}
+    .wz189-setup{{margin-top:14px;border:1px solid var(--wz-line);border-radius:22px;background:rgba(15,23,42,.50);padding:18px 20px;}}
+    .wz189-setup-title{{font-size:.9rem;text-transform:uppercase;letter-spacing:.16em;color:#c7d2fe;font-weight:950;margin-bottom:16px;}}
+    .wz189-setup-grid{{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}}
+    .wz189-field{{border:1px solid rgba(148,163,184,.14);border-radius:12px;background:rgba(15,23,42,.62);padding:12px 14px;min-height:46px;font-weight:900;color:#f8fafc;}}
+    .wz189-focus{{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0;}}
+    .wz189-focus span{{border:1px solid rgba(34,211,238,.20);border-radius:12px;background:rgba(8,47,73,.35);padding:10px 14px;font-weight:850;color:#dbeafe;}}
+    .wz189-difficulty{{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid rgba(148,163,184,.16);border-radius:14px;overflow:hidden;background:rgba(15,23,42,.44);}}
+    .wz189-difficulty span{{text-align:center;padding:12px 8px;font-weight:900;border-right:1px solid rgba(148,163,184,.12);}}
+    .wz189-difficulty span:last-child{{border-right:0;}}
+    .wz189-difficulty .active{{background:linear-gradient(90deg,rgba(14,165,233,.25),rgba(124,58,237,.24));color:#f8fafc;box-shadow:inset 0 0 0 1px rgba(34,211,238,.45);}}
+    .wz189-proof{{margin-top:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}}
+    .wz189-proof-card{{border:1px solid rgba(148,163,184,.13);border-radius:14px;background:rgba(15,23,42,.38);padding:14px 16px;}}
+    .wz189-proof-card b{{display:block;color:#f8fafc;margin-bottom:4px;}}
+    .wz189-proof-card small{{color:#94a3b8;}}
+    .st-key-wz189_start_interview div[data-testid="stButton"] > button{{width:100%!important;min-height:64px!important;border-radius:18px!important;border:0!important;background:linear-gradient(100deg,#22d3ee,#3b82f6,#a855f7)!important;color:#fff!important;font-size:1.25rem!important;font-weight:1000!important;box-shadow:0 18px 42px rgba(37,99,235,.28)!important;}}
+    .st-key-wz189_home_logo div[data-testid="stButton"] > button{{position:absolute!important;left:16px!important;top:13px!important;width:58px!important;height:58px!important;opacity:0!important;z-index:60!important;}}
+    .st-key-wz189_toolbox button,.st-key-wz189_more button{{border-radius:14px!important;min-height:42px!important;font-weight:850!important;background:rgba(15,23,42,.55)!important;border:1px solid var(--wz-line)!important;color:#e5edf7!important;}}
+    .st-key-wz189_float_workobot{{position:fixed!important;right:22px!important;bottom:22px!important;z-index:9999!important;width:58px!important;height:58px!important;border-radius:999px!important;background:linear-gradient(135deg,#22d3ee,#2563eb,#7c3aed)!important;border:1px solid rgba(125,211,252,.55)!important;box-shadow:0 16px 38px rgba(37,99,235,.26)!important;display:flex!important;align-items:center!important;justify-content:center!important;}}
+    .st-key-wz189_float_workobot div[data-testid="stButton"] > button{{width:58px!important;height:58px!important;min-height:58px!important;border-radius:999px!important;border:0!important;background:transparent!important;color:transparent!important;font-size:0!important;padding:0!important;box-shadow:none!important;}}
+    .st-key-wz189_float_workobot:before{{content:'🤖';font-size:27px;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}}
+    .st-key-wz189_float_workobot:hover:after{{content:'Need career help?';position:absolute;right:70px;top:11px;white-space:nowrap;border:1px solid rgba(148,163,184,.16);border-radius:12px;background:rgba(15,23,42,.92);color:#e0f2fe;padding:8px 11px;font-size:.78rem;font-weight:850;}}
+    .wz75-bot-hint,.st-key-wz75_float_workobot,.st-key-wz141_float_workobot{{display:none!important;}}
+    @media(max-width:900px){{section.main > div.block-container{{padding-left:.7rem!important;padding-right:.7rem!important;}}.wz189-topbar{{position:relative;top:0;flex-wrap:wrap;padding:10px 12px;}}.wz189-hero-grid{{grid-template-columns:1fr;}}.wz189-hero-left,.wz189-live-panel{{min-height:auto;padding:22px 20px;}}.wz189-live-panel{{grid-template-columns:1fr;}}.wz189-title{{font-size:2.45rem;}}.wz189-setup-grid,.wz189-proof{{grid-template-columns:1fr;}}.wz189-difficulty,.wz189-atmo{{grid-template-columns:1fr 1fr;}}}}
+    </style>
+    """, unsafe_allow_html=True)
+
+
+def _wz189_render_header(active='dashboard'):
+    try:
+        _wz189_css()
+        st.markdown('<div class="wz189-shell"><div class="wz189-topbar">', unsafe_allow_html=True)
+        c_brand, c_nav, c_right = st.columns([1.8, 2.2, 1.8])
+        with c_brand:
+            st.markdown(f"""<div class="wz189-brand"><img class="wz189-logo" src="{globals().get('_WZ146_LOGO_DATA_URI','')}" alt="WorkZo AI" /><div><div class="wz189-brand-title">WorkZo AI</div><div class="wz189-brand-sub">AI Interview Simulator</div></div></div>""", unsafe_allow_html=True)
+            with st.container(key='wz189_home_logo'):
+                if st.button('Home', key='wz189_logo_home_btn', help='Go to dashboard'):
+                    _wz104_go_to_action('dashboard')
+        with c_nav:
+            n1,n2,n3 = st.columns(3)
+            with n1:
+                if st.button('▦ Dashboard', key='wz189_nav_dashboard', use_container_width=True): _wz104_go_to_action('dashboard')
+            with n2:
+                if st.button('▣ Sessions', key='wz189_nav_sessions', use_container_width=True):
+                    st.session_state['wz189_show_sessions'] = True; _wz104_go_to_action('dashboard')
+            with n3:
+                if st.button('▰ Progress', key='wz189_nav_progress', use_container_width=True):
+                    st.session_state['wz189_show_progress'] = True; _wz104_go_to_action('dashboard')
+        with c_right:
+            r1,r2 = st.columns([1.3,.7])
+            with r1:
+                with st.container(key='wz189_toolbox'):
+                    if st.button('▧ Toolbox ⌄', key='wz189_toolbox_btn', use_container_width=True):
+                        st.session_state['wz189_toolbox_open'] = not bool(st.session_state.get('wz189_toolbox_open')); st.rerun()
+            with r2:
+                with st.container(key='wz189_more'):
+                    if st.button('⋯ ⌄', key='wz189_more_btn', use_container_width=True):
+                        st.session_state['wz189_more_open'] = not bool(st.session_state.get('wz189_more_open')); st.rerun()
+        st.markdown('</div></div>', unsafe_allow_html=True)
+        if st.session_state.get('wz189_toolbox_open'):
+            with st.expander('Toolbox', expanded=True):
+                a,b,c = st.columns(3)
+                with a:
+                    if st.button('✨ Improve CV', key='wz189_tool_improve', use_container_width=True): st.session_state['wz189_toolbox_open']=False; _wz104_go_to_action('improve_cv')
+                    if st.button('📝 Cover Letter', key='wz189_tool_cover', use_container_width=True): st.session_state['wz189_toolbox_open']=False; _wz104_go_to_action('cover_letter')
+                with b:
+                    if st.button('🔎 Find Jobs', key='wz189_tool_find', use_container_width=True): st.session_state['wz189_toolbox_open']=False; _wz104_go_to_action('find_job')
+                    if st.button('🧩 Understand Job', key='wz189_tool_understand', use_container_width=True): st.session_state['wz189_toolbox_open']=False; _wz104_go_to_action('understand_job')
+                with c:
+                    if st.button('🎯 Prepare Job', key='wz189_tool_prepare', use_container_width=True): st.session_state['wz189_toolbox_open']=False; _wz104_go_to_action('prepare_job')
+                    if st.button('🤖 Work-O-Bot', key='wz189_tool_bot', use_container_width=True): st.session_state['wz189_toolbox_open']=False; _wz104_go_to_action('workobot')
+        if st.session_state.get('wz189_more_open'):
+            with st.expander('Settings', expanded=True):
+                c1,c2 = st.columns(2)
+                with c1:
+                    if st.button('📊 Founder Dashboard', key='wz189_more_founder', use_container_width=True): st.session_state['wz189_more_open']=False; _wz104_go_to_action('founder_dashboard')
+                with c2:
+                    if st.button('↩ Exit', key='wz189_more_exit', use_container_width=True):
+                        st.session_state['wz189_more_open']=False
+                        try: _wz104_exit_to_onboarding()
+                        except Exception: _wz189_set_route('landing')
+    except Exception:
+        pass
+
+
+def _wz104_render_topbar(page_key='real_interview'):
+    return _wz189_render_header(active=page_key)
+
+
+def _wz189_render_float_bot():
+    try:
+        if str(st.session_state.get('page') or '').lower() == 'workobot':
+            return
+        with st.container(key='wz189_float_workobot'):
+            if st.button('Work-O-Bot', key='wz189_float_bot_btn', help='Need career help?'):
+                st.session_state['wz110_workobot_source_page'] = str(st.session_state.get('page') or st.session_state.get('nav_page') or 'real_interview')
+                _wz104_go_to_action('workobot')
+    except Exception:
+        pass
+
+
+def _wz71_floating_workobot():
+    return _wz189_render_float_bot()
+
+
+def _wz189_render_dashboard_home():
+    _wz189_css()
+    role = _wz189_safe_text(st.session_state.get('target_role') or st.session_state.get('wz_ri_role') or st.session_state.get('real_interview_target_role'), 'Junior Data Analyst')
+    company = _wz189_safe_text(st.session_state.get('target_company') or st.session_state.get('wz_ri_company') or st.session_state.get('real_interview_company'), 'Demo Company')
+    country = _wz189_safe_text(st.session_state.get('target_country') or st.session_state.get('country') or st.session_state.get('market_country'), 'Germany')
+    recruiter = _wz189_safe_text(st.session_state.get('wz_ri_personality'), 'Sarah — Friendly HR')
+    if recruiter == 'Friendly HR': recruiter = 'Sarah — Friendly HR'
+    safe_role, safe_company, safe_country, safe_recruiter = map(_wz189_html.escape, [role, company, country, recruiter])
+    st.markdown(f"""
+    <div class="wz189-shell"><div class="wz189-hero-grid"><section class="wz189-card wz189-hero-left"><div class="wz189-live"><span class="dot"></span> Recruiter is online <span class="wz189-wave"></span></div><h1 class="wz189-title">Step into a <span class="wz189-grad">real</span><br/>interview simulation</h1><p class="wz189-sub">Your recruiter already analyzed your CV and job description.<br/>Get ready for the interview that actually matters.</p><div class="wz189-chip-row"><span class="wz189-chip">👩 {safe_recruiter}</span><span class="wz189-chip">💼 {safe_role}</span><span class="wz189-chip">⏱ Ready when you are</span></div></section><section class="wz189-card wz189-live-panel"><div><div class="wz189-kicker">Interview countdown</div><div class="wz189-timer">30:00</div><div class="wz189-small">Starts when you press Start Interview</div><div class="wz189-meter"><span></span></div><div class="wz189-kicker">Live reactions <span style="color:#f87171">● LIVE</span></div><div class="wz189-reaction-list"><div class="wz189-reaction"><i style="background:#22c55e"></i>“That’s a good example.”</div><div class="wz189-reaction"><i style="background:#facc15"></i>“Can you walk me through the challenge?”</div><div class="wz189-reaction"><i style="background:#fb923c"></i>“What was the business impact?”</div></div></div><div><div class="wz189-kicker">Interview atmosphere</div><div class="wz189-atmo"><div class="active">🙂<br/>Calm</div><div>😐<br/>Neutral</div><div>🥵<br/>Pressure</div></div><div class="wz189-kicker">Interviewer state</div><div class="wz189-state"><div class="wz189-state-row">Reviewing your CV... <span>✓</span></div><div class="wz189-state-row">Comparing with job description... <span>○</span></div><div class="wz189-state-row">Preparing follow-up questions... <span>•••</span></div><div class="wz189-state-row">Analyzing answer quality... <span>•••</span></div></div><div class="wz189-intel">Analyzing recruiter expectations... identified structured & detail-focused interviews.</div></div></section></div></div>
+    """, unsafe_allow_html=True)
+    with st.container(key='wz189_start_interview'):
+        if st.button('🎙️ Start Real Interview', key='wz189_start_interview_button', use_container_width=True):
+            st.session_state['wz_ri_started'] = True
+            st.session_state['real_interview_started'] = True
+            st.session_state['interview_started'] = True
+            st.rerun()
+    st.markdown("<div class='wz189-micro'>CV-aware • Adaptive follow-ups • Country-specific expectations</div>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class="wz189-shell"><section class="wz189-setup"><div class="wz189-setup-title">⚙ Simulation Setup</div><div class="wz189-setup-grid"><div><small>Target role</small><div class="wz189-field">💼 {safe_role}</div></div><div><small>Target company</small><div class="wz189-field">🏢 {safe_company}</div></div><div><small>Country / location</small><div class="wz189-field">🇩🇪 {safe_country} — structured & detail-focused interviews</div></div></div><div style="margin-top:16px;font-weight:900;color:#bfdbfe;letter-spacing:.12em;text-transform:uppercase;font-size:.78rem;">Interview Focus (AI identified)</div><div class="wz189-focus"><span>SQL</span><span>Dashboarding</span><span>Stakeholder communication</span><span>Reporting</span></div><div class="wz189-setup-grid" style="grid-template-columns:1fr 1.4fr;align-items:end;"><div><small>Who are you interviewing with?</small><div class="wz189-field">👩 {safe_recruiter}<br><small style="color:#94a3b8">Supportive and communication-focused</small></div></div><div><small>How tough should this recruiter be?</small><div class="wz189-difficulty"><span>🙂 Supportive</span><span class="active">😐 Realistic</span><span>🥵 Challenging</span><span>🔥 Brutal</span></div></div></div><details class="wz189-advanced"><summary>Advanced Interview Setup</summary><div style="margin-top:12px;color:#cbd5e1">Interrupt vague answers • Adapt to local hiring style • Track weak areas • Ask for measurable impact • Pressure escalation • Real-time coaching</div></details></section><section class="wz189-proof"><div class="wz189-proof-card"><b>Real Recruiters</b><small>AI personalities behave differently</small></div><div class="wz189-proof-card"><b>Adaptive Intelligence</b><small>Remembers answers and adapts</small></div><div class="wz189-proof-card"><b>Real Pressure</b><small>Follow-ups and interruptions</small></div><div class="wz189-proof-card"><b>Actionable Insights</b><small>Clear feedback after practice</small></div></section></div>
+    """, unsafe_allow_html=True)
+
+
+def _wz189_render_page_by_state():
+    page = str(st.session_state.get('_wz_force_page') or st.session_state.get('page') or st.session_state.get('nav_page') or 'real_interview').lower().strip()
+    if page in {'dashboard','home','main'}:
+        page = 'real_interview'
+    if page == 'workobot':
+        _wz189_render_header('workobot')
+        if callable(globals().get('_wz110_render_workobot_chat')):
+            return _wz110_render_workobot_chat(compact=False)
+        if callable(globals().get('_wz73_render_workobot_page')):
+            return _wz73_render_workobot_page()
+        st.info('Work-O-Bot is not available in this build.')
+        return
+    if page == 'cv_documents':
+        _wz189_render_header('toolbox')
+        try:
+            if callable(globals().get('_wz92_render_cv_documents_page')):
+                return _wz92_render_cv_documents_page()
+            if callable(globals().get('_wz84_render_cv_documents_page')):
+                return _wz84_render_cv_documents_page()
+            if callable(globals().get('show_document_tools')):
+                return show_document_tools()
+            st.warning('CV/Cover Letter tools are not available in this build.')
+        finally:
+            _wz189_render_float_bot()
+        return
+    if page == 'job_assist':
+        _wz189_render_header('toolbox')
+        try:
+            return _wz84_render_job_assist_page()
+        finally:
+            _wz189_render_float_bot()
+        return
+    if page == 'founder_dashboard':
+        _wz189_render_header('settings')
+        try:
+            if callable(globals().get('render_founder_dashboard')):
+                return render_founder_dashboard()
+            if callable(globals().get('_wz107_founder_access_panel')):
+                return _wz107_founder_access_panel()
+            st.info('Founder dashboard is not available in this build.')
+        finally:
+            _wz189_render_float_bot()
+        return
+    _wz189_render_header('dashboard')
+    try:
+        live = bool(callable(globals().get('_wz116_is_interview_live')) and _wz116_is_interview_live()) or bool(st.session_state.get('wz_ri_started'))
+    except Exception:
+        live = bool(st.session_state.get('wz_ri_started'))
+    if live and callable(globals().get('render_real_interview_simulation')):
+        try:
+            render_real_interview_simulation()
+        except Exception as exc:
+            st.error(f'Real Interview could not load safely: {exc}')
+    else:
+        _wz189_render_dashboard_home()
+    _wz189_render_float_bot()
+
+
+def show_dashboard():
+    """v189 final dashboard renderer: one source of truth."""
+    return _wz189_render_page_by_state()
+
+show_workzo_dashboard = show_dashboard
