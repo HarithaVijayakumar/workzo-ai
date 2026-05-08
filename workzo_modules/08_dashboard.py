@@ -30108,346 +30108,286 @@ except Exception:
     pass
 
 # =========================================================
-# WorkZo v185 - Feature-page nav stability patch
-# Scope: do NOT redesign the main dashboard. This patch only standardizes
-# feature-page navigation/header behaviour, fixes toolbox routing, restores
-# logo-home routing, hides unavailable Interview Lab, and keeps one compact
-# robot Work-O-Bot launcher on every non-bot page.
+# WorkZo v186 - feature-page nav consistency + toolbox routing fix
+# Based on uploaded dashboard reference. Main dashboard/hero is left unchanged.
+# Fixes:
+# - Same topbar/logo card on feature pages
+# - Logo/Home button routes back to main dashboard
+# - Smaller floating Work-O-Bot robot button on all feature pages
+# - Toolbox routes Improve CV, Cover Letter, Find Jobs, Understand Job, Prepare Job correctly
+# - Hides old Job Assist radio buttons so Find/Understand/Prepare behave as separate pages
+# - Settings menu contains Founder Dashboard + Exit
 # =========================================================
 
+try:
+    _wz186_prev_topbar = _wz104_render_topbar
+except Exception:
+    _wz186_prev_topbar = None
+try:
+    _wz186_prev_tools = _wz106_render_tool_action_buttons
+except Exception:
+    _wz186_prev_tools = None
+try:
+    _wz186_prev_float = _wz71_floating_workobot
+except Exception:
+    _wz186_prev_float = None
+try:
+    _wz186_prev_show_dashboard = show_dashboard
+except Exception:
+    _wz186_prev_show_dashboard = None
 
-def _wz185_scroll_top():
+
+def _wz186_safe_logo_uri():
     try:
-        if callable(globals().get('request_scroll_to_top')):
-            request_scroll_to_top()
+        src = None
+        if callable(globals().get('image_to_data_uri')):
+            for p in [globals().get('ICON_PATH'), globals().get('LOGO_PATH'), '/mnt/data/workzo_icon.png']:
+                if p:
+                    try:
+                        src = image_to_data_uri(p)
+                        if src:
+                            return src
+                    except Exception:
+                        pass
     except Exception:
         pass
-    try:
-        import streamlit.components.v1 as _wz185_components
-        _wz185_components.html("""
-        <script>
-        try {
-          window.parent.scrollTo({top:0,left:0,behavior:'instant'});
-          const roots = window.parent.document.querySelectorAll('section.main, div[data-testid="stAppViewContainer"], .main');
-          roots.forEach(el => { try { el.scrollTop = 0; } catch(e) {} });
-        } catch(e) {}
-        </script>
-        """, height=0, width=0)
-    except Exception:
-        pass
+    return ''
 
 
-def _wz185_set_page(page_key: str, **state_updates):
-    """Single route helper for feature pages. Keeps job-assist submodes separate."""
+def _wz186_go(page_key: str, mode: str = None, extra: dict = None):
     try:
-        page_key = str(page_key or 'real_interview').strip().lower()
-        aliases = {
-            'home': 'real_interview', 'dashboard': 'real_interview', 'main': 'real_interview',
-            'real interview': 'real_interview', 'real_interview': 'real_interview',
-            'work-o-bot': 'workobot', 'work_o_bot': 'workobot', 'bot': 'workobot',
-            'find_job': 'job_assist', 'find_jobs': 'job_assist',
-            'understand_job': 'job_assist', 'prepare_job': 'job_assist',
-            'improve_cv': 'cv_documents', 'cover_letter': 'cv_documents',
-        }
-        target = aliases.get(page_key, page_key)
+        page_key = str(page_key or 'real_interview').strip()
+        if page_key in {'dashboard', 'home', 'main'}:
+            page_key = 'real_interview'
+        if mode:
+            st.session_state['job_assist_mode_key'] = mode
+            st.session_state['wz186_job_mode'] = mode
+        if extra:
+            for k, v in extra.items():
+                st.session_state[k] = v
         st.session_state['onboarding_complete'] = True
-        st.session_state['page'] = target
-        st.session_state['nav_page'] = target
-        st.session_state['current_page'] = target
-        st.session_state['active_page'] = target
-        st.session_state['_wz_force_page'] = target
-        for k, v in state_updates.items():
-            st.session_state[k] = v
+        st.session_state['_wz_force_page'] = page_key
+        st.session_state['page'] = page_key
+        st.session_state['nav_page'] = page_key
         try:
-            st.query_params['page'] = target
-            if 'job_assist_mode_key' in state_updates:
-                st.query_params['job_mode'] = str(state_updates['job_assist_mode_key'])
-            if 'cv_documents_mode' in state_updates:
-                st.query_params['doc_mode'] = str(state_updates['cv_documents_mode'])
-            st.query_params['top'] = str(int(st.session_state.get('_wz185_top_counter', 0)) + 1)
-            st.session_state['_wz185_top_counter'] = int(st.session_state.get('_wz185_top_counter', 0)) + 1
+            st.query_params['page'] = page_key
+            if mode:
+                st.query_params['mode'] = mode
         except Exception:
             pass
-        _wz185_scroll_top()
+        try:
+            if callable(globals().get('request_scroll_to_top')):
+                request_scroll_to_top()
+        except Exception:
+            pass
         st.rerun()
     except Exception:
-        pass
+        try:
+            st.session_state['page'] = page_key
+            st.session_state['nav_page'] = page_key
+            st.rerun()
+        except Exception:
+            pass
 
 
-def _wz185_go_to_action(action: str):
-    """Stable toolbox action router. Separate Find/Understand/Prepare modes."""
+def _wz186_apply_nav_css():
     try:
-        action_raw = str(action or '').strip().lower()
-        norm = action_raw.replace('-', ' ').replace('_', ' ')
-        if norm in {'dashboard', 'home', 'main', 'real interview'}:
-            return _wz185_set_page('real_interview')
-        if norm in {'improve cv', 'cv improve', 'resume review', 'resume analyzer'}:
-            return _wz185_set_page('cv_documents', document_tools_mode='Improve / Update CV', cv_documents_mode='improve_cv', wz104_last_tool_action='Improve CV')
-        if norm in {'cover letter', 'cover letter generator', 'cover letters'}:
-            return _wz185_set_page('cv_documents', document_tools_mode='Cover Letter Generator + Language', cv_documents_mode='cover_letter', wz108_direct_document_tool='cover_letter', wz104_last_tool_action='Cover Letter Generator')
-        if norm in {'find job', 'find jobs', 'jobs'}:
-            return _wz185_set_page('job_assist', job_assist_mode_key='find', wz108_direct_job_mode='find', wz104_last_tool_action='Find Job')
-        if norm in {'understand job', 'job understanding', 'understand'}:
-            return _wz185_set_page('job_assist', job_assist_mode_key='understand', wz108_direct_job_mode='understand', wz104_last_tool_action='Understand Job')
-        if norm in {'prepare job', 'prepare for a job', 'prepare this job', 'prepare'}:
-            return _wz185_set_page('job_assist', job_assist_mode_key='prepare', wz108_direct_job_mode='prepare', wz104_last_tool_action='Prepare Job')
-        if norm in {'workobot', 'work o bot', 'work bot', 'work-o-bot'}:
-            return _wz185_set_page('workobot')
-        if norm in {'founder dashboard', 'founder'}:
-            return _wz185_set_page('founder_dashboard')
-        if norm in {'exit', 'landing', 'logout'}:
-            try:
-                st.session_state['onboarding_complete'] = False
-            except Exception:
-                pass
-            return _wz185_set_page('landing')
-        return _wz185_set_page(action_raw)
-    except Exception:
-        pass
-
-# Override old action helper globally so every toolbox uses the fixed router.
-_wz104_go_to_action = _wz185_go_to_action
-
-
-def _wz185_apply_feature_nav_css():
-    try:
-        logo = globals().get('WORKZO_LOGO_DATA_URI') or globals().get('_WZ177_LOGO_DATA_URI') or globals().get('_WZ146_LOGO_DATA_URI') or ''
-        st.markdown(f"""
-        <style id="workzo-v185-feature-nav-css">
-        /* Hide legacy/duplicated headers on feature pages. */
-        .st-key-wz148_topbar,.st-key-wz150_topbar,.st-key-wz146_topbar,.st-key-wz147_topbar,
-        .st-key-wz104_topbar_shell,.st-key-wz104_topbar_shell_final{{display:none!important;height:0!important;min-height:0!important;overflow:hidden!important;margin:0!important;padding:0!important;}}
-
-        /* Unified topbar used on all feature pages; main dashboard render is left untouched by show_dashboard logic. */
-        .st-key-wz185_feature_topbar{{
-            position:sticky!important;top:.35rem!important;z-index:99999!important;
-            margin:0 auto .85rem auto!important;padding:.7rem .8rem!important;max-width:1500px!important;
-            border-radius:22px!important;border:1px solid rgba(148,163,184,.18)!important;
-            background:linear-gradient(180deg,rgba(2,6,23,.94),rgba(2,6,23,.74))!important;
-            backdrop-filter:blur(18px)!important;box-shadow:0 18px 45px rgba(2,6,23,.34)!important;
-        }}
-        .wz185-brand{{display:flex;align-items:center;gap:12px;min-height:52px;position:relative;}}
-        .wz185-logo{{width:52px;height:52px;border-radius:15px;object-fit:cover;box-shadow:0 0 24px rgba(34,211,238,.24);}}
-        .wz185-name{{font-size:1.1rem;font-weight:950;color:#f8fafc;letter-spacing:-.03em;line-height:1.05;}}
-        .wz185-sub{{font-size:.76rem;font-weight:850;color:#22d3ee;margin-top:3px;}}
-        .st-key-wz185_home_hit{{position:absolute!important;left:0!important;top:0!important;width:270px!important;height:64px!important;z-index:20!important;opacity:0!important;}}
-        .st-key-wz185_home_hit button{{width:270px!important;height:64px!important;min-height:64px!important;}}
-        .st-key-wz185_nav_btn button,.st-key-wz185_toolbox button,.st-key-wz185_more button{{
-            min-height:44px!important;border-radius:16px!important;padding:.45rem .85rem!important;
-            background:rgba(15,23,42,.72)!important;border:1px solid rgba(148,163,184,.22)!important;
-            color:#e5e7eb!important;font-weight:850!important;box-shadow:none!important;white-space:nowrap!important;
-        }}
-        .st-key-wz185_nav_btn button:hover,.st-key-wz185_toolbox button:hover,.st-key-wz185_more button:hover{{border-color:rgba(34,211,238,.50)!important;background:rgba(15,23,42,.94)!important;}}
-        .st-key-wz185_toolbox div[data-testid="stPopover"] > button{{min-width:170px!important;}}
-        .st-key-wz185_more div[data-testid="stPopover"] > button{{min-width:58px!important;}}
-        div[data-testid="stPopoverBody"]{{
-            border-radius:18px!important;background:rgba(8,13,23,.98)!important;
-            border:1px solid rgba(148,163,184,.20)!important;box-shadow:0 22px 60px rgba(2,6,23,.58)!important;padding:.72rem!important;
-        }}
-        div[data-testid="stPopoverBody"] .stButton button{{
-            min-height:38px!important;border-radius:12px!important;padding:.42rem .6rem!important;
-            background:rgba(15,23,42,.62)!important;border:1px solid rgba(148,163,184,.16)!important;
-            color:#f8fafc!important;text-align:left!important;font-size:.9rem!important;line-height:1.18!important;
-        }}
-
-        /* Compact robot-only Work-O-Bot button, same on all feature pages. */
-        .st-key-wz185_float_bot{{position:fixed!important;right:24px!important;bottom:24px!important;z-index:999999!important;width:66px!important;height:66px!important;border-radius:999px!important;padding:0!important;overflow:visible!important;}}
-        .st-key-wz185_float_bot:before{{
-            content:"Need career help?\A Click me";white-space:pre;position:absolute;right:78px;top:9px;width:145px;height:48px;
-            border-radius:14px;border:1px solid rgba(148,163,184,.20);background:rgba(15,23,42,.86);color:#e0f2fe;
-            display:flex;align-items:center;justify-content:center;text-align:left;font-size:.78rem;font-weight:900;line-height:1.18;pointer-events:none;box-shadow:0 12px 36px rgba(2,6,23,.36);
-        }}
-        .st-key-wz185_float_bot div[data-testid="stButton"] > button{{
-            width:66px!important;height:66px!important;min-height:66px!important;border-radius:999px!important;padding:0!important;
-            background:radial-gradient(circle at 30% 25%,#22d3ee,#2563eb 58%,#7c3aed 100%)!important;
-            border:1px solid rgba(125,211,252,.70)!important;box-shadow:0 0 28px rgba(34,211,238,.28),0 12px 34px rgba(2,6,23,.44)!important;
-            color:transparent!important;font-size:0!important;line-height:0!important;position:relative!important;overflow:hidden!important;
-        }}
-        .st-key-wz185_float_bot div[data-testid="stButton"] > button:before{{content:"🤖"!important;display:flex!important;align-items:center!important;justify-content:center!important;position:absolute!important;inset:0!important;font-size:28px!important;color:white!important;text-shadow:0 2px 12px rgba(2,6,23,.42)!important;}}
-        .st-key-wz185_float_bot div[data-testid="stButton"] > button:hover{{transform:translateY(-2px)!important;box-shadow:0 0 36px rgba(34,211,238,.34),0 16px 42px rgba(2,6,23,.52)!important;}}
-
-        /* Hide old floating buttons to prevent mismatched UI. */
-        .st-key-wz141_float_workobot,.wz176-floating-wrap{{display:none!important;}}
-
-        /* Remove Job Assist internal radio/tab buttons without hiding the selected feature content. */
-        div[role="radiogroup"][aria-label="Job Assist mode"],
-        div[data-testid="stRadio"]:has(label p:contains("Job Assist mode")){{display:none!important;}}
-
-        @media(max-width:760px){{
-            .st-key-wz185_feature_topbar{{padding:.52rem .55rem!important;border-radius:18px!important;}}
-            .wz185-logo{{width:44px;height:44px;border-radius:13px;}}
-            .wz185-name{{font-size:.96rem;}}.wz185-sub{{font-size:.66rem;}}
-            .st-key-wz185_home_hit{{width:210px!important;height:56px!important;}}
-            .st-key-wz185_home_hit button{{width:210px!important;height:56px!important;}}
-            .st-key-wz185_float_bot{{right:14px!important;bottom:14px!important;width:58px!important;height:58px!important;}}
-            .st-key-wz185_float_bot div[data-testid="stButton"] > button{{width:58px!important;height:58px!important;min-height:58px!important;}}
-            .st-key-wz185_float_bot div[data-testid="stButton"] > button:before{{font-size:24px!important;}}
-            .st-key-wz185_float_bot:before{{display:none!important;}}
-        }}
+        st.markdown(r'''
+        <style id="workzo-v186-feature-nav-css">
+        .wz186-topbar{max-width:1480px;margin:10px auto 26px auto;padding:14px 18px;border-radius:24px;background:rgba(3,10,26,.84);border:1px solid rgba(148,163,184,.18);box-shadow:0 20px 70px rgba(2,6,23,.42);display:grid;grid-template-columns:minmax(245px,1.25fr) minmax(320px,1.25fr) minmax(320px,1fr);gap:14px;align-items:center;}
+        .wz186-brand{display:flex;align-items:center;gap:12px;min-width:0}.wz186-logo{width:56px;height:56px;border-radius:16px;object-fit:cover;box-shadow:0 0 24px rgba(34,211,238,.28)}.wz186-name{font-weight:950;color:#f8fafc;font-size:1.14rem;line-height:1}.wz186-sub{font-weight:850;color:#22d3ee;font-size:.78rem;margin-top:5px}.wz186-nav{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}.wz186-actions{display:flex;justify-content:flex-end;gap:12px;align-items:center;}
+        .wz186-topbar button{border-radius:16px!important;border:1px solid rgba(148,163,184,.22)!important;background:rgba(15,23,42,.62)!important;color:#f8fafc!important;font-weight:850!important;min-height:46px!important;box-shadow:none!important}.wz186-topbar button:hover{border-color:rgba(34,211,238,.55)!important;background:rgba(8,47,73,.50)!important;color:#e0f2fe!important}.wz186-home-wrap button{height:58px!important;min-height:58px!important;width:58px!important;border-radius:16px!important;color:transparent!important;font-size:0!important;background:transparent!important;border:0!important;position:absolute!important;left:18px!important;top:14px!important;z-index:5!important}.wz186-brand-box{position:relative;display:flex;align-items:center;gap:12px;}
+        /* Hide old Job Assist tab/radio buttons so Find/Understand/Prepare are separate routed pages */
+        .wz186-hide-job-tabs div[data-testid="stRadio"]{display:none!important;}
+        /* Small Work-O-Bot floating robot button */
+        .st-key-wz141_float_workobot,.st-key-wz186_float_workobot{position:fixed!important;right:22px!important;bottom:22px!important;z-index:999999!important;width:72px!important;height:72px!important;border-radius:50%!important;background:linear-gradient(135deg,rgba(34,211,238,.90),rgba(37,99,235,.92),rgba(124,58,237,.90))!important;border:1px solid rgba(125,211,252,.62)!important;box-shadow:0 14px 38px rgba(2,6,23,.42),0 0 26px rgba(34,211,238,.24)!important;overflow:visible!important;}
+        .st-key-wz141_float_workobot:before,.st-key-wz186_float_workobot:before{content:"🤖";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;pointer-events:none;}
+        .st-key-wz141_float_workobot:after,.st-key-wz186_float_workobot:after{content:"Need career help?";position:absolute;right:78px;top:16px;white-space:nowrap;font-size:.78rem;font-weight:850;color:#f8fafc;background:rgba(15,23,42,.78);border:1px solid rgba(148,163,184,.20);padding:8px 10px;border-radius:12px;opacity:.92;pointer-events:none;}
+        .st-key-wz141_float_workobot div[data-testid="stButton"] > button,.st-key-wz186_float_workobot div[data-testid="stButton"] > button{width:72px!important;height:72px!important;min-height:72px!important;border-radius:50%!important;background:transparent!important;border:0!important;color:transparent!important;font-size:0!important;padding:0!important;box-shadow:none!important;}
+        @media(max-width:900px){.wz186-topbar{grid-template-columns:1fr;gap:10px;padding:12px;margin:6px auto 18px}.wz186-nav,.wz186-actions{justify-content:flex-start}.wz186-logo{width:48px;height:48px}.st-key-wz141_float_workobot,.st-key-wz186_float_workobot{width:58px!important;height:58px!important;right:14px!important;bottom:14px!important}.st-key-wz141_float_workobot div[data-testid="stButton"] > button,.st-key-wz186_float_workobot div[data-testid="stButton"] > button{width:58px!important;height:58px!important;min-height:58px!important}.st-key-wz141_float_workobot:before,.st-key-wz186_float_workobot:before{font-size:24px}.st-key-wz141_float_workobot:after,.st-key-wz186_float_workobot:after{display:none!important}}
         </style>
-        """, unsafe_allow_html=True)
+        ''', unsafe_allow_html=True)
     except Exception:
         pass
 
 
-def _wz185_render_toolbox(prefix='wz185_tools'):
-    """Toolbox without unavailable Interview Lab and with correct routes."""
-    items = [
-        ('✨ Improve CV', 'improve_cv'),
-        ('📝 Cover Letter', 'cover_letter'),
-        ('🔎 Find Jobs', 'find_job'),
-        ('🧩 Understand Job', 'understand_job'),
-        ('🎯 Prepare Job', 'prepare_job'),
-        ('🤖 Work-O-Bot', 'workobot'),
-    ]
-    for i, (label, action) in enumerate(items):
-        if st.button(label, key=f'{prefix}_{i}', use_container_width=True):
-            _wz185_go_to_action(action)
-
-
-def _wz185_render_feature_topbar(page_key='real_interview'):
-    """Unified feature-page logo/name card. Logo is a real home button."""
+def _wz106_render_tool_action_buttons(prefix='wz186_tools'):
+    """Single source toolbox. No Interview Lab until that feature exists."""
     try:
-        _wz185_apply_feature_nav_css()
-        logo = globals().get('WORKZO_LOGO_DATA_URI') or globals().get('_WZ177_LOGO_DATA_URI') or globals().get('_WZ146_LOGO_DATA_URI') or ''
-        with st.container(key='wz185_feature_topbar'):
-            c_brand, c_dash, c_sessions, c_progress, c_spacer, c_tools, c_more = st.columns([2.7, .85, .75, .75, 2.2, 1.25, .55], vertical_alignment='center')
-            with c_brand:
-                st.markdown(f"""
-                <div class="wz185-brand">
-                    <img class="wz185-logo" src="{logo}" alt="WorkZo AI logo" />
-                    <div><div class="wz185-name">WorkZo AI</div><div class="wz185-sub">AI Interview Simulator</div></div>
-                </div>
-                """, unsafe_allow_html=True)
-                with st.container(key='wz185_home_hit'):
-                    if st.button('Home', key=f'wz185_home_{page_key}', help='Back to main dashboard'):
-                        _wz185_go_to_action('real_interview')
-            with c_dash:
-                with st.container(key='wz185_nav_btn'):
-                    if st.button('▦ Dashboard', key=f'wz185_dash_{page_key}', use_container_width=True):
-                        _wz185_go_to_action('real_interview')
-            with c_sessions:
-                with st.container(key='wz185_nav_btn'):
-                    if st.button('▣ Sessions', key=f'wz185_sessions_{page_key}', use_container_width=True):
-                        st.session_state['wz_dashboard_subview'] = 'sessions'
-                        _wz185_go_to_action('real_interview')
-            with c_progress:
-                with st.container(key='wz185_nav_btn'):
-                    if st.button('▰ Progress', key=f'wz185_progress_{page_key}', use_container_width=True):
-                        st.session_state['wz_dashboard_subview'] = 'progress'
-                        _wz185_go_to_action('real_interview')
-            with c_spacer:
-                st.empty()
-            with c_tools:
-                with st.container(key='wz185_toolbox'):
-                    if hasattr(st, 'popover'):
-                        with st.popover('▧ Toolbox', use_container_width=True):
-                            _wz185_render_toolbox(f'wz185_toolbox_{page_key}')
-                    else:
-                        with st.expander('Toolbox', expanded=False):
-                            _wz185_render_toolbox(f'wz185_toolbox_{page_key}_fb')
-            with c_more:
-                with st.container(key='wz185_more'):
-                    if hasattr(st, 'popover'):
-                        with st.popover('⋯', use_container_width=True):
-                            if st.button('📊 Founder dashboard', key=f'wz185_founder_{page_key}', use_container_width=True):
-                                _wz185_go_to_action('founder_dashboard')
-                            if st.button('↩ Exit', key=f'wz185_exit_{page_key}', use_container_width=True):
-                                try:
-                                    st.session_state['onboarding_complete'] = False
-                                except Exception:
-                                    pass
-                                _wz185_go_to_action('landing')
-                    else:
-                        if st.button('⋯', key=f'wz185_more_btn_{page_key}', use_container_width=True):
-                            _wz185_go_to_action('founder_dashboard')
+        st.button('✨ Improve CV', key=f'{prefix}_improve_cv', use_container_width=True,
+                  on_click=_wz186_go, args=('cv_documents', None, {'document_tools_mode':'Improve CV for a Job'}))
+        st.button('🧩 Understand Job', key=f'{prefix}_understand_job', use_container_width=True,
+                  on_click=_wz186_go, args=('job_assist', 'understand', None))
+        st.button('🔎 Find Jobs', key=f'{prefix}_find_jobs', use_container_width=True,
+                  on_click=_wz186_go, args=('job_assist', 'find', None))
+        st.button('🎯 Prepare Job', key=f'{prefix}_prepare_job', use_container_width=True,
+                  on_click=_wz186_go, args=('job_assist', 'prepare', None))
+        st.button('📝 Cover Letter', key=f'{prefix}_cover_letter', use_container_width=True,
+                  on_click=_wz186_go, args=('cv_documents', None, {'document_tools_mode':'Cover Letter Generator + Language'}))
     except Exception:
-        pass
+        if callable(_wz186_prev_tools):
+            return _wz186_prev_tools(prefix)
 
 
-def _wz185_render_float_bot():
+def _wz104_go_to_action(action: str):
+    """Route all topbar/toolbox actions to the correct page/mode."""
+    action = str(action or '').strip().lower()
+    if action in {'home','dashboard','real_interview','interview'}:
+        return _wz186_go('real_interview')
+    if action in {'improve_cv','cv','cv_documents'}:
+        return _wz186_go('cv_documents', extra={'document_tools_mode':'Improve CV for a Job'})
+    if action in {'cover','cover_letter','coverletter'}:
+        return _wz186_go('cv_documents', extra={'document_tools_mode':'Cover Letter Generator + Language'})
+    if action in {'find','find_jobs','jobs'}:
+        return _wz186_go('job_assist', 'find')
+    if action in {'understand','understand_job'}:
+        return _wz186_go('job_assist', 'understand')
+    if action in {'prepare','prepare_job'}:
+        return _wz186_go('job_assist', 'prepare')
+    if action in {'workobot','work-o-bot','bot'}:
+        return _wz186_go('workobot')
+    if action in {'founder','founder_dashboard'}:
+        return _wz186_go('founder_dashboard')
+    if action in {'exit','onboarding'}:
+        try:
+            if callable(globals().get('reset_onboarding')):
+                reset_onboarding()
+            st.session_state['page'] = 'landing'
+            st.session_state['nav_page'] = 'landing'
+            st.session_state['_wz_force_page'] = 'landing'
+            st.rerun()
+        except Exception:
+            pass
+    return _wz186_go('real_interview')
+
+
+def _wz104_render_topbar(page_key='real_interview'):
+    """Consistent topbar for all non-dashboard feature pages."""
+    _wz186_apply_nav_css()
+    logo = _wz186_safe_logo_uri()
     try:
-        page = str(st.session_state.get('nav_page') or st.session_state.get('page') or '').strip().lower()
-        if page == 'workobot':
+        with st.container(key='wz186_feature_topbar'):
+            st.markdown('<div class="wz186-topbar">', unsafe_allow_html=True)
+            c1, c2, c3 = st.columns([1.35, 1.15, 1.0], vertical_alignment='center')
+            with c1:
+                st.markdown('<div class="wz186-brand-box">', unsafe_allow_html=True)
+                if logo:
+                    st.markdown(f'<div class="wz186-brand"><img class="wz186-logo" src="{logo}" alt="WorkZo AI"><div><div class="wz186-name">WorkZo AI</div><div class="wz186-sub">AI Interview Simulator</div></div></div>', unsafe_allow_html=True)
+                else:
+                    st.markdown('<div class="wz186-brand"><div class="wz186-logo" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#06b6d4,#2563eb);font-weight:900;">WZ</div><div><div class="wz186-name">WorkZo AI</div><div class="wz186-sub">AI Interview Simulator</div></div></div>', unsafe_allow_html=True)
+                with st.container(key='wz186_home_wrap'):
+                    st.markdown('<div class="wz186-home-wrap">', unsafe_allow_html=True)
+                    if st.button('Home', key='wz186_logo_home_button', help='Back to dashboard'):
+                        _wz186_go('real_interview')
+                    st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+            with c2:
+                st.markdown('<div class="wz186-nav">', unsafe_allow_html=True)
+                if st.button('▦ Dashboard', key='wz186_nav_dashboard'):
+                    _wz186_go('real_interview')
+                if st.button('▣ Sessions', key='wz186_nav_sessions'):
+                    _wz186_go('real_interview')
+                if st.button('▰ Progress', key='wz186_nav_progress'):
+                    _wz186_go('real_interview')
+                st.markdown('</div>', unsafe_allow_html=True)
+            with c3:
+                st.markdown('<div class="wz186-actions">', unsafe_allow_html=True)
+                if hasattr(st, 'popover'):
+                    with st.popover('▧ Toolbox ⌄', use_container_width=True):
+                        _wz106_render_tool_action_buttons('wz186_top_toolbox')
+                    with st.popover('⋯ Settings ⌄', use_container_width=True):
+                        if st.button('📊 Founder Dashboard', key='wz186_settings_founder', use_container_width=True):
+                            _wz186_go('founder_dashboard')
+                        if st.button('↩ Exit', key='wz186_settings_exit', use_container_width=True):
+                            _wz104_go_to_action('exit')
+                else:
+                    with st.expander('Toolbox', expanded=False):
+                        _wz106_render_tool_action_buttons('wz186_top_toolbox_exp')
+                    with st.expander('Settings', expanded=False):
+                        if st.button('Founder Dashboard', key='wz186_settings_founder_exp'):
+                            _wz186_go('founder_dashboard')
+                        if st.button('Exit', key='wz186_settings_exit_exp'):
+                            _wz104_go_to_action('exit')
+                st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+    except Exception:
+        if callable(_wz186_prev_topbar):
+            return _wz186_prev_topbar(page_key)
+
+
+def _wz71_floating_workobot():
+    try:
+        current_page = str(st.session_state.get('nav_page') or st.session_state.get('page') or '').lower()
+        if current_page in {'workobot','work-o-bot','work_o_bot'}:
             return
-        _wz185_apply_feature_nav_css()
-        with st.container(key='wz185_float_bot'):
-            if st.button('🤖', key='wz185_float_bot_button', help='Need career help? Click me'):
-                st.session_state['wz110_workobot_source_page'] = page or 'real_interview'
-                _wz185_go_to_action('workobot')
+        _wz186_apply_nav_css()
+        with st.container(key='wz186_float_workobot'):
+            if st.button('Work-O-Bot', key='wz186_float_open_workobot', use_container_width=True, help='Need career help?'):
+                st.session_state['wz110_workobot_source_page'] = current_page or 'real_interview'
+                _wz186_go('workobot')
     except Exception:
         pass
 
-# Replace the floating Work-O-Bot globally with the compact robot icon.
-_wz71_floating_workobot = _wz185_render_float_bot
 
-
-def _wz185_remove_job_assist_internal_buttons():
-    """CSS-only cleanup: the selected job mode still renders, but the internal mode switcher is hidden."""
+def _wz186_sync_query_mode():
+    """Read URL or session mode and make Job Assist land on the correct subpage."""
     try:
-        st.markdown(r"""
-        <style id="workzo-v185-jobassist-cleanup">
-        /* Hide old Job Assist radio row/title buttons when present. */
-        div[data-testid="stRadio"] label:has(div p),
-        div[data-testid="stRadio"] div[role="radiogroup"]{
-            gap:0!important;
+        mode = None
+        try:
+            mode = st.query_params.get('mode', None)
+            if isinstance(mode, (list, tuple)):
+                mode = mode[0] if mode else None
+        except Exception:
+            mode = None
+        mode = str(mode or st.session_state.get('wz186_job_mode') or st.session_state.get('job_assist_mode_key') or '').strip().lower()
+        aliases = {
+            'jobs':'find','find_jobs':'find','find':'find',
+            'understand_job':'understand','understand':'understand',
+            'prepare_job':'prepare','prepare':'prepare'
         }
-        /* Streamlit does not expose stable labels; hide common Job Assist mode radio block by position/text cannot be fully reliable in CSS. */
-        </style>
-        """, unsafe_allow_html=True)
+        if mode in aliases:
+            st.session_state['job_assist_mode_key'] = aliases[mode]
+            st.session_state['wz186_job_mode'] = aliases[mode]
     except Exception:
         pass
 
-# Patch old toolbox renderers so every dropdown has the same working buttons.
-def _wz106_render_tool_action_buttons(prefix='wz185_legacy_tools'):
-    return _wz185_render_toolbox(prefix)
-
-
-def _wz150_render_tool_buttons(prefix='wz185_legacy_adv'):
-    return _wz185_render_toolbox(prefix)
-
-
-def _wz185_apply_query_modes():
-    """Keep requested feature submode during reruns."""
-    try:
-        jm = st.query_params.get('job_mode', '')
-        if isinstance(jm, (list, tuple)): jm = jm[0] if jm else ''
-        jm = str(jm or '').strip().lower()
-        if jm in {'find', 'understand', 'prepare'}:
-            st.session_state['job_assist_mode_key'] = jm
-            st.session_state['wz108_direct_job_mode'] = jm
-    except Exception:
-        pass
 
 try:
-    _wz185_previous_show_dashboard = show_dashboard
     def show_dashboard():
-        """v185 wrapper: preserve main dashboard, standardize feature pages only."""
-        _wz185_apply_query_modes()
-        raw = str(st.session_state.get('_wz_force_page') or st.session_state.get('nav_page') or st.session_state.get('page') or 'real_interview').strip().lower()
+        _wz186_apply_nav_css()
         try:
-            qp = st.query_params.get('page', '')
-            if isinstance(qp, (list, tuple)): qp = qp[0] if qp else ''
-            if str(qp or '').strip(): raw = str(qp).strip().lower()
+            page_key = str(st.session_state.get('_wz_force_page') or st.session_state.get('nav_page') or st.session_state.get('page') or '').strip().lower()
+            try:
+                qp = st.query_params.get('page', '')
+                if isinstance(qp, (list, tuple)):
+                    qp = qp[0] if qp else ''
+                qp = str(qp or '').strip().lower()
+                if qp:
+                    page_key = qp
+            except Exception:
+                pass
+            if page_key in {'job_assist','jobs','find_jobs','understand_job','prepare_job'}:
+                if page_key == 'find_jobs':
+                    st.session_state['job_assist_mode_key'] = 'find'
+                elif page_key == 'understand_job':
+                    st.session_state['job_assist_mode_key'] = 'understand'
+                elif page_key == 'prepare_job':
+                    st.session_state['job_assist_mode_key'] = 'prepare'
+                _wz186_sync_query_mode()
+                st.markdown('<div class="wz186-hide-job-tabs">', unsafe_allow_html=True)
+                result = _wz186_prev_show_dashboard() if callable(_wz186_prev_show_dashboard) else None
+                st.markdown('</div>', unsafe_allow_html=True)
+                _wz71_floating_workobot()
+                return result
+            # Preserve main dashboard exactly as the uploaded reference renders it.
+            result = _wz186_prev_show_dashboard() if callable(_wz186_prev_show_dashboard) else None
+            # Keep the small floating Work-O-Bot on feature pages and non-workobot pages.
+            if page_key not in {'workobot','work-o-bot','work_o_bot'}:
+                _wz71_floating_workobot()
+            return result
         except Exception:
-            pass
-        main_aliases = {'', 'home', 'dashboard', 'main', 'real_interview', 'real interview'}
-        # Leave the main dashboard completely to the existing renderer.
-        if raw in main_aliases:
-            return _wz185_previous_show_dashboard()
-        # Work-O-Bot already has its own chat page; keep old renderer but use unified topbar/floating behaviour before/after when possible.
-        if raw not in main_aliases:
-            _wz185_apply_feature_nav_css()
-        result = _wz185_previous_show_dashboard()
-        # Ensure compact robot assistant is available on every feature page.
-        try:
-            if raw not in {'workobot', 'work-o-bot', 'work_o_bot', 'bot'}:
-                _wz185_render_float_bot()
-        except Exception:
-            pass
-        return result
+            if callable(_wz186_prev_show_dashboard):
+                return _wz186_prev_show_dashboard()
 except Exception:
     pass
 
-show_workzo_dashboard = show_dashboard
-render_dashboard = show_dashboard
