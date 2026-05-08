@@ -443,7 +443,7 @@ def render_workzo_header() -> None:
         <div class="workzo-header-right">
             {back_html}
             <div class="workzo-progress-wrap">
-                <div class="workzo-progress-top"><span>{stage}</span><span>{progress_pct}%</span></div>
+                <div class="workzo-progress-top"><span>{'Interview setup complete' if stage == 'Interview' else stage}</span><span>{'AI recruiter ready' if stage == 'Interview' else ('Step 1/3' if int(progress_pct or 0) == 0 else 'In progress')}</span></div>
                 <div class="workzo-progress-bar"><div class="workzo-progress-fill"></div></div>
                 <div class="workzo-progress-steps">
                     <span class="workzo-step {'done' if cv_done else ''}">{cv_mark} CV</span>
@@ -3573,7 +3573,7 @@ def render_workzo_header() -> None:
         <div class="workzo-header-right">
             {back_html}
             <div class="workzo-progress-wrap">
-                <div class="workzo-progress-top"><span>{stage}</span><span>{progress_pct}%</span></div>
+                <div class="workzo-progress-top"><span>{'Interview setup complete' if stage == 'Interview' else stage}</span><span>{'AI recruiter ready' if stage == 'Interview' else ('Step 1/3' if int(progress_pct or 0) == 0 else 'In progress')}</span></div>
                 <div class="workzo-progress-bar"><div class="workzo-progress-fill"></div></div>
                 <div class="workzo-progress-steps">
                     <span class="workzo-step {'done' if cv_done else ''}">{cv_mark} CV</span>
@@ -3805,9 +3805,7 @@ def show_onboarding():
     if st.button("🎤 Start Real Interview", type="primary", use_container_width=True, key="wzflow_start_interview_now"):
         st.session_state["onboarding_complete"] = True
         _wzflow_go("real_interview")
-    if st.button("Open Dashboard", use_container_width=True, key="wzflow_open_dashboard"):
-        st.session_state["onboarding_complete"] = True
-        _wzflow_go("dashboard")
+    st.caption("Dashboard is available after the interview setup.")
 
 
 # =========================================================
@@ -3986,9 +3984,7 @@ def show_onboarding():
     if st.button("🎤 Start Real Interview", type="primary", use_container_width=True, key="wz_final_start_interview_ready"):
         st.session_state["onboarding_complete"] = True
         _wz_final_safe_go("real_interview")
-    if st.button("Go to dashboard", use_container_width=True, key="wz_final_dashboard_ready"):
-        st.session_state["onboarding_complete"] = True
-        _wz_final_safe_go("dashboard")
+    st.caption("Dashboard is available later from the header after you start or finish the interview.")
 
 
 # =========================================================
@@ -4228,9 +4224,7 @@ def show_onboarding():
         if st.button("🎤 Start Real Interview", type="primary", use_container_width=True, key="wz_final_start_interview"):
             st.session_state["onboarding_complete"] = True
             _wz_final_go("real_interview")
-        if st.button("Go to dashboard", use_container_width=True, key="wz_final_go_dashboard"):
-            st.session_state["onboarding_complete"] = True
-            _wz_final_go("dashboard")
+        st.caption("Dashboard is available later from the header after you start or finish the interview.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 
@@ -5251,7 +5245,7 @@ def show_landing_page():
         '<div>'
         '<div class="wz130-kicker">Real Interview AI</div>'
         '<h1 class="wz130-title">Face a real interview before the real one</h1>'
-        '<p class="wz130-subtitle">Train for interviews that actually feel real — with pressure, recruiter-style follow-ups, and feedback based on your CV and target job.</p>'
+        '<p class="wz130-subtitle">Train with recruiter-style pressure, follow-ups, and CV-based feedback.</p>'
         '<div class="wz130-proof-line">⚡ Built to simulate real interview pressure</div>'
         '<div class="wz130-proof-row">'
         '<span class="wz130-proof-pill">No generic mock questions</span>'
@@ -5297,3 +5291,1728 @@ def show_landing_page():
         '</div>'
     )
     st.markdown(flow_html, unsafe_allow_html=True)
+
+
+# =========================================================
+# WorkZo v131 - Premium onboarding override
+# Added: shorter hero, premium upload zone, stronger demo card,
+# trust microcopy, guided progress, and post-upload AI-understood moment.
+# This is additive and does not remove existing landing/dashboard logic.
+# =========================================================
+
+def _wz131_go(page_key: str) -> None:
+    try:
+        st.session_state["page"] = page_key
+        st.session_state["nav_page"] = page_key
+        try:
+            st.query_params["page"] = page_key
+        except Exception:
+            pass
+        try:
+            request_scroll_to_top()
+        except Exception:
+            pass
+        st.rerun()
+    except Exception:
+        try:
+            st.rerun()
+        except Exception:
+            pass
+
+
+def _wz131_css() -> None:
+    st.markdown("""
+    <style id="workzo-v131-premium-onboarding-css">
+    [data-testid="stMainBlockContainer"], .block-container{
+        max-width:1120px!important;
+        padding-top:.75rem!important;
+    }
+
+    /* slightly smaller top/header footprint on onboarding */
+    .workzo-header,.workzo-topbar,.workzo-brand-shell,.workzo-brand-card,
+    .wzfinal-top,.wzflow-brand{
+        margin-top:.25rem!important;
+        margin-bottom:.85rem!important;
+        padding-top:.75rem!important;
+        padding-bottom:.75rem!important;
+    }
+
+    .wz131-shell{max-width:1120px;margin:0 auto 2rem;}
+    .wz131-topline{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:.35rem 0 .8rem;}
+    .wz131-step-text{color:#cbd5e1;font-weight:900;font-size:.9rem;}
+    .wz131-trust-pill{display:inline-flex;align-items:center;gap:.45rem;border:1px solid rgba(45,212,191,.22);background:rgba(20,184,166,.10);color:#ccfbf1;border-radius:999px;padding:.42rem .68rem;font-size:.82rem;font-weight:850;}
+
+    .wz131-progress{display:grid;grid-template-columns:repeat(3,1fr);gap:.65rem;margin:.55rem 0 1rem;position:relative;}
+    .wz131-progress:before{content:"";position:absolute;left:8%;right:8%;top:24px;height:2px;background:rgba(148,163,184,.18);z-index:0;}
+    .wz131-progress-step{position:relative;z-index:1;border:1px solid rgba(148,163,184,.18);background:rgba(15,23,42,.70);border-radius:18px;padding:.72rem .78rem;color:#94a3b8;font-weight:850;font-size:.86rem;display:flex;align-items:center;gap:.55rem;}
+    .wz131-progress-step.active{border-color:rgba(34,211,238,.45);background:linear-gradient(135deg,rgba(14,165,233,.18),rgba(15,23,42,.82));color:#f8fafc;box-shadow:0 14px 36px rgba(14,165,233,.10);}
+    .wz131-progress-step.done{border-color:rgba(45,212,191,.36);background:rgba(20,184,166,.10);color:#ccfbf1;}
+    .wz131-progress-num{width:30px;height:30px;border-radius:999px;display:grid;place-items:center;background:rgba(34,211,238,.14);border:1px solid rgba(34,211,238,.30);color:#67e8f9;font-weight:950;flex:0 0 auto;}
+
+    .wz131-hero{border:1px solid rgba(34,211,238,.26);border-radius:26px;padding:1.35rem 1.45rem;background:radial-gradient(circle at 8% 0%,rgba(34,211,238,.18),transparent 32%),linear-gradient(135deg,rgba(8,47,73,.76),rgba(15,23,42,.94));box-shadow:0 18px 52px rgba(2,6,23,.30);margin:.75rem 0 1rem;min-height:unset!important;}
+    .wz131-kicker{color:#67e8f9;text-transform:uppercase;letter-spacing:.16em;font-size:.74rem;font-weight:950;margin-bottom:.45rem;}
+    .wz131-hero h1{color:#fff;font-size:clamp(1.85rem,4vw,3.15rem);line-height:1.06;letter-spacing:-.055em;margin:0 0 .55rem;font-weight:950;}
+    .wz131-hero p{color:#cbd5e1;font-size:1.02rem;line-height:1.45;max-width:760px;margin:0;}
+
+    .wz131-grid{display:grid;grid-template-columns:1.35fr .85fr;gap:1rem;align-items:stretch;margin-top:.75rem;}
+    .wz131-panel{border:1px solid rgba(148,163,184,.18);background:linear-gradient(180deg,rgba(15,23,42,.70),rgba(2,6,23,.55));border-radius:26px;padding:1.15rem;box-shadow:0 18px 48px rgba(2,6,23,.22);position:relative;overflow:hidden;}
+    .wz131-panel:before{content:"";position:absolute;inset:-35% auto auto -20%;width:240px;height:240px;background:radial-gradient(circle,rgba(34,211,238,.15),transparent 64%);pointer-events:none;}
+    .wz131-panel h2{color:#fff;font-size:clamp(1.35rem,3vw,2.05rem);letter-spacing:-.04em;line-height:1.08;margin:.1rem 0 .45rem;font-weight:950;}
+    .wz131-panel p{color:#cbd5e1;margin:0 0 .8rem;line-height:1.45;}
+
+    .wz131-upload-wrap{border:1.5px dashed rgba(103,232,249,.42);border-radius:24px;background:rgba(8,47,73,.22);padding:1rem;margin:.75rem 0 .85rem;box-shadow:inset 0 0 0 1px rgba(34,211,238,.06),0 16px 48px rgba(14,165,233,.08);animation:wz131UploadPulse 2.6s ease-in-out infinite;}
+    @keyframes wz131UploadPulse{0%,100%{box-shadow:inset 0 0 0 1px rgba(34,211,238,.06),0 16px 48px rgba(14,165,233,.08)}50%{box-shadow:inset 0 0 0 1px rgba(34,211,238,.14),0 18px 62px rgba(14,165,233,.16)}}
+    .wz131-upload-head{display:flex;align-items:center;gap:.75rem;margin-bottom:.65rem;}
+    .wz131-upload-icon{width:46px;height:46px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,#22d3ee,#2563eb);box-shadow:0 14px 36px rgba(37,99,235,.22);font-size:1.2rem;animation:wz131Float 2.6s ease-in-out infinite;}
+    @keyframes wz131Float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+    .wz131-upload-title{color:#f8fafc;font-weight:950;font-size:1.02rem;}
+    .wz131-upload-sub{color:#94a3b8;font-size:.86rem;font-weight:700;margin-top:.12rem;}
+    div[data-testid="stFileUploader"]{border:1px solid rgba(125,211,252,.22)!important;background:rgba(15,23,42,.58)!important;border-radius:18px!important;padding:.7rem!important;transition:all .18s ease!important;}
+    div[data-testid="stFileUploader"]:hover{border-color:rgba(103,232,249,.52)!important;box-shadow:0 0 0 1px rgba(34,211,238,.12),0 18px 42px rgba(14,165,233,.12)!important;}
+    div[data-testid="stFileUploader"] small{color:#94a3b8!important;}
+
+    .wz131-note{border:1px solid rgba(45,212,191,.18);background:rgba(20,184,166,.08);border-radius:18px;padding:.8rem .9rem;color:#ccfbf1;font-size:.88rem;font-weight:750;line-height:1.42;margin:.65rem 0 .9rem;}
+    .wz131-ai-read{border:1px solid rgba(34,211,238,.28);background:linear-gradient(135deg,rgba(14,165,233,.13),rgba(15,23,42,.58));border-radius:22px;padding:1rem;margin:.8rem 0;}
+    .wz131-ai-read-title{color:#fff;font-weight:950;margin-bottom:.45rem;}
+    .wz131-scan-row{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.5rem;}
+    .wz131-scan-pill{border:1px solid rgba(148,163,184,.20);background:rgba(15,23,42,.70);border-radius:999px;padding:.36rem .58rem;color:#bfdbfe;font-size:.82rem;font-weight:850;}
+    .wz131-dots{display:inline-flex;gap:.22rem;margin-left:.35rem;vertical-align:middle}.wz131-dots span{width:6px;height:6px;border-radius:99px;background:#67e8f9;animation:wz131Dots 1.2s infinite ease-in-out}.wz131-dots span:nth-child(2){animation-delay:.15s}.wz131-dots span:nth-child(3){animation-delay:.3s}@keyframes wz131Dots{0%,80%,100%{opacity:.28;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+
+    .wz131-demo-card{border:1px solid rgba(129,140,248,.30);background:radial-gradient(circle at 10% 0%,rgba(129,140,248,.22),transparent 38%),linear-gradient(180deg,rgba(30,41,59,.76),rgba(15,23,42,.72));border-radius:26px;padding:1.15rem;min-height:100%;box-shadow:0 18px 48px rgba(2,6,23,.20);}
+    .wz131-demo-title{color:#fff;font-weight:950;font-size:1.3rem;letter-spacing:-.035em;margin-bottom:.3rem;}
+    .wz131-demo-copy{color:#cbd5e1;font-size:.95rem;line-height:1.42;margin-bottom:.75rem;}
+    .wz131-mini-chat{border:1px solid rgba(148,163,184,.18);background:rgba(2,6,23,.32);border-radius:20px;padding:.8rem;margin:.75rem 0;}
+    .wz131-mini-bubble{border-radius:16px;padding:.62rem .7rem;margin:.45rem 0;font-size:.84rem;line-height:1.35;}
+    .wz131-mini-bubble.ai{background:rgba(30,41,59,.78);color:#e0f2fe;border:1px solid rgba(125,211,252,.14);}
+    .wz131-mini-bubble.warn{background:rgba(250,204,21,.10);color:#fde68a;border:1px solid rgba(253,224,71,.16);}
+    .wz131-actions{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.75rem;}
+    .wz131-actions.single{grid-template-columns:1fr;}
+    .st-key-wz131_continue_cv button,.st-key-wz131_demo_cv button,.st-key-wz131_use_pasted_cv button,.st-key-wz131_continue_job button,.st-key-wz131_demo_job button,.st-key-wz131_start_interview button,.st-key-wz131_open_dashboard button{
+        min-height:56px!important;border-radius:17px!important;font-weight:950!important;font-size:1rem!important;transition:all .18s ease!important;
+    }
+    .st-key-wz131_continue_cv button,.st-key-wz131_continue_job button,.st-key-wz131_start_interview button{
+        color:#eff6ff!important;border:1px solid rgba(125,211,252,.56)!important;background:radial-gradient(circle at 18% 12%,rgba(103,232,249,.36),transparent 35%),linear-gradient(135deg,#0f172a,#075985,#1d4ed8)!important;box-shadow:0 18px 50px rgba(14,165,233,.24)!important;
+    }
+    .st-key-wz131_continue_cv button:hover,.st-key-wz131_continue_job button:hover,.st-key-wz131_start_interview button:hover{transform:translateY(-2px)!important;box-shadow:0 24px 64px rgba(14,165,233,.34)!important;}
+
+    @media(max-width:860px){
+        .wz131-grid{grid-template-columns:1fr;}
+        .wz131-progress{grid-template-columns:1fr;}.wz131-progress:before{display:none;}
+        .wz131-topline{align-items:flex-start;flex-direction:column;}
+        .wz131-actions{grid-template-columns:1fr;}
+        .wz131-hero{padding:1.05rem;border-radius:22px;}
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+
+def _wz131_progress(step: int) -> None:
+    labels = [(1, "Upload CV"), (2, "Add Job Description"), (3, "Start Interview")]
+    html_parts = ['<div class="wz131-progress">']
+    for n, label in labels:
+        cls = "done" if n < step else ("active" if n == step else "")
+        icon = "✓" if n < step else str(n)
+        html_parts.append(f'<div class="wz131-progress-step {cls}"><span class="wz131-progress-num">{icon}</span><span>{html.escape(label)}</span></div>')
+    html_parts.append('</div>')
+    st.markdown("".join(html_parts), unsafe_allow_html=True)
+
+
+def _wz131_detect_cv_insights(cv_text: str) -> dict:
+    text = str(cv_text or "")
+    lower = text.lower()
+    role = st.session_state.get("target_role") or st.session_state.get("current_role_detected") or "Target role not set yet"
+    for candidate in ["data analyst", "technical support", "customer success", "it support", "support engineer", "business analyst", "product analyst"]:
+        if candidate in lower:
+            role = candidate.title()
+            break
+    skill_pool = ["Python", "SQL", "Excel", "Tableau", "Power BI", "API", "Cloud", "Customer Support", "Troubleshooting", "Dashboard", "Communication", "Stakeholder"]
+    skills = []
+    for skill in skill_pool:
+        if skill.lower() in lower and skill not in skills:
+            skills.append(skill)
+    years = "Experience detected"
+    m = re.search(r"\b(\d{1,2})\+?\s*(?:years|yrs)\b", lower)
+    if m:
+        years = f"{m.group(1)}+ years mentioned"
+    return {"role": role, "skills": skills[:5] or ["Profile skills detected"], "experience": years, "words": len(text.split())}
+
+
+def _wz131_store_cv_text(cv_text: str, mode: str = "Upload CV") -> bool:
+    cv_text = str(cv_text or "").strip()
+    if len(cv_text) < 60:
+        return False
+    for key in ["cv_text", "clean_structured_cv_text", "raw_cv_extraction", "uploaded_cv_text", "workzo_live_cv_text", "cv_editor_widget"]:
+        st.session_state[key] = cv_text
+    st.session_state["cv_mode"] = mode
+    st.session_state["wz131_cv_insights"] = _wz131_detect_cv_insights(cv_text)
+    try:
+        if callable(globals().get("extract_structured_resume_json")):
+            structured = extract_structured_resume_json(cv_text, st.session_state.get("country", "Germany"), st.session_state.get("user_status", ""))
+            if isinstance(structured, dict) and structured:
+                st.session_state["structured_cv_json"] = structured
+    except Exception:
+        pass
+    return True
+
+
+def _wz131_store_job(title: str, desc: str, company: str = "") -> bool:
+    desc = str(desc or "").strip()
+    if len(desc) < 30:
+        return False
+    title = str(title or st.session_state.get("target_role") or "Target role").strip() or "Target role"
+    company = str(company or "Target company").strip() or "Target company"
+    st.session_state["target_role"] = title
+    st.session_state["selected_company"] = company
+    job = {"title": title, "company": company, "description": desc, "location": st.session_state.get("country", "")}
+    st.session_state["selected_job"] = job
+    for key in ["selected_job_description", "current_job_description", "last_understand_job_description", "last_prepare_job_description", "improve_cv_for_job_desc", "job_description", "interview_jd_text_v117", "real_interview_jd_saved"]:
+        st.session_state[key] = desc
+    return True
+
+
+def _wz131_render_cv_understood() -> None:
+    insights = st.session_state.get("wz131_cv_insights") or _wz131_detect_cv_insights(st.session_state.get("cv_text", ""))
+    skills = insights.get("skills", []) if isinstance(insights, dict) else []
+    st.markdown(
+        '<div class="wz131-ai-read">'
+        '<div class="wz131-ai-read-title">✅ CV parsed — AI is preparing your interview<span class="wz131-dots"><span></span><span></span><span></span></span></div>'
+        f'<div class="wz131-scan-row"><span class="wz131-scan-pill">Role: {html.escape(str(insights.get("role", "Detected")))}</span>'
+        f'<span class="wz131-scan-pill">{html.escape(str(insights.get("experience", "Experience detected")))}</span>'
+        f'<span class="wz131-scan-pill">{int(insights.get("words", 0) or 0)} words read</span>'
+        + ''.join([f'<span class="wz131-scan-pill">{html.escape(str(s))}</span>' for s in skills[:4]])
+        + '</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def show_onboarding():
+    """v131 premium onboarding: faster, emotional CV-first journey."""
+    try:
+        maybe_scroll_to_top()
+    except Exception:
+        pass
+    try:
+        apply_workzo_v75_global_css()
+    except Exception:
+        pass
+    _wz131_css()
+    try:
+        render_workzo_header()
+    except Exception:
+        try:
+            _wzflow_render_minimal_brand()
+        except Exception:
+            pass
+
+    step = int(st.session_state.get("onboarding_step_final", st.session_state.get("wz_onboarding_step", 1)) or 1)
+    if step < 1 or step > 3:
+        step = 1
+    st.session_state["onboarding_step_final"] = step
+
+    st.markdown('<div class="wz131-shell">', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="wz131-topline"><div class="wz131-step-text">Step {step} of 3</div><div class="wz131-trust-pill">🔒 Your CV is used only to personalize your interview. Takes less than 30 seconds.</div></div>',
+        unsafe_allow_html=True,
+    )
+    _wz131_progress(step)
+
+    if step == 1:
+        st.markdown(
+            '<section class="wz131-hero"><div class="wz131-kicker">Start with your CV</div>'
+            '<h1>Your interview starts with your CV</h1>'
+            '<p>Upload your CV so WorkZo can understand your experience, detect your skills, and prepare realistic recruiter-style interview questions.</p></section>',
+            unsafe_allow_html=True,
+        )
+        st.markdown('<div class="wz131-grid">', unsafe_allow_html=True)
+        left, right = st.columns([1.35, .85])
+        with left:
+            st.markdown(
+                '<div class="wz131-panel"><h2>Let AI understand your experience</h2><p>This is the core step. WorkZo reads your profile so the interview does not feel generic.</p>'
+                '<div class="wz131-upload-wrap"><div class="wz131-upload-head"><div class="wz131-upload-icon">📄</div><div><div class="wz131-upload-title">Drop your CV here</div><div class="wz131-upload-sub">PDF or TXT works best. You can also paste text below.</div></div></div>',
+                unsafe_allow_html=True,
+            )
+            uploaded = st.file_uploader("Upload PDF or TXT", type=["pdf", "txt"], key="wz131_cv_upload")
+            st.markdown('</div>', unsafe_allow_html=True)
+            if uploaded is not None:
+                extracted = ""
+                try:
+                    file_name = str(getattr(uploaded, "name", "") or "").lower()
+                    file_type = str(getattr(uploaded, "type", "") or "").lower()
+                    if file_type == "text/plain" or file_name.endswith(".txt"):
+                        extracted = uploaded.read().decode("utf-8", errors="ignore")
+                    else:
+                        extracted = extract_pdf_text(uploaded) if callable(globals().get("extract_pdf_text")) else ""
+                    if callable(globals().get("organize_cv_for_display")):
+                        extracted = organize_cv_for_display(extracted)
+                except Exception as exc:
+                    st.warning(f"Could not read the uploaded CV: {exc}")
+                if _wz131_store_cv_text(extracted, "Upload CV"):
+                    _wz131_render_cv_understood()
+                else:
+                    st.warning("The file uploaded, but the text looked too short. Try TXT or paste your CV below.")
+            with st.expander("Paste CV text instead", expanded=not bool(st.session_state.get("cv_text"))):
+                pasted = st.text_area("Paste your CV text", height=170, key="wz131_paste_cv_text", placeholder="Paste your resume text here...")
+                if st.button("Use pasted CV", key="wz131_use_pasted_cv", use_container_width=True):
+                    if _wz131_store_cv_text(pasted, "Paste CV"):
+                        st.success("CV is ready.")
+                        _wz131_render_cv_understood()
+                    else:
+                        st.warning("Please paste more CV details first.")
+            st.markdown('<div class="wz131-note">No account required for testing. Avoid uploading sensitive details you do not want analyzed.</div>', unsafe_allow_html=True)
+            if st.session_state.get("cv_text"):
+                if st.button("Continue to job description", type="primary", use_container_width=True, key="wz131_continue_cv"):
+                    st.session_state["onboarding_step_final"] = 2
+                    _wz131_go("onboarding")
+            st.markdown('</div>', unsafe_allow_html=True)
+        with right:
+            st.markdown(
+                '<div class="wz131-demo-card"><div class="wz131-demo-title">Try demo instantly</div>'
+                '<div class="wz131-demo-copy">Experience the interview flow without uploading your own CV.</div>'
+                '<div class="wz131-mini-chat"><div class="wz131-mini-bubble ai">AI Recruiter: Tell me about yourself, but keep it relevant.</div>'
+                '<div class="wz131-mini-bubble warn">⚠️ Follow-up: Give me one measurable result.</div></div>'
+                '<div class="wz131-note">Best for first-time testers who want to feel the product before sharing a CV.</div></div>',
+                unsafe_allow_html=True,
+            )
+            if st.button("Experience demo interview", use_container_width=True, key="wz131_demo_cv"):
+                demo_cv = SAMPLE_CV_TEXT if "SAMPLE_CV_TEXT" in globals() else "Demo CV: Technical Support Engineer with customer-facing experience, SQL, Python, dashboards, troubleshooting, and communication skills."
+                _wz131_store_cv_text(demo_cv, "Sample Demo")
+                demo_jd = SAMPLE_JOB_DESCRIPTION if "SAMPLE_JOB_DESCRIPTION" in globals() else "Demo job description: Junior Data Analyst role requiring SQL, Python, dashboards, communication, problem solving, and stakeholder support."
+                _wz131_store_job("Junior Data Analyst", demo_jd, "Demo Company")
+                st.session_state["onboarding_step_final"] = 3
+                _wz131_go("onboarding")
+        st.markdown('</div></div>', unsafe_allow_html=True)
+        return
+
+    if step == 2:
+        st.markdown(
+            '<section class="wz131-hero"><div class="wz131-kicker">Add your target role</div>'
+            '<h1>Make the interview specific to the job</h1>'
+            '<p>Paste one real job description so WorkZo can challenge you on the exact skills, gaps, and recruiter expectations.</p></section>',
+            unsafe_allow_html=True,
+        )
+        with st.container(border=True):
+            title = st.text_input("Job title", value=st.session_state.get("target_role", ""), placeholder="Example: Data Analyst", key="wz131_job_title")
+            company = st.text_input("Company / employer (optional)", value=st.session_state.get("selected_company", ""), placeholder="Example: Siemens", key="wz131_company")
+            jd = st.text_area("Job description", height=230, value=st.session_state.get("selected_job_description") or st.session_state.get("current_job_description") or "", placeholder="Paste the job description here...", key="wz131_jd")
+        c1, c2, c3 = st.columns([1,1,1])
+        with c1:
+            if st.button("Back", use_container_width=True, key="wz131_back_to_cv"):
+                st.session_state["onboarding_step_final"] = 1
+                _wz131_go("onboarding")
+        with c2:
+            if st.button("Use demo job", use_container_width=True, key="wz131_demo_job"):
+                demo_jd = SAMPLE_JOB_DESCRIPTION if "SAMPLE_JOB_DESCRIPTION" in globals() else "Demo job description: Junior Data Analyst role requiring SQL, Python, dashboards, communication and stakeholder collaboration."
+                _wz131_store_job("Junior Data Analyst", demo_jd, "Demo Company")
+                st.session_state["onboarding_step_final"] = 3
+                _wz131_go("onboarding")
+        with c3:
+            if st.button("Continue", type="primary", use_container_width=True, key="wz131_continue_job"):
+                if _wz131_store_job(title, jd, company):
+                    st.session_state["onboarding_step_final"] = 3
+                    _wz131_go("onboarding")
+                else:
+                    st.warning("Please paste the job description, or use the demo job.")
+        st.markdown('</div>', unsafe_allow_html=True)
+        return
+
+    st.markdown(
+        '<section class="wz131-hero"><div class="wz131-kicker">Interview room ready</div>'
+        '<h1>AI has your CV and target job</h1>'
+        '<p>Start the interview now. WorkZo will ask recruiter-style questions, challenge weak answers, and give a hiring-style decision.</p></section>',
+        unsafe_allow_html=True,
+    )
+    c1, c2 = st.columns(2)
+    with c1:
+        _wz131_render_cv_understood()
+    with c2:
+        job = st.session_state.get("selected_job") or {}
+        st.markdown(
+            '<div class="wz131-ai-read"><div class="wz131-ai-read-title">🎯 Job context ready</div>'
+            f'<div class="wz131-scan-row"><span class="wz131-scan-pill">Role: {html.escape(str(job.get("title") or st.session_state.get("target_role") or "Target role"))}</span>'
+            f'<span class="wz131-scan-pill">Company: {html.escape(str(job.get("company") or "Target company"))}</span>'
+            '<span class="wz131-scan-pill">Recruiter follow-ups enabled</span></div></div>',
+            unsafe_allow_html=True,
+        )
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("🎤 Start Real Interview", type="primary", use_container_width=True, key="wz131_start_interview"):
+            st.session_state["onboarding_complete"] = True
+            _wz131_go("real_interview")
+    with c2:
+        st.caption("Dashboard is available later from the header.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# =========================================================
+# WorkZo v132 - ACTIVE onboarding override
+# Purpose: make the actual routed onboarding page visibly shorter,
+# premium, CV-first, trust-building, and demo-friendly.
+# This block is intentionally appended at the END so it becomes the
+# active show_onboarding() used by the router.
+# =========================================================
+
+def _wz132_onboarding_css() -> None:
+    st.markdown("""
+    <style id="workzo-v132-active-onboarding-css">
+    [data-testid="stMainBlockContainer"], .block-container{
+        max-width:1080px!important;
+        padding-top:.45rem!important;
+    }
+
+    /* reduce top/navbar footprint on onboarding */
+    .workzo-header,.workzo-topbar,.workzo-brand-shell,.workzo-brand-card,
+    .wzfinal-top,.wzflow-brand,.wz128-topbar,.wz130-topbar{
+        margin-top:.12rem!important;
+        margin-bottom:.55rem!important;
+        padding-top:.55rem!important;
+        padding-bottom:.55rem!important;
+        min-height:unset!important;
+    }
+
+    .wz132-shell{max-width:1080px;margin:0 auto 1.8rem;}
+    .wz132-topline{display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin:.15rem 0 .62rem;}
+    .wz132-step-text{color:#dbeafe;font-weight:950;font-size:.88rem;}
+    .wz132-trust{display:inline-flex;align-items:center;gap:.45rem;border:1px solid rgba(45,212,191,.22);background:rgba(20,184,166,.10);color:#ccfbf1;border-radius:999px;padding:.38rem .62rem;font-size:.8rem;font-weight:850;}
+
+    .wz132-progress{display:grid;grid-template-columns:repeat(3,1fr);gap:.58rem;margin:.45rem 0 .78rem;position:relative;}
+    .wz132-progress:before{content:"";position:absolute;left:8%;right:8%;top:20px;height:2px;background:linear-gradient(90deg,rgba(34,211,238,.55),rgba(148,163,184,.14));z-index:0;}
+    .wz132-step{position:relative;z-index:1;border:1px solid rgba(148,163,184,.16);background:rgba(15,23,42,.72);border-radius:16px;padding:.58rem .68rem;color:#94a3b8;font-weight:850;font-size:.83rem;display:flex;align-items:center;gap:.48rem;}
+    .wz132-step.active{border-color:rgba(34,211,238,.48);background:linear-gradient(135deg,rgba(14,165,233,.20),rgba(15,23,42,.86));color:#f8fafc;box-shadow:0 14px 34px rgba(14,165,233,.12);}
+    .wz132-step.done{border-color:rgba(45,212,191,.36);background:rgba(20,184,166,.11);color:#ccfbf1;}
+    .wz132-num{width:26px;height:26px;border-radius:999px;display:grid;place-items:center;background:rgba(34,211,238,.14);border:1px solid rgba(34,211,238,.32);color:#67e8f9;font-weight:950;flex:0 0 auto;}
+
+    /* 35% shorter hero: action appears faster */
+    .wz132-hero{border:1px solid rgba(34,211,238,.24);border-radius:22px;padding:1rem 1.12rem;background:radial-gradient(circle at 8% 0%,rgba(34,211,238,.16),transparent 30%),linear-gradient(135deg,rgba(8,47,73,.70),rgba(15,23,42,.94));box-shadow:0 14px 42px rgba(2,6,23,.28);margin:.55rem 0 .78rem;min-height:0!important;}
+    .wz132-kicker{color:#67e8f9;text-transform:uppercase;letter-spacing:.15em;font-size:.70rem;font-weight:950;margin-bottom:.32rem;}
+    .wz132-hero h1{color:#fff;font-size:clamp(1.55rem,3.3vw,2.45rem);line-height:1.04;letter-spacing:-.05em;margin:0 0 .38rem;font-weight:950;}
+    .wz132-hero p{color:#cbd5e1;font-size:.96rem;line-height:1.38;max-width:760px;margin:0;}
+
+    .wz132-grid{display:grid;grid-template-columns:1.32fr .86fr;gap:.9rem;align-items:stretch;margin-top:.55rem;}
+    .wz132-panel{border:1px solid rgba(148,163,184,.18);background:linear-gradient(180deg,rgba(15,23,42,.73),rgba(2,6,23,.58));border-radius:24px;padding:1rem;box-shadow:0 16px 42px rgba(2,6,23,.22);position:relative;overflow:hidden;}
+    .wz132-panel:before{content:"";position:absolute;left:-80px;top:-90px;width:210px;height:210px;background:radial-gradient(circle,rgba(34,211,238,.18),transparent 64%);pointer-events:none;}
+    .wz132-panel h2{color:#fff;font-size:clamp(1.25rem,2.6vw,1.82rem);letter-spacing:-.04em;line-height:1.08;margin:.05rem 0 .32rem;font-weight:950;position:relative;}
+    .wz132-panel p{color:#cbd5e1;margin:0 0 .68rem;line-height:1.38;position:relative;}
+
+    .wz132-upload-wrap{border:1.6px dashed rgba(103,232,249,.50);border-radius:22px;background:rgba(8,47,73,.24);padding:.92rem;margin:.58rem 0 .72rem;box-shadow:inset 0 0 0 1px rgba(34,211,238,.08),0 16px 46px rgba(14,165,233,.09);animation:wz132UploadPulse 2.4s ease-in-out infinite;position:relative;}
+    @keyframes wz132UploadPulse{0%,100%{box-shadow:inset 0 0 0 1px rgba(34,211,238,.06),0 12px 36px rgba(14,165,233,.08)}50%{box-shadow:inset 0 0 0 1px rgba(34,211,238,.18),0 18px 58px rgba(14,165,233,.18)}}
+    .wz132-upload-head{display:flex;align-items:center;gap:.72rem;margin-bottom:.58rem;}
+    .wz132-upload-icon{width:44px;height:44px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,#22d3ee,#2563eb);box-shadow:0 14px 34px rgba(37,99,235,.24);font-size:1.18rem;animation:wz132Float 2.5s ease-in-out infinite;}
+    @keyframes wz132Float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+    .wz132-upload-title{color:#f8fafc;font-weight:950;font-size:1rem;}
+    .wz132-upload-sub{color:#94a3b8;font-size:.84rem;font-weight:750;margin-top:.1rem;}
+    div[data-testid="stFileUploader"]{border:1px solid rgba(125,211,252,.22)!important;background:rgba(15,23,42,.56)!important;border-radius:17px!important;padding:.65rem!important;transition:all .18s ease!important;}
+    div[data-testid="stFileUploader"]:hover{border-color:rgba(103,232,249,.55)!important;box-shadow:0 0 0 1px rgba(34,211,238,.12),0 16px 38px rgba(14,165,233,.14)!important;}
+
+    .wz132-note{border:1px solid rgba(45,212,191,.18);background:rgba(20,184,166,.08);border-radius:16px;padding:.68rem .78rem;color:#ccfbf1;font-size:.84rem;font-weight:750;line-height:1.38;margin:.52rem 0 .72rem;}
+    .wz132-ai-read{border:1px solid rgba(34,211,238,.30);background:linear-gradient(135deg,rgba(14,165,233,.14),rgba(15,23,42,.62));border-radius:20px;padding:.9rem;margin:.72rem 0;}
+    .wz132-ai-title{color:#fff;font-weight:950;margin-bottom:.42rem;}
+    .wz132-scan-row{display:flex;flex-wrap:wrap;gap:.46rem;margin-top:.45rem;}
+    .wz132-pill{border:1px solid rgba(148,163,184,.20);background:rgba(15,23,42,.72);border-radius:999px;padding:.32rem .54rem;color:#bfdbfe;font-size:.8rem;font-weight:850;}
+    .wz132-dots{display:inline-flex;gap:.22rem;margin-left:.35rem;vertical-align:middle}.wz132-dots span{width:6px;height:6px;border-radius:99px;background:#67e8f9;animation:wz132Dots 1.15s infinite ease-in-out}.wz132-dots span:nth-child(2){animation-delay:.15s}.wz132-dots span:nth-child(3){animation-delay:.3s}@keyframes wz132Dots{0%,80%,100%{opacity:.28;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+
+    .wz132-demo{border:1px solid rgba(129,140,248,.35);background:radial-gradient(circle at 10% 0%,rgba(129,140,248,.25),transparent 38%),linear-gradient(180deg,rgba(30,41,59,.82),rgba(15,23,42,.76));border-radius:24px;padding:1rem;min-height:100%;box-shadow:0 18px 46px rgba(2,6,23,.22);}
+    .wz132-demo-title{color:#fff;font-weight:950;font-size:1.22rem;letter-spacing:-.035em;margin-bottom:.24rem;}
+    .wz132-demo-copy{color:#cbd5e1;font-size:.92rem;line-height:1.38;margin-bottom:.65rem;}
+    .wz132-mini-chat{border:1px solid rgba(148,163,184,.18);background:rgba(2,6,23,.34);border-radius:18px;padding:.72rem;margin:.62rem 0;}
+    .wz132-bubble{border-radius:15px;padding:.56rem .64rem;margin:.4rem 0;font-size:.82rem;line-height:1.34;}
+    .wz132-bubble.ai{background:rgba(30,41,59,.78);color:#e0f2fe;border:1px solid rgba(125,211,252,.14);}
+    .wz132-bubble.warn{background:rgba(250,204,21,.10);color:#fde68a;border:1px solid rgba(253,224,71,.16);}
+    .wz132-demo-badge{display:inline-flex;border:1px solid rgba(103,232,249,.24);background:rgba(14,165,233,.12);color:#bae6fd;border-radius:999px;padding:.34rem .58rem;font-size:.78rem;font-weight:900;margin:.38rem 0 .55rem;}
+
+    .st-key-wz132_continue_cv button,.st-key-wz132_demo_cv button,.st-key-wz132_use_pasted_cv button,.st-key-wz132_continue_job button,.st-key-wz132_demo_job button,.st-key-wz132_start_interview button,.st-key-wz132_open_dashboard button{
+        min-height:54px!important;border-radius:16px!important;font-weight:950!important;font-size:.98rem!important;transition:all .18s ease!important;
+    }
+    .st-key-wz132_continue_cv button,.st-key-wz132_continue_job button,.st-key-wz132_start_interview button{
+        color:#eff6ff!important;border:1px solid rgba(125,211,252,.56)!important;background:radial-gradient(circle at 18% 12%,rgba(103,232,249,.36),transparent 35%),linear-gradient(135deg,#0f172a,#075985,#1d4ed8)!important;box-shadow:0 18px 50px rgba(14,165,233,.24)!important;
+    }
+    .st-key-wz132_continue_cv button:hover,.st-key-wz132_continue_job button:hover,.st-key-wz132_start_interview button:hover{transform:translateY(-2px)!important;box-shadow:0 24px 64px rgba(14,165,233,.34)!important;}
+    .st-key-wz132_demo_cv button{border-color:rgba(129,140,248,.45)!important;background:rgba(99,102,241,.14)!important;color:#e0e7ff!important;}
+
+    @media(max-width:860px){
+        .wz132-grid{grid-template-columns:1fr;}
+        .wz132-progress{grid-template-columns:1fr;}.wz132-progress:before{display:none;}
+        .wz132-topline{align-items:flex-start;flex-direction:column;}
+        .wz132-hero{padding:.9rem;border-radius:20px;}
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+
+def _wz132_progress(step: int) -> None:
+    labels = [(1, "Upload CV"), (2, "Add Job Description"), (3, "Start Interview")]
+    parts = ['<div class="wz132-progress">']
+    for n, label in labels:
+        cls = "done" if n < step else ("active" if n == step else "")
+        icon = "✓" if n < step else str(n)
+        parts.append(f'<div class="wz132-step {cls}"><span class="wz132-num">{icon}</span><span>{html.escape(label)}</span></div>')
+    parts.append('</div>')
+    st.markdown(''.join(parts), unsafe_allow_html=True)
+
+
+def _wz132_detect_cv_insights(cv_text: str) -> dict:
+    try:
+        return _wz131_detect_cv_insights(cv_text)
+    except Exception:
+        text = str(cv_text or '')
+        return {"role":"Profile detected", "skills":["Skills detected"], "experience":"Experience detected", "words":len(text.split())}
+
+
+def _wz132_store_cv_text(cv_text: str, mode: str = "Upload CV") -> bool:
+    try:
+        return _wz131_store_cv_text(cv_text, mode)
+    except Exception:
+        cv_text = str(cv_text or '').strip()
+        if len(cv_text) < 60:
+            return False
+        for key in ["cv_text", "clean_structured_cv_text", "raw_cv_extraction", "uploaded_cv_text", "workzo_live_cv_text", "cv_editor_widget"]:
+            st.session_state[key] = cv_text
+        st.session_state["cv_mode"] = mode
+        st.session_state["wz132_cv_insights"] = _wz132_detect_cv_insights(cv_text)
+        return True
+
+
+def _wz132_store_job(title: str, desc: str, company: str = "") -> bool:
+    try:
+        return _wz131_store_job(title, desc, company)
+    except Exception:
+        desc = str(desc or '').strip()
+        if len(desc) < 30:
+            return False
+        title = str(title or st.session_state.get("target_role") or "Target role").strip() or "Target role"
+        company = str(company or "Target company").strip() or "Target company"
+        st.session_state["target_role"] = title
+        st.session_state["selected_company"] = company
+        job = {"title": title, "company": company, "description": desc, "location": st.session_state.get("country", "")}
+        st.session_state["selected_job"] = job
+        for key in ["selected_job_description", "current_job_description", "last_understand_job_description", "last_prepare_job_description", "improve_cv_for_job_desc", "job_description", "interview_jd_text_v117", "real_interview_jd_saved"]:
+            st.session_state[key] = desc
+        return True
+
+
+def _wz132_render_cv_understood() -> None:
+    insights = st.session_state.get("wz132_cv_insights") or st.session_state.get("wz131_cv_insights") or _wz132_detect_cv_insights(st.session_state.get("cv_text", ""))
+    skills = insights.get("skills", []) if isinstance(insights, dict) else []
+    st.markdown(
+        '<div class="wz132-ai-read">'
+        '<div class="wz132-ai-title">✅ CV parsed — Preparing your interview<span class="wz132-dots"><span></span><span></span><span></span></span></div>'
+        f'<div class="wz132-scan-row"><span class="wz132-pill">Role: {html.escape(str(insights.get("role", "Detected")))}</span>'
+        f'<span class="wz132-pill">{html.escape(str(insights.get("experience", "Experience detected")))}</span>'
+        f'<span class="wz132-pill">{int(insights.get("words", 0) or 0)} words read</span>'
+        + ''.join([f'<span class="wz132-pill">{html.escape(str(s))}</span>' for s in skills[:4]])
+        + '</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def show_onboarding():
+    """v132 ACTIVE onboarding: compact hero + premium CV upload + stronger demo path."""
+    try:
+        maybe_scroll_to_top()
+    except Exception:
+        pass
+    try:
+        apply_workzo_v75_global_css()
+    except Exception:
+        pass
+    _wz132_onboarding_css()
+    try:
+        render_workzo_header()
+    except Exception:
+        try:
+            _wzflow_render_minimal_brand()
+        except Exception:
+            pass
+
+    step = int(st.session_state.get("onboarding_step_final", st.session_state.get("wz_onboarding_step", 1)) or 1)
+    if step < 1 or step > 3:
+        step = 1
+    st.session_state["onboarding_step_final"] = step
+
+    st.markdown('<div class="wz132-shell">', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="wz132-topline"><div class="wz132-step-text">Step {step} of 3</div><div class="wz132-trust">🔒 Your CV is only used to personalize your interview · No account required · We don’t store sensitive resume data · Takes less than 30 seconds</div></div>',
+        unsafe_allow_html=True,
+    )
+    _wz132_progress(step)
+
+    if step == 1:
+        st.markdown(
+            '<section class="wz132-hero"><div class="wz132-kicker">Start with your CV</div>'
+            '<h1>Your interview starts with your CV</h1>'
+            '<p>Upload your CV to personalize recruiter-style questions, pressure follow-ups, and hiring feedback. WorkZo first understands your experience — then builds the interview around it.</p></section>',
+            unsafe_allow_html=True,
+        )
+        st.markdown('<div class="wz132-grid">', unsafe_allow_html=True)
+        left, right = st.columns([1.32, .86])
+        with left:
+            st.markdown(
+                '<div class="wz132-panel"><h2>Let AI understand your experience</h2><p>This is the core step. Your interview becomes specific to your real background, not a generic mock test.</p>'
+                '<div class="wz132-upload-wrap"><div class="wz132-upload-head"><div class="wz132-upload-icon">📄</div><div><div class="wz132-upload-title">Upload your CV to personalize your interview</div><div class="wz132-upload-sub">PDF or TXT works best. Drag, drop, or browse.</div></div></div>',
+                unsafe_allow_html=True,
+            )
+            uploaded = st.file_uploader("Upload PDF or TXT", type=["pdf", "txt"], key="wz132_cv_upload")
+            st.markdown('</div>', unsafe_allow_html=True)
+            if uploaded is not None:
+                extracted = ""
+                try:
+                    file_name = str(getattr(uploaded, "name", "") or "").lower()
+                    file_type = str(getattr(uploaded, "type", "") or "").lower()
+                    if file_type == "text/plain" or file_name.endswith(".txt"):
+                        extracted = uploaded.read().decode("utf-8", errors="ignore")
+                    else:
+                        extracted = extract_pdf_text(uploaded) if callable(globals().get("extract_pdf_text")) else ""
+                    if callable(globals().get("organize_cv_for_display")):
+                        extracted = organize_cv_for_display(extracted)
+                except Exception as exc:
+                    st.warning(f"Could not read the uploaded CV: {exc}")
+                if _wz132_store_cv_text(extracted, "Upload CV"):
+                    _wz132_render_cv_understood()
+                    st.markdown(
+                        '<div class="wz134-scan-motion"><div class="wz134-scan-title">AI is building your interview<span class="wz132-dots"><span></span><span></span><span></span></span></div>'
+                        '<div class="wz134-scan-line">Analyzing communication style...</div>'
+                        '<div class="wz134-scan-line">Understanding experience level...</div>'
+                        '<div class="wz134-scan-line">Generating recruiter pressure prompts...</div>'
+                        '<div class="wz134-scan-line">Preparing follow-up questions...</div></div>',
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.warning("The file uploaded, but the extracted text looked too short. Try TXT or paste your CV below.")
+
+            with st.expander("Paste CV text instead", expanded=not bool(st.session_state.get("cv_text"))):
+                pasted = st.text_area("Paste your CV text", height=155, key="wz132_paste_cv_text", placeholder="Paste your resume text here...")
+                if st.button("Use pasted CV", key="wz132_use_pasted_cv", use_container_width=True):
+                    if _wz132_store_cv_text(pasted, "Paste CV"):
+                        st.session_state["wz132_cv_insights"] = _wz132_detect_cv_insights(pasted)
+                        st.success("CV is ready.")
+                        _wz132_render_cv_understood()
+                        st.markdown(
+                            '<div class="wz134-scan-motion"><div class="wz134-scan-title">AI is building your interview<span class="wz132-dots"><span></span><span></span><span></span></span></div>'
+                            '<div class="wz134-scan-line">Analyzing communication style...</div>'
+                            '<div class="wz134-scan-line">Understanding experience level...</div>'
+                            '<div class="wz134-scan-line">Generating recruiter pressure prompts...</div>'
+                            '<div class="wz134-scan-line">Preparing follow-up questions...</div></div>',
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        st.warning("Please paste more CV details first.")
+            st.markdown('<div class="wz132-note">Your CV is only used to personalize your interview. We don’t store sensitive resume data in analytics. Takes less than 30 seconds.</div>', unsafe_allow_html=True)
+            if st.session_state.get("cv_text"):
+                if st.button("Continue to interview setup →", type="primary", use_container_width=True, key="wz132_continue_cv"):
+                    st.session_state["onboarding_step_final"] = 2
+                    try:
+                        request_scroll_to_top()
+                    except Exception:
+                        pass
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        with right:
+            st.markdown(
+                '<div class="wz132-demo wz134-demo-live"><div class="wz134-demo-top"><div><div class="wz132-demo-title">Experience the interview instantly</div>'
+                '<div class="wz132-demo-copy">Not ready to upload? Try a sample CV and feel how WorkZo challenges answers.</div></div><div class="wz134-demo-timer">00:45</div></div>'
+                '<div class="wz132-demo-badge">Demo path for first-time testers</div>'
+                '<div class="wz132-mini-chat"><div class="wz134-rec-row"><span class="wz134-rec-dot"></span><span>AI Recruiter is listening</span><div class="wz134-wave"><span></span><span></span><span></span><span></span></div></div>'
+                '<div class="wz132-bubble ai">AI Recruiter: Tell me about yourself, but keep it relevant.</div>'
+                '<div class="wz132-bubble warn">⚠️ Follow-up: You’re losing me — give me one measurable result.</div>'
+                '<div class="wz134-confidence"><span>Answer confidence</span><b>Needs proof</b><div><i></i></div></div></div>'
+                '<div class="wz132-note">Best for testers who want to feel the product before sharing a CV.</div></div>',
+                unsafe_allow_html=True,
+            )
+            if st.button("Experience demo interview", use_container_width=True, key="wz132_demo_cv"):
+                demo_cv = SAMPLE_CV_TEXT if "SAMPLE_CV_TEXT" in globals() else "Demo CV: Technical Support Engineer with customer-facing experience, SQL, Python, dashboards, troubleshooting, communication skills, and experience handling customer issues."
+                _wz132_store_cv_text(demo_cv, "Sample Demo")
+                demo_jd = SAMPLE_JOB_DESCRIPTION if "SAMPLE_JOB_DESCRIPTION" in globals() else "Demo job description: Junior Data Analyst role requiring SQL, Python, dashboards, communication, problem solving, stakeholder support, and clear reporting."
+                _wz132_store_job("Junior Data Analyst", demo_jd, "Demo Company")
+                st.session_state["onboarding_step_final"] = 3
+                try:
+                    request_scroll_to_top()
+                except Exception:
+                    pass
+                st.rerun()
+        st.markdown('</div></div>', unsafe_allow_html=True)
+        return
+
+    if step == 2:
+        st.markdown(
+            '<section class="wz132-hero"><div class="wz132-kicker">Add your target role</div>'
+            '<h1>Make the interview specific to the job</h1>'
+            '<p>Paste one real job description so WorkZo can challenge you on the exact skills, gaps, language expectations, and recruiter pressure points.</p></section>',
+            unsafe_allow_html=True,
+        )
+        with st.container(border=True):
+            title = st.text_input("Job title", value=st.session_state.get("target_role", ""), placeholder="Example: Data Analyst", key="wz132_job_title")
+            company = st.text_input("Company / employer (optional)", value=st.session_state.get("selected_company", ""), placeholder="Example: Siemens", key="wz132_company")
+            jd = st.text_area("Job description", height=220, value=st.session_state.get("selected_job_description") or st.session_state.get("current_job_description") or "", placeholder="Paste the job description here...", key="wz132_jd")
+        c1, c2, c3 = st.columns([1,1,1])
+        with c1:
+            if st.button("Back", use_container_width=True, key="wz132_back_to_cv"):
+                st.session_state["onboarding_step_final"] = 1
+                st.rerun()
+        with c2:
+            if st.button("Use demo job", use_container_width=True, key="wz132_demo_job"):
+                demo_jd = SAMPLE_JOB_DESCRIPTION if "SAMPLE_JOB_DESCRIPTION" in globals() else "Demo job description: Junior Data Analyst role requiring SQL, Python, dashboards, communication and stakeholder collaboration."
+                _wz132_store_job("Junior Data Analyst", demo_jd, "Demo Company")
+                st.session_state["onboarding_step_final"] = 3
+                st.rerun()
+        with c3:
+            if st.button("Continue", type="primary", use_container_width=True, key="wz132_continue_job"):
+                if _wz132_store_job(title, jd, company):
+                    st.session_state["onboarding_step_final"] = 3
+                    st.rerun()
+                else:
+                    st.warning("Please paste the job description, or use the demo job.")
+        st.markdown('</div>', unsafe_allow_html=True)
+        return
+
+    job = st.session_state.get("selected_job") or {}
+    job_title_ready = html.escape(str(job.get("title") or st.session_state.get("target_role") or "Target role"))
+    company_ready = html.escape(str(job.get("company") or "Target company"))
+    st.markdown(
+        '<section class="wz135-ready-hero">'
+        '<div class="wz135-ready-copy"><div class="wz132-kicker">Interview room ready</div>'
+        '<h1>AI recruiter is ready for you</h1>'
+        '<p>Your CV and target job are loaded. WorkZo is preparing recruiter-style follow-ups, pressure prompts, and a hiring-style decision.</p>'
+        '<div class="wz135-ready-tags"><span>CV understood</span><span>Job context loaded</span><span>Follow-ups enabled</span></div></div>'
+        '<div class="wz135-recruiter-prep"><div class="wz135-prep-top"><div class="wz135-avatar">🎙️</div><div><b>AI Recruiter</b><span>Preparing your interview</span></div><strong>LIVE</strong></div>'
+        '<div class="wz135-prep-line"><span></span>Preparing follow-up questions<div class="wz132-dots"><span></span><span></span><span></span></div></div>'
+        '<div class="wz135-prep-line"><span></span>Analyzing measurable-impact gaps</div>'
+        '<div class="wz135-prep-line"><span></span>Setting pressure level: realistic</div>'
+        '<div class="wz135-wave"><i></i><i></i><i></i><i></i><i></i></div></div>'
+        '</section>',
+        unsafe_allow_html=True,
+    )
+    c1, c2 = st.columns([1, 1])
+    with c1:
+        _wz132_render_cv_understood()
+    with c2:
+        st.markdown(
+            '<div class="wz132-ai-read wz135-job-card"><div class="wz132-ai-title">🎯 Job context ready</div>'
+            f'<div class="wz132-scan-row"><span class="wz132-pill">Role: {job_title_ready}</span>'
+            f'<span class="wz132-pill">Company: {company_ready}</span>'
+            '<span class="wz132-pill">Recruiter follow-ups enabled</span><span class="wz132-pill">Hiring-decision feedback enabled</span></div></div>',
+            unsafe_allow_html=True,
+        )
+    if st.button("🎤 Start Real Interview", type="primary", use_container_width=True, key="wz132_start_interview"):
+        st.session_state["onboarding_complete"] = True
+        try:
+            queue_navigation("workobot")
+        except Exception:
+            st.session_state["nav_page"] = "workobot"
+            st.session_state["page"] = "workobot"
+        st.rerun()
+    st.caption("Need to change something? Use the Back button in the header or edit your setup from the dashboard later.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+
+# =========================================================
+# WorkZo v134 - onboarding tightening + motion polish
+# Scope: active onboarding/header only. Preserves previous logic.
+# =========================================================
+try:
+    _wz134_previous_onboarding_css = _wz132_onboarding_css
+except Exception:
+    _wz134_previous_onboarding_css = None
+
+
+def _wz132_onboarding_css() -> None:
+    try:
+        if callable(_wz134_previous_onboarding_css):
+            _wz134_previous_onboarding_css()
+    except Exception:
+        pass
+    try:
+        st.markdown("""
+        <style id="workzo-v134-onboarding-polish-css">
+        /* Tighten vertical spacing by roughly 15-20% */
+        .workzo-header{padding:.68rem .88rem!important;margin:0 auto .72rem auto!important;border-radius:18px!important;}
+        .workzo-logo{width:46px!important;height:46px!important;min-width:46px!important;border-radius:13px!important;}
+        .workzo-title{font-size:1.28rem!important;}
+        .workzo-subtitle{font-size:.75rem!important;margin-top:.18rem!important;}
+        .workzo-progress-wrap{min-width:190px!important;}
+        .workzo-progress-bar{height:5px!important;}
+        .workzo-progress-steps{margin-top:.24rem!important;}
+        .wz132-shell{max-width:1080px!important;margin:0 auto 1.1rem!important;}
+        .wz132-topline{margin:0 0 .42rem!important;gap:.55rem!important;}
+        .wz132-progress{margin:.28rem 0 .52rem!important;gap:.42rem!important;}
+        .wz132-step{padding:.46rem .56rem!important;border-radius:14px!important;font-size:.78rem!important;}
+        .wz132-num{width:23px!important;height:23px!important;}
+        .wz132-hero{padding:.72rem .92rem!important;margin:.32rem 0 .48rem!important;border-radius:19px!important;box-shadow:0 10px 30px rgba(2,6,23,.22)!important;}
+        .wz132-kicker{font-size:.66rem!important;margin-bottom:.24rem!important;}
+        .wz132-hero h1{font-size:clamp(1.36rem,3vw,2.1rem)!important;margin-bottom:.25rem!important;}
+        .wz132-hero p{font-size:.89rem!important;line-height:1.32!important;}
+        .wz132-grid{gap:.68rem!important;margin-top:.36rem!important;}
+        .wz132-panel,.wz132-demo{border-radius:20px!important;padding:.82rem!important;box-shadow:0 12px 34px rgba(2,6,23,.20)!important;}
+        .wz132-panel h2{font-size:clamp(1.12rem,2.2vw,1.55rem)!important;margin-bottom:.22rem!important;}
+        .wz132-panel p,.wz132-demo-copy{font-size:.86rem!important;line-height:1.3!important;margin-bottom:.45rem!important;}
+        .wz132-upload-wrap{padding:.76rem!important;margin:.42rem 0 .52rem!important;border-color:rgba(103,232,249,.58)!important;animation:wz134UploadGlow 2.1s ease-in-out infinite!important;}
+        .wz132-upload-icon{width:40px!important;height:40px!important;animation:wz134IconFloat 2.4s ease-in-out infinite!important;}
+        div[data-testid="stFileUploader"]{padding:.52rem!important;}
+        .wz132-note{padding:.56rem .66rem!important;margin:.42rem 0 .52rem!important;font-size:.8rem!important;}
+        .wz132-ai-read{padding:.72rem!important;margin:.48rem 0!important;border-radius:17px!important;}
+        .wz132-mini-chat{padding:.58rem!important;margin:.46rem 0!important;}
+        .wz132-bubble{padding:.48rem .54rem!important;margin:.32rem 0!important;font-size:.78rem!important;}
+        .st-key-wz132_continue_cv button,.st-key-wz132_continue_job button,.st-key-wz132_start_interview button{min-height:58px!important;border-radius:18px!important;background:radial-gradient(circle at 18% 12%,rgba(103,232,249,.42),transparent 35%),linear-gradient(135deg,#020617,#075985,#2563eb)!important;box-shadow:0 0 0 1px rgba(125,211,252,.34),0 18px 56px rgba(14,165,233,.30)!important;}
+        .st-key-wz132_continue_cv button:after,.st-key-wz132_continue_job button:after{content:' →';}
+        @keyframes wz134UploadGlow{0%,100%{box-shadow:inset 0 0 0 1px rgba(34,211,238,.07),0 10px 28px rgba(14,165,233,.08)}50%{box-shadow:inset 0 0 0 1px rgba(34,211,238,.24),0 20px 60px rgba(14,165,233,.22)}}
+        @keyframes wz134IconFloat{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-4px) rotate(-2deg)}}
+        .wz134-scan-motion{border:1px solid rgba(34,211,238,.28);background:linear-gradient(135deg,rgba(8,47,73,.44),rgba(15,23,42,.72));border-radius:18px;padding:.72rem;margin:.52rem 0;animation:wz134ScanIn .28s ease-out both;}
+        .wz134-scan-title{color:#e0f2fe;font-weight:950;margin-bottom:.36rem;}
+        .wz134-scan-line{color:#bae6fd;font-size:.82rem;padding:.18rem 0;opacity:.92;}
+        .wz134-scan-line:before{content:'✓';color:#22d3ee;font-weight:950;margin-right:.4rem;}
+        @keyframes wz134ScanIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        .wz134-demo-live{border-color:rgba(103,232,249,.35)!important;background:radial-gradient(circle at 20% 0%,rgba(103,232,249,.16),transparent 35%),radial-gradient(circle at 85% 20%,rgba(129,140,248,.20),transparent 38%),linear-gradient(180deg,rgba(30,41,59,.88),rgba(15,23,42,.80))!important;}
+        .wz134-demo-top{display:flex;justify-content:space-between;gap:.65rem;align-items:flex-start;}
+        .wz134-demo-timer{border:1px solid rgba(248,113,113,.35);background:rgba(127,29,29,.18);color:#fecaca;border-radius:999px;padding:.32rem .52rem;font-size:.78rem;font-weight:950;box-shadow:0 0 22px rgba(248,113,113,.12);}
+        .wz134-rec-row{display:flex;align-items:center;gap:.42rem;color:#bae6fd;font-size:.76rem;font-weight:900;margin-bottom:.42rem;}
+        .wz134-rec-dot{width:8px;height:8px;border-radius:999px;background:#22d3ee;box-shadow:0 0 0 0 rgba(34,211,238,.7);animation:wz134Pulse 1.4s infinite;}
+        @keyframes wz134Pulse{70%{box-shadow:0 0 0 9px rgba(34,211,238,0)}}
+        .wz134-wave{display:flex;gap:3px;margin-left:auto;align-items:end;height:18px;}
+        .wz134-wave span{width:4px;border-radius:999px;background:#67e8f9;animation:wz134Wave 1s infinite ease-in-out;}
+        .wz134-wave span:nth-child(1){height:7px}.wz134-wave span:nth-child(2){height:15px;animation-delay:.1s}.wz134-wave span:nth-child(3){height:10px;animation-delay:.2s}.wz134-wave span:nth-child(4){height:17px;animation-delay:.3s}
+        @keyframes wz134Wave{0%,100%{transform:scaleY(.55);opacity:.55}50%{transform:scaleY(1);opacity:1}}
+        .wz134-confidence{border:1px solid rgba(250,204,21,.16);background:rgba(250,204,21,.07);border-radius:14px;padding:.5rem;margin-top:.45rem;color:#fde68a;font-size:.76rem;font-weight:850;}
+        .wz134-confidence{display:grid;grid-template-columns:1fr auto;gap:.35rem;align-items:center;}
+        .wz134-confidence div{grid-column:1/3;height:5px;border-radius:99px;background:rgba(250,204,21,.16);overflow:hidden;}
+        .wz134-confidence i{display:block;height:100%;width:42%;border-radius:99px;background:linear-gradient(90deg,#facc15,#fb923c);animation:wz134Confidence 2s ease-in-out infinite;}
+        @keyframes wz134Confidence{50%{width:52%}}
+        @media(max-width:760px){.workzo-header{padding:.56rem .64rem!important;margin-bottom:.52rem!important}.wz132-hero{padding:.68rem!important}.wz132-grid{gap:.55rem!important}.wz132-topline{align-items:flex-start!important}.wz132-trust{border-radius:14px!important;line-height:1.25!important}.wz134-demo-top{flex-direction:column}.wz134-demo-timer{align-self:flex-start}}
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+# =========================================================
+# WorkZo v135 - final interview-ready immersion polish
+# Scope: step 3 onboarding, CTA momentum, progress wording.
+# =========================================================
+try:
+    _wz135_previous_onboarding_css = _wz132_onboarding_css
+except Exception:
+    _wz135_previous_onboarding_css = None
+
+
+def _wz132_onboarding_css() -> None:
+    try:
+        if callable(_wz135_previous_onboarding_css):
+            _wz135_previous_onboarding_css()
+    except Exception:
+        pass
+    try:
+        st.markdown("""
+        <style id="workzo-v135-ready-immersion-css">
+        .workzo-header{padding:.56rem .78rem!important;margin-bottom:.58rem!important;border-radius:18px!important;}
+        .workzo-logo{width:42px!important;height:42px!important;min-width:42px!important;}
+        .workzo-progress-top span:last-child{color:#67e8f9!important;font-weight:950!important;}
+        .wz132-trust{padding:.30rem .54rem!important;font-size:.75rem!important;opacity:.88!important;}
+        .wz135-ready-hero{display:grid;grid-template-columns:1.08fr .78fr;gap:1rem;align-items:center;border:1px solid rgba(34,211,238,.26);border-radius:22px;padding:1rem 1.05rem;background:radial-gradient(circle at 8% 0%,rgba(34,211,238,.16),transparent 32%),linear-gradient(135deg,rgba(8,47,73,.72),rgba(15,23,42,.94));box-shadow:0 14px 42px rgba(2,6,23,.26);margin:.35rem 0 .70rem;}
+        .wz135-ready-copy h1{color:#fff;font-size:clamp(1.55rem,3vw,2.35rem);line-height:1.02;letter-spacing:-.055em;margin:0 0 .36rem;font-weight:950;}
+        .wz135-ready-copy p{color:#cbd5e1;font-size:.92rem;line-height:1.34;margin:0;max-width:620px;}
+        .wz135-ready-tags{display:flex;flex-wrap:wrap;gap:.42rem;margin-top:.65rem;}
+        .wz135-ready-tags span{border:1px solid rgba(103,232,249,.20);background:rgba(14,165,233,.10);color:#bae6fd;border-radius:999px;padding:.30rem .52rem;font-size:.76rem;font-weight:900;}
+        .wz135-recruiter-prep{border:1px solid rgba(103,232,249,.24);background:rgba(2,6,23,.38);border-radius:20px;padding:.86rem;box-shadow:inset 0 0 0 1px rgba(34,211,238,.06),0 18px 48px rgba(14,165,233,.11);position:relative;overflow:hidden;}
+        .wz135-recruiter-prep:before{content:"";position:absolute;inset:-80px auto auto -80px;width:190px;height:190px;background:radial-gradient(circle,rgba(34,211,238,.18),transparent 66%);animation:wz135PrepGlow 3s ease-in-out infinite;}
+        @keyframes wz135PrepGlow{50%{transform:translate(14px,8px);opacity:.8}}
+        .wz135-prep-top{display:flex;align-items:center;gap:.62rem;margin-bottom:.68rem;position:relative;}
+        .wz135-avatar{width:42px;height:42px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(135deg,#22d3ee,#2563eb);box-shadow:0 0 0 0 rgba(34,211,238,.58);animation:wz135MicPulse 1.8s infinite;}
+        @keyframes wz135MicPulse{70%{box-shadow:0 0 0 12px rgba(34,211,238,0)}}
+        .wz135-prep-top b{display:block;color:#fff;font-weight:950;}
+        .wz135-prep-top span{display:block;color:#94a3b8;font-size:.78rem;font-weight:800;}
+        .wz135-prep-top strong{margin-left:auto;border:1px solid rgba(34,211,238,.26);background:rgba(14,165,233,.12);color:#67e8f9;border-radius:999px;padding:.24rem .48rem;font-size:.68rem;letter-spacing:.08em;}
+        .wz135-prep-line{display:flex;align-items:center;gap:.42rem;color:#dbeafe;font-size:.80rem;font-weight:850;padding:.34rem 0;position:relative;}
+        .wz135-prep-line>span{width:7px;height:7px;border-radius:99px;background:#22d3ee;box-shadow:0 0 16px rgba(34,211,238,.55);}
+        .wz135-wave{height:30px;display:flex;gap:5px;align-items:end;margin-top:.58rem;border-top:1px solid rgba(148,163,184,.12);padding-top:.54rem;}
+        .wz135-wave i{display:block;width:6px;border-radius:999px;background:linear-gradient(180deg,#67e8f9,#2563eb);animation:wz135Wave 1.1s infinite ease-in-out;}
+        .wz135-wave i:nth-child(1){height:12px}.wz135-wave i:nth-child(2){height:22px;animation-delay:.08s}.wz135-wave i:nth-child(3){height:16px;animation-delay:.16s}.wz135-wave i:nth-child(4){height:28px;animation-delay:.24s}.wz135-wave i:nth-child(5){height:14px;animation-delay:.32s}
+        @keyframes wz135Wave{0%,100%{transform:scaleY(.55);opacity:.55}50%{transform:scaleY(1);opacity:1}}
+        .wz135-job-card{margin-top:0!important;}
+        .st-key-wz132_start_interview button{min-height:64px!important;border-radius:20px!important;font-size:1.05rem!important;font-weight:950!important;background:radial-gradient(circle at 18% 10%,rgba(103,232,249,.42),transparent 36%),linear-gradient(135deg,#020617,#0369a1,#2563eb)!important;border:1px solid rgba(125,211,252,.62)!important;color:#eff6ff!important;box-shadow:0 0 0 1px rgba(125,211,252,.22),0 0 28px rgba(34,211,238,.22),0 22px 70px rgba(37,99,235,.34)!important;animation:wz135StartBreath 2.3s ease-in-out infinite!important;}
+        .st-key-wz132_start_interview button:hover{transform:translateY(-3px) scale(1.01)!important;box-shadow:0 0 0 1px rgba(125,211,252,.34),0 0 38px rgba(34,211,238,.34),0 28px 84px rgba(37,99,235,.42)!important;}
+        @keyframes wz135StartBreath{0%,100%{filter:brightness(1)}50%{filter:brightness(1.13)}}
+        .st-key-wz132_open_dashboard{display:none!important;}
+        @media(max-width:860px){.wz135-ready-hero{grid-template-columns:1fr;padding:.86rem}.wz135-recruiter-prep{margin-top:.2rem}.wz135-ready-tags span{font-size:.72rem}.st-key-wz132_start_interview button{min-height:58px!important}}
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+# =========================================================
+# WorkZo v136 - enforce single CTA on onboarding ready step
+# Purpose: remove secondary dashboard CTA, tighten ready hero, and make
+# the start interview moment feel like the only next action.
+# =========================================================
+try:
+    _wz136_previous_onboarding_css = _wz132_onboarding_css
+except Exception:
+    _wz136_previous_onboarding_css = None
+
+def _wz132_onboarding_css() -> None:
+    try:
+        if callable(_wz136_previous_onboarding_css):
+            _wz136_previous_onboarding_css()
+    except Exception:
+        pass
+    try:
+        st.markdown("""
+        <style id="workzo-v136-single-cta-ready-css">
+        /* Hide every old secondary dashboard CTA from previous onboarding variants */
+        .st-key-wzflow_open_dashboard,
+        .st-key-wz131_open_dashboard,
+        .st-key-wz132_open_dashboard,
+        .st-key-wz_final_dashboard_ready,
+        .st-key-wz_final_go_dashboard,
+        .st-key-wz_final_dashboard_ready button,
+        .st-key-wz_final_go_dashboard button{
+            display:none!important;
+            visibility:hidden!important;
+            height:0!important;
+            margin:0!important;
+            padding:0!important;
+            overflow:hidden!important;
+        }
+        /* Make the final ready card shorter and better utilized */
+        .wz135-ready-hero{
+            padding:.78rem .88rem!important;
+            margin:.24rem 0 .54rem!important;
+            gap:.72rem!important;
+            border-radius:20px!important;
+        }
+        .wz135-ready-copy h1{
+            font-size:clamp(1.36rem,2.55vw,2.02rem)!important;
+            margin-bottom:.24rem!important;
+            line-height:1!important;
+        }
+        .wz135-ready-copy p{
+            font-size:.86rem!important;
+            line-height:1.28!important;
+        }
+        .wz135-ready-tags{margin-top:.48rem!important;gap:.32rem!important;}
+        .wz135-ready-tags span{padding:.24rem .44rem!important;font-size:.70rem!important;}
+        .wz135-recruiter-prep{padding:.68rem!important;border-radius:17px!important;}
+        .wz135-prep-top{margin-bottom:.46rem!important;}
+        .wz135-avatar{width:36px!important;height:36px!important;border-radius:13px!important;}
+        .wz135-prep-line{font-size:.74rem!important;padding:.23rem 0!important;}
+        .wz135-wave{height:24px!important;margin-top:.36rem!important;padding-top:.38rem!important;}
+        /* One powerful CTA only */
+        .st-key-wz132_start_interview button,
+        .st-key-wz131_start_interview button,
+        .st-key-wzflow_start_interview_now button{
+            min-height:68px!important;
+            border-radius:22px!important;
+            font-size:1.08rem!important;
+            font-weight:950!important;
+            letter-spacing:-.01em!important;
+            background:radial-gradient(circle at 18% 10%,rgba(103,232,249,.52),transparent 34%),linear-gradient(135deg,#020617,#0369a1,#1d4ed8)!important;
+            border:1px solid rgba(125,211,252,.70)!important;
+            color:#f8fafc!important;
+            box-shadow:0 0 0 1px rgba(125,211,252,.28),0 0 36px rgba(34,211,238,.30),0 26px 84px rgba(37,99,235,.42)!important;
+            animation:wz136StartCallPulse 2.15s ease-in-out infinite!important;
+        }
+        .st-key-wz132_start_interview button:before,
+        .st-key-wz131_start_interview button:before,
+        .st-key-wzflow_start_interview_now button:before{
+            content:'🎙 ';
+            display:inline-block;
+            animation:wz136MicNudge 1.6s ease-in-out infinite;
+        }
+        .st-key-wz132_start_interview button:hover,
+        .st-key-wz131_start_interview button:hover,
+        .st-key-wzflow_start_interview_now button:hover{
+            transform:translateY(-3px) scale(1.012)!important;
+            box-shadow:0 0 0 1px rgba(125,211,252,.38),0 0 46px rgba(34,211,238,.38),0 32px 92px rgba(37,99,235,.50)!important;
+        }
+        @keyframes wz136StartCallPulse{0%,100%{filter:brightness(1);box-shadow:0 0 0 1px rgba(125,211,252,.28),0 0 30px rgba(34,211,238,.25),0 22px 72px rgba(37,99,235,.34)}50%{filter:brightness(1.14);box-shadow:0 0 0 1px rgba(125,211,252,.42),0 0 46px rgba(34,211,238,.40),0 28px 88px rgba(37,99,235,.46)}}
+        @keyframes wz136MicNudge{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-1px) rotate(-6deg)}}
+        /* More meaningful progress language area */
+        .workzo-progress-top span:first-child{font-size:.74rem!important;color:#c7d2fe!important;}
+        .workzo-progress-top span:last-child{font-size:.78rem!important;color:#67e8f9!important;}
+        .wz132-trust{padding:.24rem .46rem!important;font-size:.70rem!important;opacity:.82!important;}
+        @media(max-width:860px){
+            .wz135-ready-hero{grid-template-columns:1fr!important;padding:.72rem!important;}
+            .st-key-wz132_start_interview button,.st-key-wz131_start_interview button,.st-key-wzflow_start_interview_now button{min-height:60px!important;}
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+# =========================================================
+# WorkZo v137 - hard remove dashboard secondary CTA on onboarding ready step
+# This is additive. It keeps the original onboarding logic but hides/removes all
+# dashboard CTA variants so the only visible next action is Start Real Interview.
+# =========================================================
+def _wz137_hide_dashboard_secondary_cta() -> None:
+    try:
+        st.markdown("""
+        <style id="workzo-v137-hide-dashboard-secondary-cta">
+        .st-key-wzflow_open_dashboard,
+        .st-key-wz131_open_dashboard,
+        .st-key-wz132_open_dashboard,
+        .st-key-wz_final_dashboard_ready,
+        .st-key-wz_final_go_dashboard,
+        div[data-testid="stButton"]:has(button[aria-label="Open Dashboard"]),
+        div[data-testid="stButton"]:has(button[aria-label="Go to dashboard"]) {
+            display:none!important;
+            visibility:hidden!important;
+            height:0!important;
+            min-height:0!important;
+            margin:0!important;
+            padding:0!important;
+            overflow:hidden!important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+try:
+    _wz137_previous_show_onboarding = show_onboarding
+    def show_onboarding():
+        _wz137_hide_dashboard_secondary_cta()
+        return _wz137_previous_show_onboarding()
+except Exception:
+    pass
+
+# =========================================================
+# WorkZo v138 - definitive active onboarding override
+# Fixes: no Open Dashboard CTA, shorter ready hero, live recruiter prep,
+# single pulsing Start Real Interview CTA, and clearer header progress.
+# This block is intentionally LAST so it overrides earlier onboarding variants.
+# =========================================================
+
+def _wz138_render_header(step: int = 1) -> None:
+    """Compact onboarding header with meaningful progress text instead of raw % confusion."""
+    try:
+        logo_src = None
+        try:
+            logo_src = image_to_data_uri(ICON_PATH) or image_to_data_uri(LOGO_PATH)
+        except Exception:
+            logo_src = None
+        progress_label = "Ready to begin" if int(step or 1) >= 3 else f"Step {int(step or 1)}/3"
+        status_label = "Interview setup complete" if int(step or 1) >= 3 else "Interview setup"
+        logo_html = f"<img src='{logo_src}' class='wz138-logo' alt='WorkZo AI'>" if logo_src else "<div class='wz138-logo wz138-logo-fallback'>WZ</div>"
+        st.markdown(f"""
+        <div class="wz138-header">
+            <div class="wz138-brand">
+                {logo_html}
+                <div>
+                    <div class="wz138-title">WorkZo <span>AI</span></div>
+                    <div class="wz138-subtitle">Your guided AI career system</div>
+                </div>
+            </div>
+            <div class="wz138-header-right">
+                <button class="wz138-back" onclick="history.back()">← Back</button>
+                <div class="wz138-status">
+                    <div class="wz138-status-top"><span>{html.escape(status_label)}</span><b>{html.escape(progress_label)}</b></div>
+                    <div class="wz138-status-line"><i style="width:{'100%' if int(step or 1) >= 3 else '66%'}"></i></div>
+                    <div class="wz138-mini-steps"><span class="done">✓ CV</span><span class="done">✓ Jobs</span><span class="{'done' if int(step or 1) >= 3 else ''}">3 Interview</span></div>
+                </div>
+                <div class="wz138-beta">BETA</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    except Exception:
+        try:
+            render_workzo_header()
+        except Exception:
+            pass
+
+
+def _wz138_css() -> None:
+    st.markdown("""
+    <style id="workzo-v138-definitive-onboarding-css">
+    [data-testid="stMainBlockContainer"], .block-container{max-width:1080px!important;padding-top:.35rem!important;}
+    .wz138-header{max-width:1080px;margin:.15rem auto .58rem;padding:.58rem .76rem;border:1px solid rgba(34,211,238,.30);border-radius:18px;background:linear-gradient(135deg,rgba(8,47,73,.78),rgba(15,23,42,.92));box-shadow:0 14px 42px rgba(2,6,23,.28);display:flex;align-items:center;justify-content:space-between;gap:.9rem;}
+    .wz138-brand{display:flex;align-items:center;gap:.72rem;min-width:0;}
+    .wz138-logo{width:44px;height:44px;border-radius:13px;object-fit:cover;box-shadow:0 10px 28px rgba(14,165,233,.20);}
+    .wz138-logo-fallback{display:grid;place-items:center;background:linear-gradient(135deg,#22d3ee,#2563eb);color:white;font-weight:950;}
+    .wz138-title{color:#fff;font-size:1.25rem;font-weight:950;letter-spacing:-.04em;line-height:1;}.wz138-title span{color:#22d3ee;}.wz138-subtitle{color:#cbd5e1;font-size:.74rem;font-weight:800;margin-top:.18rem;}
+    .wz138-header-right{display:flex;align-items:center;gap:.7rem;}
+    .wz138-back{border:1px solid rgba(148,163,184,.20);background:rgba(15,23,42,.58);color:#e0f2fe;border-radius:999px;padding:.42rem .72rem;font-weight:900;cursor:pointer;}
+    .wz138-status{min-width:230px;}.wz138-status-top{display:flex;align-items:center;justify-content:space-between;color:#cbd5e1;font-size:.74rem;font-weight:900;margin-bottom:.28rem;}.wz138-status-top b{color:#67e8f9;}
+    .wz138-status-line{height:5px;background:rgba(148,163,184,.18);border-radius:99px;overflow:hidden;}.wz138-status-line i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#22d3ee,#22c55e);box-shadow:0 0 18px rgba(34,211,238,.35);}
+    .wz138-mini-steps{display:flex;gap:.34rem;margin-top:.28rem;}.wz138-mini-steps span{border:1px solid rgba(148,163,184,.18);background:rgba(15,23,42,.52);color:#cbd5e1;border-radius:999px;padding:.18rem .38rem;font-size:.64rem;font-weight:950;}.wz138-mini-steps span.done{border-color:rgba(34,211,238,.34);background:rgba(14,165,233,.14);color:#67e8f9;}
+    .wz138-beta{border:1px solid rgba(34,211,238,.42);background:rgba(14,165,233,.13);color:#67e8f9;border-radius:999px;padding:.34rem .56rem;font-size:.68rem;font-weight:950;letter-spacing:.04em;}
+    .wz132-shell{max-width:1080px!important;margin:0 auto .9rem!important;}
+    .wz132-topline{margin:0 0 .36rem!important;}.wz132-trust{padding:.22rem .44rem!important;font-size:.69rem!important;opacity:.78!important;line-height:1.2!important;}.wz132-step-text{font-size:.80rem!important;}
+    .wz132-progress{margin:.22rem 0 .48rem!important;gap:.40rem!important;}.wz132-step{padding:.42rem .52rem!important;border-radius:14px!important;font-size:.76rem!important;}.wz132-num{width:22px!important;height:22px!important;}
+    .wz138-ready-hero{display:grid;grid-template-columns:1.04fr .88fr;gap:.72rem;align-items:center;border:1px solid rgba(34,211,238,.26);border-radius:20px;padding:.72rem .84rem;background:radial-gradient(circle at 8% 0%,rgba(34,211,238,.17),transparent 32%),linear-gradient(135deg,rgba(8,47,73,.72),rgba(15,23,42,.94));box-shadow:0 12px 36px rgba(2,6,23,.25);margin:.22rem 0 .50rem;}
+    .wz138-ready-copy h1{color:#fff;font-size:clamp(1.38rem,2.55vw,2.05rem);line-height:1.02;letter-spacing:-.055em;margin:0 0 .24rem;font-weight:950;}.wz138-ready-copy p{color:#cbd5e1;font-size:.86rem;line-height:1.28;margin:0;max-width:600px;}
+    .wz138-kicker{color:#67e8f9;text-transform:uppercase;letter-spacing:.16em;font-size:.66rem;font-weight:950;margin-bottom:.22rem;}
+    .wz138-tags{display:flex;flex-wrap:wrap;gap:.32rem;margin-top:.46rem;}.wz138-tags span{border:1px solid rgba(103,232,249,.20);background:rgba(14,165,233,.10);color:#bae6fd;border-radius:999px;padding:.23rem .42rem;font-size:.70rem;font-weight:900;}
+    .wz138-recruiter-prep{border:1px solid rgba(103,232,249,.25);background:rgba(2,6,23,.40);border-radius:17px;padding:.68rem;box-shadow:inset 0 0 0 1px rgba(34,211,238,.06),0 16px 42px rgba(14,165,233,.12);position:relative;overflow:hidden;}.wz138-recruiter-prep:before{content:"";position:absolute;left:-70px;top:-80px;width:170px;height:170px;background:radial-gradient(circle,rgba(34,211,238,.18),transparent 66%);animation:wz138PrepGlow 3s ease-in-out infinite;}@keyframes wz138PrepGlow{50%{transform:translate(14px,8px);opacity:.8}}
+    .wz138-prep-top{display:flex;align-items:center;gap:.54rem;margin-bottom:.44rem;position:relative;}.wz138-avatar{width:36px;height:36px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,#22d3ee,#2563eb);box-shadow:0 0 0 0 rgba(34,211,238,.58);animation:wz138MicPulse 1.7s infinite;}@keyframes wz138MicPulse{70%{box-shadow:0 0 0 12px rgba(34,211,238,0)}}.wz138-prep-top b{display:block;color:#fff;font-weight:950;line-height:1;}.wz138-prep-top span{display:block;color:#94a3b8;font-size:.72rem;font-weight:800;margin-top:.12rem;}.wz138-prep-top strong{margin-left:auto;border:1px solid rgba(34,211,238,.26);background:rgba(14,165,233,.12);color:#67e8f9;border-radius:999px;padding:.20rem .42rem;font-size:.64rem;letter-spacing:.08em;}
+    .wz138-prep-line{display:flex;align-items:center;gap:.38rem;color:#dbeafe;font-size:.74rem;font-weight:850;padding:.22rem 0;position:relative;}.wz138-prep-line>span{width:7px;height:7px;border-radius:99px;background:#22d3ee;box-shadow:0 0 16px rgba(34,211,238,.55);}.wz138-dots{display:inline-flex;gap:.20rem;margin-left:.28rem}.wz138-dots i{width:5px;height:5px;border-radius:99px;background:#67e8f9;animation:wz138Dots 1.2s infinite ease-in-out}.wz138-dots i:nth-child(2){animation-delay:.15s}.wz138-dots i:nth-child(3){animation-delay:.3s}@keyframes wz138Dots{0%,80%,100%{opacity:.28;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+    .wz138-wave{height:23px;display:flex;gap:5px;align-items:end;margin-top:.34rem;border-top:1px solid rgba(148,163,184,.12);padding-top:.36rem;}.wz138-wave i{display:block;width:6px;border-radius:999px;background:linear-gradient(180deg,#67e8f9,#2563eb);animation:wz138Wave 1.1s infinite ease-in-out}.wz138-wave i:nth-child(1){height:10px}.wz138-wave i:nth-child(2){height:20px;animation-delay:.08s}.wz138-wave i:nth-child(3){height:14px;animation-delay:.16s}.wz138-wave i:nth-child(4){height:24px;animation-delay:.24s}.wz138-wave i:nth-child(5){height:12px;animation-delay:.32s}@keyframes wz138Wave{0%,100%{transform:scaleY(.55);opacity:.55}50%{transform:scaleY(1);opacity:1}}
+    .wz132-ai-read{padding:.68rem!important;margin:.36rem 0!important;border-radius:17px!important;}.wz132-ai-title{font-size:.95rem!important;}.wz132-pill{font-size:.72rem!important;padding:.25rem .42rem!important;}.wz132-scan-row{gap:.32rem!important;}
+    .st-key-wz138_start_interview button{min-height:68px!important;border-radius:22px!important;font-size:1.08rem!important;font-weight:950!important;letter-spacing:-.01em!important;background:radial-gradient(circle at 18% 10%,rgba(103,232,249,.52),transparent 34%),linear-gradient(135deg,#020617,#0369a1,#1d4ed8)!important;border:1px solid rgba(125,211,252,.70)!important;color:#f8fafc!important;box-shadow:0 0 0 1px rgba(125,211,252,.28),0 0 36px rgba(34,211,238,.30),0 26px 84px rgba(37,99,235,.42)!important;animation:wz138StartCallPulse 2.15s ease-in-out infinite!important;}.st-key-wz138_start_interview button:before{content:'🎙 ';display:inline-block;animation:wz138MicNudge 1.6s ease-in-out infinite}.st-key-wz138_start_interview button:hover{transform:translateY(-3px) scale(1.012)!important;box-shadow:0 0 0 1px rgba(125,211,252,.38),0 0 46px rgba(34,211,238,.38),0 32px 92px rgba(37,99,235,.50)!important}@keyframes wz138StartCallPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.14)}}@keyframes wz138MicNudge{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-1px) rotate(-6deg)}}
+    /* emergency hide all older dashboard buttons/captions from previous variants */
+    .st-key-wz132_open_dashboard,.st-key-wz131_open_dashboard,.st-key-wzflow_open_dashboard,.st-key-wz_final_go_dashboard,.st-key-wz_final_dashboard_ready{display:none!important;visibility:hidden!important;height:0!important;margin:0!important;padding:0!important;overflow:hidden!important;}
+    @media(max-width:860px){.wz138-header{align-items:flex-start;flex-direction:column}.wz138-header-right{width:100%;justify-content:space-between}.wz138-status{min-width:0;flex:1}.wz138-ready-hero{grid-template-columns:1fr;padding:.72rem}.st-key-wz138_start_interview button{min-height:60px!important}}
+    </style>
+    """, unsafe_allow_html=True)
+
+
+def show_onboarding():
+    """v138 definitive active onboarding. This override removes competing dashboard CTA."""
+    try:
+        maybe_scroll_to_top()
+    except Exception:
+        pass
+    try:
+        apply_workzo_v75_global_css()
+    except Exception:
+        pass
+    _wz138_css()
+
+    step = int(st.session_state.get("onboarding_step_final", st.session_state.get("wz_onboarding_step", 1)) or 1)
+    if step < 1 or step > 3:
+        step = 1
+    st.session_state["onboarding_step_final"] = step
+
+    _wz138_render_header(step)
+
+    st.markdown('<div class="wz132-shell">', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="wz132-topline"><div class="wz132-step-text">Step {step} of 3</div><div class="wz132-trust">🔒 Your CV is only used to personalize your interview · No account required · We don’t store sensitive resume data · Takes less than 30 seconds</div></div>',
+        unsafe_allow_html=True,
+    )
+    try:
+        _wz132_progress(step)
+    except Exception:
+        pass
+
+    if step == 1:
+        st.markdown(
+            '<section class="wz132-hero"><div class="wz132-kicker">Start with your CV</div>'
+            '<h1>Your interview starts with your CV</h1>'
+            '<p>Upload your CV to personalize recruiter-style questions, pressure follow-ups, and hiring feedback. WorkZo first understands your experience — then builds the interview around it.</p></section>',
+            unsafe_allow_html=True,
+        )
+        st.markdown('<div class="wz132-grid">', unsafe_allow_html=True)
+        left, right = st.columns([1.32, .86])
+        with left:
+            st.markdown(
+                '<div class="wz132-panel"><h2>Let AI understand your experience</h2><p>This is the core step. Your interview becomes specific to your real background, not a generic mock test.</p>'
+                '<div class="wz132-upload-wrap"><div class="wz132-upload-head"><div class="wz132-upload-icon">📄</div><div><div class="wz132-upload-title">Upload your CV to personalize your interview</div><div class="wz132-upload-sub">PDF or TXT works best. Drag, drop, or browse.</div></div></div>',
+                unsafe_allow_html=True,
+            )
+            uploaded = st.file_uploader("Upload PDF or TXT", type=["pdf", "txt"], key="wz132_cv_upload")
+            st.markdown('</div>', unsafe_allow_html=True)
+            if uploaded is not None:
+                extracted = ""
+                try:
+                    file_name = str(getattr(uploaded, "name", "") or "").lower()
+                    file_type = str(getattr(uploaded, "type", "") or "").lower()
+                    if file_type == "text/plain" or file_name.endswith(".txt"):
+                        extracted = uploaded.read().decode("utf-8", errors="ignore")
+                    else:
+                        extracted = extract_pdf_text(uploaded) if callable(globals().get("extract_pdf_text")) else ""
+                    if callable(globals().get("organize_cv_for_display")):
+                        extracted = organize_cv_for_display(extracted)
+                except Exception as exc:
+                    st.warning(f"Could not read the uploaded CV: {exc}")
+                if _wz132_store_cv_text(extracted, "Upload CV"):
+                    _wz132_render_cv_understood()
+                    st.markdown('<div class="wz134-scan-motion"><div class="wz134-scan-title">AI is building your interview<span class="wz132-dots"><span></span><span></span><span></span></span></div><div class="wz134-scan-line">Analyzing communication style...</div><div class="wz134-scan-line">Understanding experience level...</div><div class="wz134-scan-line">Generating recruiter pressure prompts...</div><div class="wz134-scan-line">Preparing follow-up questions...</div></div>', unsafe_allow_html=True)
+                else:
+                    st.warning("The file uploaded, but the extracted text looked too short. Try TXT or paste your CV below.")
+            with st.expander("Paste CV text instead", expanded=not bool(st.session_state.get("cv_text"))):
+                pasted = st.text_area("Paste your CV text", height=155, key="wz132_paste_cv_text", placeholder="Paste your resume text here...")
+                if st.button("Use pasted CV", key="wz132_use_pasted_cv", use_container_width=True):
+                    if _wz132_store_cv_text(pasted, "Paste CV"):
+                        st.session_state["wz132_cv_insights"] = _wz132_detect_cv_insights(pasted)
+                        st.success("CV is ready.")
+                        _wz132_render_cv_understood()
+                        st.markdown('<div class="wz134-scan-motion"><div class="wz134-scan-title">AI is building your interview<span class="wz132-dots"><span></span><span></span><span></span></span></div><div class="wz134-scan-line">Analyzing communication style...</div><div class="wz134-scan-line">Understanding experience level...</div><div class="wz134-scan-line">Generating recruiter pressure prompts...</div><div class="wz134-scan-line">Preparing follow-up questions...</div></div>', unsafe_allow_html=True)
+                    else:
+                        st.warning("Please paste more CV details first.")
+            st.markdown('<div class="wz132-note">Your CV is only used to personalize your interview. We don’t store sensitive resume data in analytics. Takes less than 30 seconds.</div>', unsafe_allow_html=True)
+            if st.session_state.get("cv_text"):
+                if st.button("Continue to interview setup", type="primary", use_container_width=True, key="wz132_continue_cv"):
+                    st.session_state["onboarding_step_final"] = 2
+                    try: request_scroll_to_top()
+                    except Exception: pass
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        with right:
+            st.markdown(
+                '<div class="wz132-demo wz134-demo-live"><div class="wz134-demo-top"><div><div class="wz132-demo-title">Experience the interview instantly</div>'
+                '<div class="wz132-demo-copy">Not ready to upload? Try a sample CV and feel how WorkZo challenges answers.</div></div><div class="wz134-demo-timer">00:45</div></div>'
+                '<div class="wz132-demo-badge">Demo path for first-time testers</div><div class="wz132-mini-chat"><div class="wz134-rec-row"><span class="wz134-rec-dot"></span><span>AI Recruiter is listening</span><div class="wz134-wave"><span></span><span></span><span></span><span></span></div></div>'
+                '<div class="wz132-bubble ai">AI Recruiter: Tell me about yourself, but keep it relevant.</div><div class="wz132-bubble warn">⚠️ Follow-up: You’re losing me — give me one measurable result.</div><div class="wz134-confidence"><span>Answer confidence</span><b>Needs proof</b><div><i></i></div></div></div><div class="wz132-note">Best for testers who want to feel the product before sharing a CV.</div></div>',
+                unsafe_allow_html=True,
+            )
+            if st.button("Experience demo interview", use_container_width=True, key="wz132_demo_cv"):
+                demo_cv = SAMPLE_CV_TEXT if "SAMPLE_CV_TEXT" in globals() else "Demo CV: Technical Support Engineer with customer-facing experience, SQL, Python, dashboards, troubleshooting, communication skills, and experience handling customer issues."
+                _wz132_store_cv_text(demo_cv, "Sample Demo")
+                demo_jd = SAMPLE_JOB_DESCRIPTION if "SAMPLE_JOB_DESCRIPTION" in globals() else "Demo job description: Junior Data Analyst role requiring SQL, Python, dashboards, communication, problem solving, stakeholder support, and clear reporting."
+                _wz132_store_job("Junior Data Analyst", demo_jd, "Demo Company")
+                st.session_state["onboarding_step_final"] = 3
+                try: request_scroll_to_top()
+                except Exception: pass
+                st.rerun()
+        st.markdown('</div></div>', unsafe_allow_html=True)
+        return
+
+    if step == 2:
+        st.markdown('<section class="wz132-hero"><div class="wz132-kicker">Add your target role</div><h1>Make the interview specific to the job</h1><p>Paste one real job description so WorkZo can challenge you on the exact skills, gaps, language expectations, and recruiter pressure points.</p></section>', unsafe_allow_html=True)
+        with st.container(border=True):
+            title = st.text_input("Job title", value=st.session_state.get("target_role", ""), placeholder="Example: Data Analyst", key="wz132_job_title")
+            company = st.text_input("Company / employer (optional)", value=st.session_state.get("selected_company", ""), placeholder="Example: Siemens", key="wz132_company")
+            jd = st.text_area("Job description", height=220, value=st.session_state.get("selected_job_description") or st.session_state.get("current_job_description") or "", placeholder="Paste the job description here...", key="wz132_jd")
+        c1, c2, c3 = st.columns([1,1,1])
+        with c1:
+            if st.button("Back", use_container_width=True, key="wz132_back_to_cv"):
+                st.session_state["onboarding_step_final"] = 1
+                st.rerun()
+        with c2:
+            if st.button("Use demo job", use_container_width=True, key="wz132_demo_job"):
+                demo_jd = SAMPLE_JOB_DESCRIPTION if "SAMPLE_JOB_DESCRIPTION" in globals() else "Demo job description: Junior Data Analyst role requiring SQL, Python, dashboards, communication and stakeholder collaboration."
+                _wz132_store_job("Junior Data Analyst", demo_jd, "Demo Company")
+                st.session_state["onboarding_step_final"] = 3
+                st.rerun()
+        with c3:
+            if st.button("Continue to interview room", type="primary", use_container_width=True, key="wz132_continue_job"):
+                if _wz132_store_job(title, jd, company):
+                    st.session_state["onboarding_step_final"] = 3
+                    st.rerun()
+                else:
+                    st.warning("Please paste the job description, or use the demo job.")
+        st.markdown('</div>', unsafe_allow_html=True)
+        return
+
+    job = st.session_state.get("selected_job") or {}
+    job_title_ready = html.escape(str(job.get("title") or st.session_state.get("target_role") or "Target role"))
+    company_ready = html.escape(str(job.get("company") or "Target company"))
+    st.markdown(
+        '<section class="wz138-ready-hero"><div class="wz138-ready-copy"><div class="wz138-kicker">Interview room ready</div><h1>AI recruiter is ready for you</h1><p>Your CV and target job are loaded. WorkZo is preparing recruiter-style follow-ups, pressure prompts, and a hiring-style decision.</p><div class="wz138-tags"><span>CV understood</span><span>Job context loaded</span><span>Follow-ups enabled</span></div></div><div class="wz138-recruiter-prep"><div class="wz138-prep-top"><div class="wz138-avatar">🎙️</div><div><b>AI Recruiter</b><span>Preparing your interview</span></div><strong>LIVE</strong></div><div class="wz138-prep-line"><span></span>Preparing follow-up questions<div class="wz138-dots"><i></i><i></i><i></i></div></div><div class="wz138-prep-line"><span></span>Analyzing measurable-impact gaps</div><div class="wz138-prep-line"><span></span>Setting pressure level: realistic</div><div class="wz138-wave"><i></i><i></i><i></i><i></i><i></i></div></div></section>',
+        unsafe_allow_html=True,
+    )
+    c1, c2 = st.columns([1, 1])
+    with c1:
+        _wz132_render_cv_understood()
+    with c2:
+        st.markdown('<div class="wz132-ai-read"><div class="wz132-ai-title">🎯 Job context ready</div>' + f'<div class="wz132-scan-row"><span class="wz132-pill">Role: {job_title_ready}</span><span class="wz132-pill">Company: {company_ready}</span><span class="wz132-pill">Recruiter follow-ups enabled</span><span class="wz132-pill">Hiring-decision feedback enabled</span></div></div>', unsafe_allow_html=True)
+    if st.button("Start Real Interview", type="primary", use_container_width=True, key="wz138_start_interview"):
+        st.session_state["onboarding_complete"] = True
+        try:
+            queue_navigation("workobot")
+        except Exception:
+            st.session_state["nav_page"] = "workobot"
+            st.session_state["page"] = "workobot"
+        st.rerun()
+    st.caption("Need to change something? Use the Back button in the header or edit setup later.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# =========================================================
+# WorkZo v139 - FORCE active onboarding single-CTA immersive flow
+# This final override is deliberately placed at the very end of the file.
+# It does not render any Open Dashboard button. The only Step 3 CTA is
+# Start Real Interview.
+# =========================================================
+
+def _wz139_go_to_interview():
+    try:
+        st.session_state["onboarding_complete"] = True
+        st.session_state["nav_page"] = "workobot"
+        st.session_state["page"] = "workobot"
+        st.session_state["workobot_mode"] = "real_interview"
+        st.session_state["start_real_interview_now"] = True
+        if callable(globals().get("queue_navigation")):
+            queue_navigation("workobot")
+        st.rerun()
+    except Exception:
+        st.session_state["onboarding_complete"] = True
+        st.session_state["nav_page"] = "workobot"
+        st.session_state["page"] = "workobot"
+        st.rerun()
+
+
+def _wz139_css():
+    st.markdown("""
+    <style id="workzo-v139-force-single-cta-css">
+    [data-testid="stMainBlockContainer"], .block-container{
+        max-width:1080px!important;
+        padding-top:.25rem!important;
+        padding-bottom:1.2rem!important;
+    }
+    .wz139-header{
+        max-width:1080px;margin:.05rem auto .42rem!important;
+        padding:.48rem .72rem!important;border:1px solid rgba(34,211,238,.30);
+        border-radius:17px;background:linear-gradient(135deg,rgba(8,47,73,.78),rgba(15,23,42,.92));
+        box-shadow:0 14px 42px rgba(2,6,23,.25);display:flex;align-items:center;justify-content:space-between;gap:.8rem;
+    }
+    .wz139-brand{display:flex;align-items:center;gap:.68rem}.wz139-logo{width:42px;height:42px;border-radius:13px;object-fit:cover;box-shadow:0 10px 28px rgba(14,165,233,.20)}
+    .wz139-logo-fallback{display:grid;place-items:center;background:linear-gradient(135deg,#22d3ee,#2563eb);color:#fff;font-weight:950}
+    .wz139-title{font-size:1.2rem;font-weight:950;color:#fff;letter-spacing:-.04em;line-height:1}.wz139-title span{color:#22d3ee}.wz139-sub{font-size:.72rem;color:#cbd5e1;font-weight:800;margin-top:.16rem}
+    .wz139-right{display:flex;align-items:center;gap:.62rem}.wz139-back{border:1px solid rgba(148,163,184,.22);background:rgba(15,23,42,.55);color:#e0f2fe;border-radius:999px;padding:.36rem .62rem;font-weight:900;font-size:.78rem;cursor:pointer}
+    .wz139-status{min-width:226px}.wz139-status-top{display:flex;justify-content:space-between;gap:.8rem;font-size:.72rem;font-weight:900;margin-bottom:.24rem}.wz139-status-top span{color:#cbd5e1}.wz139-status-top b{color:#67e8f9}
+    .wz139-line{height:5px;border-radius:99px;background:rgba(148,163,184,.18);overflow:hidden}.wz139-line i{display:block;height:100%;background:linear-gradient(90deg,#22d3ee,#22c55e);border-radius:99px;box-shadow:0 0 18px rgba(34,211,238,.35)}
+    .wz139-mini{display:flex;gap:.3rem;margin-top:.25rem}.wz139-mini span{border:1px solid rgba(148,163,184,.18);background:rgba(15,23,42,.52);color:#cbd5e1;border-radius:999px;padding:.15rem .34rem;font-size:.61rem;font-weight:950}.wz139-mini span.done{border-color:rgba(34,211,238,.35);background:rgba(14,165,233,.14);color:#67e8f9}
+    .wz139-beta{border:1px solid rgba(34,211,238,.42);background:rgba(14,165,233,.13);color:#67e8f9;border-radius:999px;padding:.30rem .52rem;font-size:.64rem;font-weight:950;letter-spacing:.04em}
+    .wz139-shell{max-width:1080px;margin:0 auto!important}.wz139-topline{display:flex;align-items:center;gap:.5rem;margin:.18rem 0 .38rem!important}.wz139-step{font-size:.80rem;font-weight:950;color:#f8fafc;white-space:nowrap}.wz139-trust{display:inline-flex;align-items:center;border:1px solid rgba(34,211,238,.22);background:rgba(20,184,166,.09);color:#dffeff;border-radius:999px;padding:.19rem .46rem!important;font-size:.68rem!important;font-weight:850;line-height:1.15!important;opacity:.84;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+    .wz139-progress{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin:.20rem 0 .52rem}.wz139-progress-card{position:relative;border:1px solid rgba(34,211,238,.26);background:rgba(15,23,42,.40);border-radius:15px;padding:.55rem .72rem;display:flex;align-items:center;gap:.46rem;color:#e0f2fe;font-weight:950;font-size:.82rem;min-height:48px}.wz139-progress-card.done{background:rgba(20,184,166,.10);border-color:rgba(45,212,191,.38)}.wz139-progress-card.active{background:rgba(14,165,233,.11);border-color:rgba(14,165,233,.55)}.wz139-num{width:25px;height:25px;border-radius:999px;display:grid;place-items:center;background:rgba(14,165,233,.18);border:1px solid rgba(34,211,238,.30);color:#67e8f9;font-size:.72rem}.wz139-progress-card.done .wz139-num{background:rgba(20,184,166,.22);color:#ccfbf1}.wz139-progress-card:not(:last-child):after{content:'';position:absolute;right:-.50rem;top:50%;width:.5rem;height:1px;background:rgba(34,211,238,.20)}
+    .wz139-hero{border:1px solid rgba(34,211,238,.28);background:radial-gradient(circle at 0 0,rgba(34,211,238,.22),transparent 30%),linear-gradient(135deg,rgba(8,47,73,.70),rgba(15,23,42,.92));border-radius:21px;padding:.92rem 1.02rem!important;min-height:0!important;margin:.22rem 0 .70rem!important;box-shadow:0 16px 50px rgba(2,6,23,.28)}
+    .wz139-kicker{font-size:.66rem;text-transform:uppercase;letter-spacing:.18em;color:#67e8f9;font-weight:950;margin-bottom:.36rem}.wz139-hero h1{font-size:clamp(1.55rem,3vw,2.32rem)!important;line-height:1.02!important;margin:.08rem 0 .42rem!important;color:#fff;letter-spacing:-.055em}.wz139-hero p{color:#dbeafe;font-size:.92rem;line-height:1.42;max-width:760px;margin:0}
+    .wz139-ready-hero{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(320px,.88fr);gap:.9rem;align-items:center;border:1px solid rgba(34,211,238,.28);background:radial-gradient(circle at 0 0,rgba(34,211,238,.22),transparent 30%),linear-gradient(135deg,rgba(8,47,73,.72),rgba(15,23,42,.92));border-radius:21px;padding:1.02rem!important;margin:.20rem 0 .72rem!important;box-shadow:0 18px 54px rgba(2,6,23,.30)}
+    .wz139-ready-copy h1{font-size:clamp(1.62rem,3.2vw,2.42rem)!important;line-height:1.02!important;margin:.1rem 0 .44rem!important;color:#fff;letter-spacing:-.06em}.wz139-ready-copy p{font-size:.92rem;line-height:1.42;color:#dbeafe;margin:0;max-width:650px}.wz139-tags{display:flex;flex-wrap:wrap;gap:.36rem;margin-top:.62rem}.wz139-tags span{border:1px solid rgba(148,163,184,.18);background:rgba(15,23,42,.50);border-radius:999px;padding:.27rem .48rem;color:#cbd5e1;font-weight:850;font-size:.70rem}
+    .wz139-prep{border:1px solid rgba(34,211,238,.26);background:rgba(2,6,23,.48);border-radius:18px;padding:.78rem;box-shadow:inset 0 0 28px rgba(34,211,238,.045)}.wz139-prep-top{display:flex;align-items:center;gap:.55rem;margin-bottom:.55rem}.wz139-avatar{width:38px;height:38px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#0891b2,#2563eb);box-shadow:0 0 24px rgba(34,211,238,.24);animation:wz139Pulse 1.9s ease-in-out infinite}.wz139-prep-top b{display:block;color:#fff;font-size:.86rem}.wz139-prep-top span{display:block;color:#94a3b8;font-size:.70rem}.wz139-prep-top strong{margin-left:auto;color:#22c55e;border:1px solid rgba(34,197,94,.30);background:rgba(34,197,94,.10);border-radius:999px;padding:.18rem .38rem;font-size:.58rem}.wz139-prep-line{display:flex;align-items:center;gap:.42rem;color:#dbeafe;font-size:.75rem;font-weight:850;padding:.25rem 0;border-top:1px solid rgba(148,163,184,.08)}.wz139-prep-line>span{width:7px;height:7px;border-radius:99px;background:#22d3ee;box-shadow:0 0 12px rgba(34,211,238,.75)}.wz139-dots{display:inline-flex;gap:.18rem;margin-left:.15rem}.wz139-dots i{width:4px;height:4px;border-radius:99px;background:#67e8f9;animation:wz139Dot 1s infinite}.wz139-dots i:nth-child(2){animation-delay:.16s}.wz139-dots i:nth-child(3){animation-delay:.32s}.wz139-wave{height:25px;display:flex;align-items:end;gap:4px;margin-top:.42rem;border-top:1px solid rgba(148,163,184,.08);padding-top:.44rem}.wz139-wave i{width:5px;border-radius:99px;background:linear-gradient(180deg,#67e8f9,#2563eb);height:10px;animation:wz139Wave 1.05s ease-in-out infinite}.wz139-wave i:nth-child(2){height:17px;animation-delay:.12s}.wz139-wave i:nth-child(3){height:23px;animation-delay:.24s}.wz139-wave i:nth-child(4){height:14px;animation-delay:.36s}.wz139-wave i:nth-child(5){height:20px;animation-delay:.48s}
+    .wz139-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:.8rem}.wz139-card{border:1px solid rgba(34,211,238,.28);background:rgba(15,23,42,.44);border-radius:18px;padding:.9rem;box-shadow:0 14px 42px rgba(2,6,23,.20)}.wz139-card-title{font-size:1rem;color:#fff;font-weight:950;margin-bottom:.42rem}.wz139-pillrow{display:flex;gap:.35rem;flex-wrap:wrap}.wz139-pill{border:1px solid rgba(148,163,184,.18);background:rgba(15,23,42,.54);color:#dbeafe;border-radius:999px;padding:.25rem .45rem;font-size:.72rem;font-weight:850}.wz139-ai-title{font-size:1rem;font-weight:950;color:#fff;margin-bottom:.48rem}.wz139-scan{border:1px dashed rgba(34,211,238,.35);background:rgba(34,211,238,.055);border-radius:16px;padding:.68rem;margin:.55rem 0;animation:wz139DashPulse 2.2s ease-in-out infinite}.wz139-scan-title{font-weight:950;color:#fff;margin-bottom:.28rem}.wz139-scan-line{color:#bfdbfe;font-size:.76rem;padding:.12rem 0}.wz139-demo{background:radial-gradient(circle at top right,rgba(34,211,238,.12),transparent 38%),rgba(15,23,42,.46)}.wz139-demo-bubble{border:1px solid rgba(148,163,184,.14);background:rgba(2,6,23,.36);border-radius:13px;padding:.48rem .58rem;color:#dbeafe;font-size:.78rem;margin-top:.46rem}.wz139-demo-bubble.warn{border-color:rgba(251,191,36,.26);background:rgba(251,191,36,.07);color:#fde68a}.wz139-note{font-size:.72rem;color:#94a3b8;margin-top:.52rem;line-height:1.35}
+    .st-key-wz139_start_interview button{min-height:66px!important;border-radius:22px!important;font-size:1.08rem!important;font-weight:950!important;letter-spacing:-.01em!important;background:radial-gradient(circle at 18% 10%,rgba(103,232,249,.52),transparent 34%),linear-gradient(135deg,#020617,#0369a1,#1d4ed8)!important;border:1px solid rgba(125,211,252,.70)!important;color:#f8fafc!important;box-shadow:0 0 0 1px rgba(125,211,252,.28),0 0 36px rgba(34,211,238,.30),0 26px 84px rgba(37,99,235,.42)!important;animation:wz139StartPulse 2.1s ease-in-out infinite!important}.st-key-wz139_start_interview button:before{content:'🎙 ';display:inline-block;animation:wz139Mic 1.55s ease-in-out infinite}.st-key-wz139_start_interview button:hover{transform:translateY(-3px) scale(1.012)!important;box-shadow:0 0 0 1px rgba(125,211,252,.38),0 0 46px rgba(34,211,238,.40),0 32px 92px rgba(37,99,235,.50)!important}
+    @keyframes wz139Pulse{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.05);filter:brightness(1.16)}}@keyframes wz139Dot{0%,80%,100%{opacity:.28;transform:translateY(0)}40%{opacity:1;transform:translateY(-2px)}}@keyframes wz139Wave{0%,100%{transform:scaleY(.72);opacity:.65}50%{transform:scaleY(1.22);opacity:1}}@keyframes wz139DashPulse{0%,100%{border-color:rgba(34,211,238,.25);box-shadow:0 0 0 rgba(34,211,238,0)}50%{border-color:rgba(34,211,238,.55);box-shadow:0 0 22px rgba(34,211,238,.10)}}@keyframes wz139StartPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.14)}}@keyframes wz139Mic{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-1px) rotate(-7deg)}}
+    @media(max-width:900px){.wz139-header,.wz139-ready-hero,.wz139-grid{grid-template-columns:1fr!important;display:grid}.wz139-header{display:block}.wz139-header-right{margin-top:.7rem;justify-content:space-between}.wz139-status{min-width:0;flex:1}.wz139-trust{white-space:normal}.wz139-ready-hero{padding:.82rem!important}.wz139-progress{grid-template-columns:1fr}.wz139-progress-card:after{display:none}}
+    </style>
+    """, unsafe_allow_html=True)
+
+
+def _wz139_header(step=1):
+    logo_src = None
+    try:
+        logo_src = image_to_data_uri(ICON_PATH) or image_to_data_uri(LOGO_PATH)
+    except Exception:
+        logo_src = None
+    logo_html = f"<img src='{logo_src}' class='wz139-logo' alt='WorkZo AI'>" if logo_src else "<div class='wz139-logo wz139-logo-fallback'>WZ</div>"
+    status = "Interview Setup Complete" if int(step) >= 3 else "Interview setup"
+    progress = "Ready to begin" if int(step) >= 3 else f"Step {int(step)}/3"
+    width = "100%" if int(step) >= 3 else ("66%" if int(step) == 2 else "33%")
+    st.markdown(f"""
+    <div class="wz139-header">
+      <div class="wz139-brand">{logo_html}<div><div class="wz139-title">WorkZo <span>AI</span></div><div class="wz139-sub">Your guided AI career system</div></div></div>
+      <div class="wz139-right"><button class="wz139-back" onclick="history.back()">← Back</button><div class="wz139-status"><div class="wz139-status-top"><span>{html.escape(status)}</span><b>{html.escape(progress)}</b></div><div class="wz139-line"><i style="width:{width}"></i></div><div class="wz139-mini"><span class="done">✓ CV</span><span class="{'done' if int(step)>=2 else ''}">✓ Jobs</span><span class="{'done' if int(step)>=3 else ''}">3 Interview</span></div></div><div class="wz139-beta">BETA</div></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def _wz139_progress(step=1):
+    labels = [(1,"Upload CV"),(2,"Add Job Description"),(3,"Start Interview")]
+    html_parts=[]
+    for n,label in labels:
+        cls = "done" if n < step else ("active" if n == step else "")
+        num = "✓" if n < step else str(n)
+        html_parts.append(f'<div class="wz139-progress-card {cls}"><span class="wz139-num">{num}</span>{html.escape(label)}</div>')
+    st.markdown('<div class="wz139-progress">' + ''.join(html_parts) + '</div>', unsafe_allow_html=True)
+
+
+def _wz139_get_step():
+    try:
+        step = int(st.session_state.get("onboarding_step_final", st.session_state.get("wz_onboarding_step", 1)) or 1)
+    except Exception:
+        step = 1
+    if step < 1 or step > 3:
+        step = 1
+    st.session_state["onboarding_step_final"] = step
+    return step
+
+
+def _wz139_store_cv_text(text, source="CV"):
+    text = str(text or "").strip()
+    if len(text) < 40:
+        return False
+    for key in ["cv_text","workzo_live_cv_text","clean_structured_cv_text","approved_structured_cv_text"]:
+        st.session_state[key] = text
+    try:
+        st.session_state["wz139_cv_insights"] = _wz132_detect_cv_insights(text) if callable(globals().get("_wz132_detect_cv_insights")) else {}
+    except Exception:
+        st.session_state["wz139_cv_insights"] = {}
+    return True
+
+
+def _wz139_store_job(title, jd, company=""):
+    jd = str(jd or "").strip()
+    if len(jd) < 30:
+        return False
+    title = str(title or st.session_state.get("target_role") or "Target role").strip() or "Target role"
+    company = str(company or "Target company").strip() or "Target company"
+    st.session_state["target_role"] = title
+    st.session_state["selected_company"] = company
+    job = {"title": title, "company": company, "description": jd, "location": st.session_state.get("country", "")}
+    st.session_state["selected_job"] = job
+    for key in ["selected_job_description","current_job_description","last_understand_job_description","last_prepare_job_description","improve_cv_for_job_desc","job_description","interview_jd_text_v117","real_interview_jd_saved"]:
+        st.session_state[key] = jd
+    return True
+
+
+def _wz139_render_cv_understood():
+    text = str(st.session_state.get("cv_text", "") or "")
+    try:
+        insights = st.session_state.get("wz139_cv_insights") or (_wz132_detect_cv_insights(text) if callable(globals().get("_wz132_detect_cv_insights")) else {})
+    except Exception:
+        insights = {}
+    if not isinstance(insights, dict):
+        insights = {}
+    role = html.escape(str(insights.get("role") or st.session_state.get("target_role") or "Experience detected"))
+    exp = html.escape(str(insights.get("experience") or "Experience detected"))
+    words = int(insights.get("words") or len(text.split()) or 0)
+    skills = insights.get("skills") if isinstance(insights.get("skills"), list) else []
+    skill_html = ''.join(f'<span class="wz139-pill">{html.escape(str(s))}</span>' for s in skills[:4])
+    st.markdown(f'<div class="wz139-card"><div class="wz139-ai-title">✅ CV parsed — Preparing your interview <span class="wz139-dots"><i></i><i></i><i></i></span></div><div class="wz139-pillrow"><span class="wz139-pill">Role: {role}</span><span class="wz139-pill">{exp}</span><span class="wz139-pill">{words} words read</span>{skill_html}</div></div>', unsafe_allow_html=True)
+
+
+def show_onboarding():
+    """Forced final onboarding renderer. No Open Dashboard secondary CTA."""
+    try:
+        maybe_scroll_to_top()
+    except Exception:
+        pass
+    try:
+        apply_workzo_v75_global_css()
+    except Exception:
+        pass
+    _wz139_css()
+    step = _wz139_get_step()
+    _wz139_header(step)
+    st.markdown('<div class="wz139-shell">', unsafe_allow_html=True)
+    st.markdown(f'<div class="wz139-topline"><div class="wz139-step">Step {step} of 3</div><div class="wz139-trust">🔒 Your CV is only used to personalize your interview · No account required · We don’t store sensitive resume data · Takes less than 30 seconds</div></div>', unsafe_allow_html=True)
+    _wz139_progress(step)
+
+    if step == 1:
+        st.markdown('<section class="wz139-hero"><div class="wz139-kicker">Start with your CV</div><h1>Your interview starts with your CV</h1><p>Upload your CV so WorkZo can understand your experience, detect your skills, and prepare realistic recruiter-style interview questions.</p></section>', unsafe_allow_html=True)
+        st.markdown('<div class="wz139-grid">', unsafe_allow_html=True)
+        left, right = st.columns([1.15, .85])
+        with left:
+            st.markdown('<div class="wz139-card"><div class="wz139-card-title">Let AI understand your experience</div><p style="color:#cbd5e1;margin-top:0;font-size:.86rem">This is the core step. WorkZo reads your profile so the interview does not feel generic.</p><div class="wz139-scan"><div class="wz139-scan-title">📄 Drop your CV here</div><div class="wz139-scan-line">PDF or TXT works best. You can also paste text below.</div><div class="wz139-scan-line">AI will detect role, skills, experience and interview pressure points.</div></div>', unsafe_allow_html=True)
+            uploaded = st.file_uploader("Upload PDF or TXT", type=["pdf", "txt"], key="wz139_cv_upload")
+            if uploaded is not None:
+                extracted = ""
+                try:
+                    file_name = str(getattr(uploaded, "name", "") or "").lower()
+                    file_type = str(getattr(uploaded, "type", "") or "").lower()
+                    if file_type == "text/plain" or file_name.endswith(".txt"):
+                        extracted = uploaded.read().decode("utf-8", errors="ignore")
+                    else:
+                        extracted = extract_pdf_text(uploaded) if callable(globals().get("extract_pdf_text")) else ""
+                    if callable(globals().get("organize_cv_for_display")):
+                        extracted = organize_cv_for_display(extracted)
+                except Exception as exc:
+                    st.warning(f"Could not read the uploaded CV: {exc}")
+                if _wz139_store_cv_text(extracted, "Upload CV"):
+                    _wz139_render_cv_understood()
+                    st.markdown('<div class="wz139-scan"><div class="wz139-scan-title">AI is building your interview <span class="wz139-dots"><i></i><i></i><i></i></span></div><div class="wz139-scan-line">Analyzing communication style...</div><div class="wz139-scan-line">Understanding experience level...</div><div class="wz139-scan-line">Generating recruiter pressure prompts...</div><div class="wz139-scan-line">Preparing follow-up questions...</div></div>', unsafe_allow_html=True)
+                else:
+                    st.warning("The file uploaded, but the extracted text looked too short. Try TXT or paste your CV below.")
+            with st.expander("Paste CV text instead", expanded=not bool(st.session_state.get("cv_text"))):
+                pasted = st.text_area("Paste your CV text", height=145, key="wz139_paste_cv_text", placeholder="Paste your resume text here...")
+                if st.button("Use pasted CV", key="wz139_use_pasted_cv", use_container_width=True):
+                    if _wz139_store_cv_text(pasted, "Paste CV"):
+                        _wz139_render_cv_understood()
+                        st.markdown('<div class="wz139-scan"><div class="wz139-scan-title">AI is building your interview <span class="wz139-dots"><i></i><i></i><i></i></span></div><div class="wz139-scan-line">Analyzing communication style...</div><div class="wz139-scan-line">Understanding experience level...</div><div class="wz139-scan-line">Generating recruiter pressure prompts...</div><div class="wz139-scan-line">Preparing follow-up questions...</div></div>', unsafe_allow_html=True)
+                    else:
+                        st.warning("Please paste more CV details first.")
+            st.markdown('<div class="wz139-note">Your CV is only used to personalize your interview. We don’t store sensitive resume data in analytics.</div>', unsafe_allow_html=True)
+            if st.session_state.get("cv_text"):
+                if st.button("Continue to interview setup →", type="primary", use_container_width=True, key="wz139_continue_cv"):
+                    st.session_state["onboarding_step_final"] = 2
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        with right:
+            st.markdown('<div class="wz139-card wz139-demo"><div class="wz139-card-title">Experience the interview instantly</div><p style="color:#cbd5e1;font-size:.84rem;margin-top:0">Not ready to upload? Try a sample CV and feel how WorkZo challenges answers.</p><div class="wz139-prep" style="margin-top:.55rem"><div class="wz139-prep-top"><div class="wz139-avatar">🤖</div><div><b>AI Recruiter</b><span>Demo pressure round</span></div><strong>00:45</strong></div><div class="wz139-demo-bubble">Tell me about yourself — but keep it relevant.</div><div class="wz139-demo-bubble warn">⚠️ You’re losing me — give me one measurable result.</div><div class="wz139-wave"><i></i><i></i><i></i><i></i><i></i></div></div><div class="wz139-note">Best for testers who want to feel the product before sharing a CV.</div></div>', unsafe_allow_html=True)
+            if st.button("Experience demo interview", use_container_width=True, key="wz139_demo_cv"):
+                demo_cv = SAMPLE_CV_TEXT if "SAMPLE_CV_TEXT" in globals() else "Demo CV: Technical Support Engineer with customer-facing experience, SQL, Python, dashboards, troubleshooting, communication skills, and experience handling customer issues."
+                _wz139_store_cv_text(demo_cv, "Sample Demo")
+                demo_jd = SAMPLE_JOB_DESCRIPTION if "SAMPLE_JOB_DESCRIPTION" in globals() else "Demo job description: Junior Data Analyst role requiring SQL, Python, dashboards, communication, problem solving, stakeholder support, and clear reporting."
+                _wz139_store_job("Junior Data Analyst", demo_jd, "Demo Company")
+                st.session_state["onboarding_step_final"] = 3
+                st.rerun()
+        st.markdown('</div></div>', unsafe_allow_html=True)
+        return
+
+    if step == 2:
+        st.markdown('<section class="wz139-hero"><div class="wz139-kicker">Add your target role</div><h1>Make the interview specific to the job</h1><p>Paste one real job description so WorkZo can challenge you on exact skills, gaps, language expectations, and recruiter pressure points.</p></section>', unsafe_allow_html=True)
+        with st.container(border=True):
+            title = st.text_input("Job title", value=st.session_state.get("target_role", ""), placeholder="Example: Data Analyst", key="wz139_job_title")
+            company = st.text_input("Company / employer (optional)", value=st.session_state.get("selected_company", ""), placeholder="Example: Siemens", key="wz139_company")
+            jd = st.text_area("Job description", height=190, value=st.session_state.get("selected_job_description") or st.session_state.get("current_job_description") or "", placeholder="Paste the job description here...", key="wz139_jd")
+        b1,b2,b3 = st.columns([1,1,1])
+        with b1:
+            if st.button("Back", use_container_width=True, key="wz139_back_to_cv"):
+                st.session_state["onboarding_step_final"] = 1
+                st.rerun()
+        with b2:
+            if st.button("Use demo job", use_container_width=True, key="wz139_demo_job"):
+                demo_jd = SAMPLE_JOB_DESCRIPTION if "SAMPLE_JOB_DESCRIPTION" in globals() else "Demo job description: Junior Data Analyst role requiring SQL, Python, dashboards, communication and stakeholder collaboration."
+                _wz139_store_job("Junior Data Analyst", demo_jd, "Demo Company")
+                st.session_state["onboarding_step_final"] = 3
+                st.rerun()
+        with b3:
+            if st.button("Continue to interview room →", type="primary", use_container_width=True, key="wz139_continue_job"):
+                if _wz139_store_job(title, jd, company):
+                    st.session_state["onboarding_step_final"] = 3
+                    st.rerun()
+                else:
+                    st.warning("Please paste the job description, or use the demo job.")
+        st.markdown('</div>', unsafe_allow_html=True)
+        return
+
+    job = st.session_state.get("selected_job") or {}
+    job_title = html.escape(str(job.get("title") or st.session_state.get("target_role") or "Target role"))
+    company = html.escape(str(job.get("company") or st.session_state.get("selected_company") or "Target company"))
+    st.markdown('<section class="wz139-ready-hero"><div class="wz139-ready-copy"><div class="wz139-kicker">Interview room ready</div><h1>AI recruiter is ready for you</h1><p>Your CV and target job are loaded. WorkZo is preparing recruiter-style follow-ups, pressure prompts, and a hiring-style decision.</p><div class="wz139-tags"><span>CV understood</span><span>Job context loaded</span><span>Follow-ups enabled</span></div></div><div class="wz139-prep"><div class="wz139-prep-top"><div class="wz139-avatar">🎙️</div><div><b>AI Recruiter</b><span>Preparing your interview</span></div><strong>LIVE</strong></div><div class="wz139-prep-line"><span></span>Preparing follow-up questions <div class="wz139-dots"><i></i><i></i><i></i></div></div><div class="wz139-prep-line"><span></span>Analyzing measurable-impact gaps</div><div class="wz139-prep-line"><span></span>Pressure level: realistic</div><div class="wz139-prep-line"><span></span>Voice room: ready</div><div class="wz139-wave"><i></i><i></i><i></i><i></i><i></i></div></div></section>', unsafe_allow_html=True)
+    st.markdown('<div class="wz139-grid">', unsafe_allow_html=True)
+    left, right = st.columns(2)
+    with left:
+        _wz139_render_cv_understood()
+    with right:
+        st.markdown(f'<div class="wz139-card"><div class="wz139-ai-title">🎯 Job context ready</div><div class="wz139-pillrow"><span class="wz139-pill">Role: {job_title}</span><span class="wz139-pill">Company: {company}</span><span class="wz139-pill">Recruiter follow-ups enabled</span><span class="wz139-pill">Hiring-decision feedback enabled</span></div></div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+    if st.button("Start Real Interview", type="primary", use_container_width=True, key="wz139_start_interview"):
+        _wz139_go_to_interview()
+    st.caption("Need to change something? Use the Back button in the header or edit setup later.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# =========================================================
+# WorkZo v152 - Mobile landing polish
+# - smaller header footprint
+# - compact hero typography and proof pills
+# - less intrusive floating widgets on mobile
+# - tighter cards and sticky mobile CTA
+# =========================================================
+
+def _wz152_mobile_landing_css():
+    try:
+        st.markdown(r"""
+        <style id="workzo-v152-mobile-landing-polish-css">
+        @media (max-width: 760px){
+            [data-testid="stMainBlockContainer"], .block-container{
+                padding-top:.25rem!important;
+                padding-left:.78rem!important;
+                padding-right:.78rem!important;
+                padding-bottom:5.2rem!important;
+            }
+            .workzo-header,.workzo-topbar,.workzo-brand-shell,.workzo-brand-card,
+            .wzfinal-top,.wzflow-brand,.wz128-topbar,.wz130-topbar{
+                margin:.15rem 0 .42rem 0!important;
+                padding:.42rem .55rem!important;
+                min-height:0!important;
+                border-radius:16px!important;
+                gap:.46rem!important;
+            }
+            .workzo-header img,.workzo-topbar img,.workzo-brand-card img,
+            .wzfinal-top img,.wzflow-brand img,.wz128-topbar img,.wz130-topbar img,
+            .workzo-logo,img[alt*="WorkZo"],img[alt*="logo"]{
+                max-width:42px!important;
+                max-height:42px!important;
+                width:42px!important;
+                height:42px!important;
+                border-radius:12px!important;
+            }
+            .workzo-header h1,.workzo-topbar h1,.workzo-brand-card h1,
+            .wzfinal-top h1,.wzflow-brand h1{
+                font-size:1.05rem!important;
+                line-height:1.05!important;
+                margin:0!important;
+            }
+            .workzo-header p,.workzo-topbar p,.workzo-brand-card p,
+            .wzfinal-top p,.wzflow-brand p{
+                font-size:.72rem!important;
+                line-height:1.05!important;
+                margin:.08rem 0 0!important;
+                max-width:160px!important;
+                white-space:nowrap!important;
+                overflow:hidden!important;
+                text-overflow:ellipsis!important;
+            }
+            .wz130-hero{
+                margin:.38rem .15rem .72rem!important;
+                padding:.92rem .78rem 1rem!important;
+                border-radius:22px!important;
+            }
+            .wz130-hero-inner{gap:.72rem!important;}
+            .wz130-kicker{
+                font-size:.68rem!important;
+                letter-spacing:.12em!important;
+                margin-bottom:.28rem!important;
+            }
+            .wz130-title{
+                font-size:clamp(2.05rem, 10.4vw, 2.75rem)!important;
+                line-height:1.02!important;
+                letter-spacing:-.055em!important;
+                margin:.08rem 0 .56rem!important;
+            }
+            .wz130-subtitle{
+                font-size:.94rem!important;
+                line-height:1.42!important;
+                margin:.22rem 0 .64rem!important;
+                max-width:100%!important;
+            }
+            .wz130-proof-line{
+                padding:.46rem .58rem!important;
+                font-size:.78rem!important;
+                line-height:1.22!important;
+                margin:.52rem 0 .58rem!important;
+                border-radius:14px!important;
+            }
+            .wz130-proof-row{
+                display:grid!important;
+                grid-template-columns:1fr 1fr!important;
+                gap:.42rem!important;
+                margin:.55rem 0 .15rem!important;
+            }
+            .wz130-proof-pill{
+                width:100%!important;
+                justify-content:center!important;
+                padding:.46rem .46rem!important;
+                font-size:.72rem!important;
+                line-height:1.12!important;
+                border-radius:999px!important;
+                min-height:34px!important;
+                white-space:normal!important;
+                text-align:center!important;
+            }
+            .wz130-proof-pill:nth-child(3){grid-column:1 / -1!important;}
+            .wz130-preview{
+                padding:.72rem!important;
+                border-radius:20px!important;
+                margin-top:.38rem!important;
+            }
+            .wz130-preview-top{
+                margin-bottom:.54rem!important;
+                gap:.5rem!important;
+                padding-right:2rem!important;
+            }
+            .wz130-avatar{width:36px!important;height:36px!important;border-radius:13px!important;font-size:1rem!important;}
+            .wz130-rec-name{font-size:.88rem!important;}
+            .wz130-rec-status{font-size:.68rem!important;max-width:150px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+            .wz130-timer{font-size:.72rem!important;min-width:50px!important;padding:.28rem .44rem!important;}
+            .wz130-chat-bubble{
+                padding:.58rem .66rem!important;
+                margin:.38rem 0!important;
+                font-size:.78rem!important;
+                line-height:1.32!important;
+                border-radius:15px!important;
+            }
+            .wz130-chat-bubble.user{margin-left:1rem!important;}
+            .wz130-wave{height:24px!important;margin:.34rem 0 .22rem!important;}
+            .wz130-listening{padding:.48rem .56rem!important;font-size:.72rem!important;border-radius:14px!important;margin-top:.4rem!important;}
+            .wz130-meter{margin:.42rem 0 .24rem!important;}
+            .wz130-feedback-mini,.wz130-tag{display:none!important;}
+            .st-key-wz130_landing_start{
+                position:fixed!important;
+                left:12px!important;
+                right:12px!important;
+                bottom:12px!important;
+                z-index:999990!important;
+                margin:0!important;
+                padding:0!important;
+            }
+            .st-key-wz130_landing_start button{
+                width:100%!important;
+                min-height:54px!important;
+                border-radius:18px!important;
+                padding:.72rem .95rem!important;
+                font-size:.98rem!important;
+                box-shadow:0 14px 40px rgba(14,165,233,.36),0 0 28px rgba(34,211,238,.22)!important;
+                transform:none!important;
+            }
+            .st-key-wz130_landing_start button p{font-size:.98rem!important;}
+            .st-key-wz130_landing_start button:active{transform:scale(.985)!important;}
+            .wz130-flow{
+                margin:.65rem .15rem 0!important;
+                gap:.48rem!important;
+            }
+            .wz130-step{
+                min-height:auto!important;
+                padding:.72rem .78rem!important;
+                border-radius:16px!important;
+                display:grid!important;
+                grid-template-columns:34px 1fr!important;
+                column-gap:.55rem!important;
+                align-items:start!important;
+            }
+            .wz130-step:before{display:none!important;}
+            .wz130-step-icon{font-size:1.14rem!important;margin:0!important;line-height:1.2!important;}
+            .wz130-step span{font-size:.78rem!important;line-height:1.26!important;margin-top:.12rem!important;}
+            .st-key-wz141_float_workobot,
+            .wz-floating-chat,
+            .wz-floating-feedback,
+            .wz-feedback-float,
+            .wz-beta-float,
+            [class*="floating"][class*="bot"],
+            [class*="floating"][class*="feedback"]{
+                display:none!important;
+                pointer-events:none!important;
+            }
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+try:
+    _wz152_previous_show_landing_page = show_landing_page
+    def show_landing_page():
+        try:
+            _wz152_mobile_landing_css()
+        except Exception:
+            pass
+        return _wz152_previous_show_landing_page()
+except Exception:
+    pass
+
+try:
+    _wz152_mobile_landing_css()
+except Exception:
+    pass
+
+
+# =========================================================
+# WorkZo v154 - Onboarding must open the main recruiter dashboard
+# Fixes: Start Real Interview after onboarding must NOT route to Work-O-Bot.
+# =========================================================
+
+def _wz139_go_to_interview():
+    """Final onboarding CTA route: open the main Real Interview dashboard."""
+    try:
+        st.session_state["onboarding_complete"] = True
+        st.session_state["nav_page"] = "real_interview"
+        st.session_state["page"] = "real_interview"
+        st.session_state["_wz_force_page"] = "real_interview"
+        st.session_state["_wz154_after_onboarding_main"] = True
+        # Clear stale Work-O-Bot flags left from earlier versions.
+        for _k in ["workobot_mode", "start_real_interview_now", "_wz_force_workobot", "_wz_allow_workobot_route"]:
+            try:
+                st.session_state.pop(_k, None)
+            except Exception:
+                pass
+        try:
+            st.query_params["page"] = "real_interview"
+        except Exception:
+            pass
+        if callable(globals().get("queue_navigation")):
+            queue_navigation("real_interview")
+        st.rerun()
+    except Exception:
+        st.session_state["onboarding_complete"] = True
+        st.session_state["nav_page"] = "real_interview"
+        st.session_state["page"] = "real_interview"
+        st.session_state["_wz_force_page"] = "real_interview"
+        st.session_state["_wz154_after_onboarding_main"] = True
+        try:
+            st.query_params["page"] = "real_interview"
+        except Exception:
+            pass
+        st.rerun()
+
+# Some older onboarding CTA blocks call queue_navigation('workobot') directly.
+# This safety wrapper converts that specific onboarding/start-interview intent to real_interview.
+try:
+    _wz154_previous_queue_navigation = queue_navigation
+    def queue_navigation(page_key: str) -> None:
+        target = str(page_key or "").strip().lower()
+        if target in {"workobot", "work-o-bot", "work_o_bot", "bot"} and bool(st.session_state.get("onboarding_step_final") == 3):
+            page_key = "real_interview"
+            st.session_state["_wz154_after_onboarding_main"] = True
+            st.session_state["_wz_force_page"] = "real_interview"
+            st.session_state["nav_page"] = "real_interview"
+            st.session_state["page"] = "real_interview"
+            try:
+                st.query_params["page"] = "real_interview"
+            except Exception:
+                pass
+        return _wz154_previous_queue_navigation(page_key)
+except Exception:
+    pass

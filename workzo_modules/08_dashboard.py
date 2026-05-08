@@ -28236,1047 +28236,1319 @@ def _wz110_render_workobot_chat(compact: bool = False):
     if not compact:
         st.markdown("</div>", unsafe_allow_html=True)
 
+
 # =========================================================
-# WorkZo v124 - requested UI polish patch
-# Scope: preserves full dashboard.py and only overrides the visible toolbox,
-# Work-O-Bot clutter, duplicate back button behavior, and CTA sizing CSS.
+# WorkZo v141 - Main Dashboard Experience Polish
+# Purpose:
+# - reduce empty vertical space on main dashboard
+# - rename weak "You can also" toolbox to interview utilities
+# - make Work-O-Bot floating widget smaller and less intrusive
+# - make real interview dashboard feel more alive
+# - quiet beta/disclaimer blocks
+# - upgrade primary recruiter-call CTA styling
+# This patch is additive and overrides only UI rendering helpers.
 # =========================================================
 
+
+def _wz141_apply_main_dashboard_experience_css():
+    try:
+        st.markdown("""
+        <style id="workzo-v141-main-dashboard-experience-css">
+        /* Tighten main page vertical rhythm */
+        .block-container{
+            padding-top:.55rem!important;
+            padding-bottom:1.4rem!important;
+            max-width:1220px!important;
+        }
+        [data-testid="stVerticalBlock"]{gap:.72rem!important;}
+        .st-key-wz104_topbar_shell,
+        .st-key-wz104_topbar_shell_final{
+            margin-top:.15rem!important;
+            margin-bottom:.55rem!important;
+            padding:.72rem .86rem!important;
+            min-height:72px!important;
+            border-radius:22px!important;
+        }
+        .wz122-brand-sub,.wz106-brand-sub{font-size:.78rem!important;}
+        .wz122-brand-name,.wz106-brand-name{font-size:1.02rem!important;}
+        .st-key-wz122_logo_home button,
+        .wz106-logo-home{
+            width:50px!important;height:50px!important;min-height:50px!important;border-radius:15px!important;
+        }
+        .wz106-logo-home img{width:38px!important;height:38px!important;}
+
+        /* Rename/reshape toolbox visually */
+        .wz141-tools-label{
+            color:#a5b4fc;font-size:.72rem;font-weight:950;letter-spacing:.05em;margin-bottom:.18rem;
+        }
+        .st-key-wz141_tools_anchor div[data-testid="stPopover"] button,
+        .st-key-wz141_tools_anchor div[data-testid="stExpander"] summary{
+            min-height:48px!important;border-radius:18px!important;font-weight:900!important;
+            border:1px solid rgba(96,165,250,.34)!important;
+            background:linear-gradient(135deg,rgba(15,23,42,.78),rgba(30,41,59,.48))!important;
+            color:#f8fafc!important;box-shadow:0 12px 28px rgba(2,6,23,.20)!important;
+        }
+        .st-key-wz141_tools_anchor div[data-testid="stPopover"] button:hover,
+        .st-key-wz141_tools_anchor div[data-testid="stExpander"] summary:hover{
+            transform:translateY(-1px)!important;border-color:rgba(34,211,238,.56)!important;
+            box-shadow:0 18px 34px rgba(14,165,233,.16)!important;
+        }
+
+        /* Main recruiter-call hero: less empty, more alive */
+        .wz141-call-shell{
+            border:1px solid rgba(34,211,238,.34);
+            border-radius:28px;
+            padding:24px 28px;
+            margin:.25rem 0 .72rem 0;
+            background:
+              radial-gradient(circle at 12% 10%,rgba(34,211,238,.20),transparent 34%),
+              radial-gradient(circle at 86% 22%,rgba(37,99,235,.18),transparent 38%),
+              linear-gradient(135deg,rgba(8,47,73,.92),rgba(2,6,23,.96));
+            box-shadow:0 18px 58px rgba(2,6,23,.36);
+            position:relative;overflow:hidden;
+        }
+        .wz141-call-shell:before{
+            content:"";position:absolute;inset:-1px;height:1px;
+            background:linear-gradient(90deg,transparent,rgba(34,211,238,.7),transparent);
+            animation:wz141scan 3.8s infinite ease-in-out;
+        }
+        @keyframes wz141scan{0%,100%{opacity:.20;transform:translateX(-40%)}50%{opacity:.9;transform:translateX(40%)}}
+        .wz141-call-grid{display:grid;grid-template-columns:1.18fr .92fr;gap:22px;align-items:center;}
+        .wz141-live-row{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
+        .wz141-chip{border:1px solid rgba(148,163,184,.24);border-radius:999px;padding:6px 10px;color:#dbeafe;font-size:.80rem;font-weight:900;background:rgba(15,23,42,.52);}
+        .wz141-chip.live{border-color:rgba(248,113,113,.48);color:#fecaca;background:rgba(127,29,29,.22);box-shadow:0 0 18px rgba(248,113,113,.16);}
+        .wz141-title{font-size:2.55rem;line-height:1.03;font-weight:950;color:#fff;margin:0 0 10px 0;letter-spacing:-.045em;}
+        .wz141-sub{color:#dbeafe;font-size:1rem;line-height:1.48;max-width:700px;margin:0 0 10px 0;}
+        .wz141-live-panel{border:1px solid rgba(148,163,184,.18);border-radius:24px;background:rgba(15,23,42,.62);padding:16px;position:relative;overflow:hidden;}
+        .wz141-live-panel:after{content:"";position:absolute;inset:0;background:radial-gradient(circle at top right,rgba(34,211,238,.12),transparent 46%);pointer-events:none;}
+        .wz141-muted{color:#94a3b8;font-size:.76rem;font-weight:850;text-transform:uppercase;letter-spacing:.12em;}
+        .wz141-countdown{font-size:2rem;font-weight:950;color:#fff;letter-spacing:-.04em;margin:0 0 8px;}
+        .wz141-pressure{height:8px;border-radius:999px;background:rgba(148,163,184,.16);overflow:hidden;margin:8px 0 12px;}
+        .wz141-pressure span{display:block;height:100%;width:74%;border-radius:999px;background:linear-gradient(90deg,#22d3ee,#38bdf8,#f97316,#ef4444);animation:wz141pressure 2.4s infinite ease-in-out;}
+        @keyframes wz141pressure{0%,100%{width:62%;filter:brightness(.9)}50%{width:78%;filter:brightness(1.18)}}
+        .wz141-status{display:flex;gap:9px;align-items:center;color:#e0f2fe;font-size:.9rem;font-weight:850;margin-top:8px;}
+        .wz141-dot{width:8px;height:8px;border-radius:999px;background:#22d3ee;box-shadow:0 0 18px rgba(34,211,238,.85);animation:wz141pulse 1.2s infinite ease-in-out;}
+        @keyframes wz141pulse{0%,100%{transform:scale(.85);opacity:.55}50%{transform:scale(1.25);opacity:1}}
+        .wz141-typing{display:flex;gap:4px;margin-left:2px;}
+        .wz141-typing i{display:block;width:6px;height:6px;border-radius:999px;background:#67e8f9;animation:wz141typing 1.1s infinite ease-in-out;}
+        .wz141-typing i:nth-child(2){animation-delay:.16s}.wz141-typing i:nth-child(3){animation-delay:.32s}
+        @keyframes wz141typing{0%,100%{opacity:.28;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+        .wz141-question-preview{margin-top:12px;border:1px solid rgba(34,211,238,.18);border-radius:16px;padding:10px 12px;background:rgba(8,47,73,.34);color:#e0f2fe;font-weight:750;line-height:1.35;font-size:.9rem;}
+        .wz141-voice-bars{display:flex;gap:5px;align-items:end;height:32px;margin-top:10px;}
+        .wz141-voice-bars i{display:block;width:7px;border-radius:999px;background:#22d3ee;opacity:.85;animation:wz141bars 1s infinite ease-in-out;}
+        .wz141-voice-bars i:nth-child(1){height:12px;animation-delay:.05s}.wz141-voice-bars i:nth-child(2){height:23px;animation-delay:.14s}.wz141-voice-bars i:nth-child(3){height:16px;animation-delay:.22s}.wz141-voice-bars i:nth-child(4){height:29px;animation-delay:.31s}.wz141-voice-bars i:nth-child(5){height:18px;animation-delay:.42s}
+        @keyframes wz141bars{0%,100%{transform:scaleY(.6);opacity:.52}50%{transform:scaleY(1.08);opacity:1}}
+
+        /* Button: make Start recruiter call feel like the core money action */
+        div[data-testid="stButton"] > button[kind="primary"],
+        div[data-testid="stButton"] > button[data-testid="baseButton-primary"]{
+            min-height:68px!important;border-radius:22px!important;font-size:1.16rem!important;font-weight:950!important;
+            background:linear-gradient(135deg,#0891b2,#2563eb,#1d4ed8)!important;
+            border:1px solid rgba(125,211,252,.38)!important;color:white!important;
+            box-shadow:0 18px 45px rgba(37,99,235,.34),0 0 26px rgba(34,211,238,.18)!important;
+            transition:transform .18s ease, box-shadow .18s ease, filter .18s ease!important;
+            animation:wz141cta 2.4s infinite ease-in-out;
+        }
+        div[data-testid="stButton"] > button[kind="primary"]:hover,
+        div[data-testid="stButton"] > button[data-testid="baseButton-primary"]:hover{
+            transform:translateY(-2px) scale(1.012)!important;
+            filter:brightness(1.08)!important;
+            box-shadow:0 24px 62px rgba(37,99,235,.48),0 0 34px rgba(34,211,238,.28)!important;
+        }
+        @keyframes wz141cta{0%,100%{box-shadow:0 18px 45px rgba(37,99,235,.30),0 0 20px rgba(34,211,238,.14)}50%{box-shadow:0 20px 56px rgba(37,99,235,.44),0 0 34px rgba(34,211,238,.26)}}
+
+        /* Quieter beta/disclaimer areas */
+        div:has(> .wz141-quiet-disclaimer){margin-top:.35rem!important;}
+        .wz141-quiet-disclaimer{border:1px solid rgba(148,163,184,.12);border-radius:16px;padding:.7rem .85rem;background:rgba(15,23,42,.28);color:#94a3b8;font-size:.83rem;line-height:1.42;}
+        .wz141-quiet-disclaimer b{color:#cbd5e1;font-weight:800;}
+        .wz-main-dashboard-card,.wz-command-hero{display:none!important;}
+
+        /* Floating Work-O-Bot: docked, small, non-intrusive */
+        .st-key-wz141_float_workobot{
+            position:fixed!important;right:18px!important;bottom:18px!important;z-index:999999!important;
+            width:62px!important;height:62px!important;padding:0!important;border-radius:999px!important;
+            background:linear-gradient(135deg,#0891b2,#2563eb)!important;
+            border:1px solid rgba(125,211,252,.48)!important;
+            box-shadow:0 16px 36px rgba(2,6,23,.42),0 0 28px rgba(34,211,238,.22)!important;
+            overflow:visible!important;
+        }
+        .st-key-wz141_float_workobot:after{content:"Ask Work-O-Bot";position:absolute;right:74px;top:15px;white-space:nowrap;background:rgba(15,23,42,.88);border:1px solid rgba(148,163,184,.20);color:#e0f2fe;border-radius:999px;padding:8px 12px;font-size:.78rem;font-weight:850;opacity:0;transform:translateX(8px);transition:all .18s ease;pointer-events:none;}
+        .st-key-wz141_float_workobot:hover:after{opacity:1;transform:translateX(0);}
+        .st-key-wz141_float_workobot div[data-testid="stButton"] > button{
+            width:62px!important;height:62px!important;min-height:62px!important;border-radius:999px!important;
+            padding:0!important;background:transparent!important;border:0!important;color:white!important;font-size:0!important;box-shadow:none!important;
+        }
+        .st-key-wz141_float_workobot div[data-testid="stButton"] > button:before{content:"🤖";font-size:27px;line-height:1;}
+        .wz75-bot-hint,.st-key-wz75_float_workobot{display:none!important;}
+
+        @media(max-width:900px){
+            .block-container{padding-top:.35rem!important;}
+            .wz141-call-grid{grid-template-columns:1fr;gap:14px;}
+            .wz141-call-shell{padding:19px 17px;border-radius:24px;}
+            .wz141-title{font-size:2.05rem;}
+            .wz141-live-panel{padding:14px;}
+            .st-key-wz141_float_workobot{right:13px!important;bottom:14px!important;width:54px!important;height:54px!important;}
+            .st-key-wz141_float_workobot div[data-testid="stButton"] > button{width:54px!important;height:54px!important;min-height:54px!important;}
+            .st-key-wz141_float_workobot div[data-testid="stButton"] > button:before{font-size:24px;}
+            .st-key-wz141_float_workobot:after{display:none;}
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz104_render_topbar(page_key='real_interview'):
+    """v141: compact top navigation with clearer interview utilities label."""
+    try:
+        _wz122_topbar_css(None) if callable(globals().get('_wz122_topbar_css')) else None
+    except Exception:
+        pass
+    try:
+        _wz141_apply_main_dashboard_experience_css()
+        logo_src = None
+        try:
+            logo_src = image_to_data_uri(ICON_PATH) or image_to_data_uri(LOGO_PATH)
+        except Exception:
+            logo_src = None
+        with st.container(key='wz104_topbar_shell_final'):
+            c_brand, c_space, c_tools, c_more = st.columns([2.4, 3.9, 2.25, .55], vertical_alignment='center')
+            with c_brand:
+                b_logo, b_text = st.columns([.52, 1.48], vertical_alignment='center')
+                with b_logo:
+                    if st.button(' ', key='wz122_logo_home', help='Go to Real Interview dashboard'):
+                        st.session_state['wz104_more_open'] = False
+                        _wz104_go_to_action('real_interview')
+                with b_text:
+                    st.markdown("""
+                    <div class='wz122-brand-wrap'>
+                      <div>
+                        <div class='wz122-brand-name'>WorkZo AI</div>
+                        <div class='wz122-brand-sub'>Real Interview Practice</div>
+                      </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            with c_space:
+                st.markdown("<div style='height:1px'></div>", unsafe_allow_html=True)
+            with c_tools:
+                with st.container(key='wz141_tools_anchor'):
+                    st.markdown("<div class='wz141-tools-label'>Interview utilities</div>", unsafe_allow_html=True)
+                    if hasattr(st, 'popover'):
+                        with st.popover('More interview tools', use_container_width=True):
+                            _wz106_render_tool_action_buttons('wz141_popover_action')
+                    else:
+                        with st.expander('More interview tools', expanded=False):
+                            with st.container(key='wz106_tools_fallback'):
+                                _wz106_render_tool_action_buttons('wz141_fallback_action')
+            with c_more:
+                if st.button('⋯', key='wz104_topbar_arrow', use_container_width=True, help='More'):
+                    st.session_state['wz104_more_open'] = not bool(st.session_state.get('wz104_more_open'))
+                    st.rerun()
+        if st.session_state.get('wz104_more_open'):
+            with st.container(key='wz104_topbar_more'):
+                if st.button('📊  Founder Dashboard', key='wz141_more_founder_dashboard', use_container_width=True):
+                    st.session_state['wz104_more_open'] = False
+                    _wz104_go_to_action('founder_dashboard')
+                if st.button('↩  Exit', key='wz141_more_exit', use_container_width=True):
+                    st.session_state['wz104_more_open'] = False
+                    _wz104_exit_to_onboarding()
+    except Exception:
+        pass
+
+
+def _wz104_render_call_screen_hero():
+    """v141: tighter, more alive recruiter-call dashboard hero."""
+    try:
+        _wz141_apply_main_dashboard_experience_css()
+    except Exception:
+        pass
+    try:
+        duration_min = int(st.session_state.get('wz104_interview_duration_min') or 30)
+    except Exception:
+        duration_min = 30
+    role = str(st.session_state.get('target_role') or st.session_state.get('real_interview_target_role') or '').strip()
+    company = str(st.session_state.get('target_company') or st.session_state.get('real_interview_company') or '').strip()
+    role_line = role or 'your target role'
+    company_line = f' at {company}' if company else ''
+    try:
+        st.markdown(f"""
+        <div class="wz141-call-shell">
+          <div class="wz141-call-grid">
+            <div>
+              <div class="wz141-live-row">
+                <span class="wz141-chip live">● Recruiter simulation</span>
+                <span class="wz141-chip">AI voice ready</span>
+                <span class="wz141-chip">Pressure mode</span>
+              </div>
+              <h1 class="wz141-title">Practice like a real recruiter call</h1>
+              <p class="wz141-sub">WorkZo uses your CV and job description to ask role-specific questions, follow-ups, and pressure-style prompts for {html.escape(role_line)}{html.escape(company_line)}.</p>
+            </div>
+            <div class="wz141-live-panel">
+              <div class="wz141-muted">Interview countdown</div>
+              <div class="wz141-countdown">{duration_min:02d}:00</div>
+              <div class="wz141-muted">Recruiter pressure level</div>
+              <div class="wz141-pressure"><span></span></div>
+              <div class="wz141-status"><span class="wz141-dot"></span> Recruiter preparing follow-up questions <span class="wz141-typing"><i></i><i></i><i></i></span></div>
+              <div class="wz141-question-preview">Preview: “Give me one measurable result from your last role.”</div>
+              <div class="wz141-voice-bars" aria-label="AI voice visualizer"><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz71_floating_workobot():
+    """v141: Small non-intrusive Work-O-Bot launcher."""
+    try:
+        _wz141_apply_main_dashboard_experience_css()
+        with st.container(key='wz141_float_workobot'):
+            if st.button('Ask Work-O-Bot', key='wz141_open_workobot_float', use_container_width=True, help='Ask Work-O-Bot'):
+                current_page = str(st.session_state.get('nav_page') or st.session_state.get('page') or 'real_interview')
+                if current_page != 'workobot':
+                    st.session_state['wz110_workobot_source_page'] = current_page
+                st.session_state['wz75_workobot_open'] = False
+                st.session_state['onboarding_complete'] = True
+                st.session_state['_wz_force_page'] = 'workobot'
+                st.session_state['page'] = 'workobot'
+                st.session_state['nav_page'] = 'workobot'
+                try:
+                    st.query_params['page'] = 'workobot'
+                except Exception:
+                    pass
+                try:
+                    request_scroll_to_top()
+                except Exception:
+                    pass
+                st.rerun()
+    except Exception:
+        pass
+
+
+# Quiet footer disclaimer if called from dashboard wrapper.
+def _wz141_render_quiet_beta_notice():
+    try:
+        st.markdown("""
+        <div class="wz141-quiet-disclaimer"><b>Beta:</b> WorkZo AI is improving. Review AI suggestions before using them. We do not store your personal CV data.</div>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+# Apply CSS immediately when module loads.
 try:
-    st.markdown("""
-    <style id="workzo-v124-global-cta-polish">
-    /* Slightly larger main landing CTA without changing app logic */
-    div[data-testid="stButton"] > button:has(span:contains("Let's Begin")),
-    div[data-testid="stButton"] > button:has(span:contains("Let’s Begin")),
-    div[data-testid="stButton"] > button:has(span:contains("Begin Now")) {
-        min-height: 62px !important;
-        font-size: 1.08rem !important;
-        font-weight: 900 !important;
-        border-radius: 18px !important;
-        padding: .9rem 1.45rem !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    _wz141_apply_main_dashboard_experience_css()
 except Exception:
     pass
 
 
-def _wz124_toolbox_items():
-    return [
-        {'icon': '✨', 'title': 'Improve CV', 'desc': 'Tailor your CV for this job.', 'action': 'Improve CV'},
-        {'icon': '📝', 'title': 'Cover letter', 'desc': 'Create a job-specific letter.', 'action': 'Cover Letter Generator'},
-        {'icon': '🔎', 'title': 'Find jobs', 'desc': 'Search matching roles.', 'action': 'Find Job'},
-        {'icon': '🧩', 'title': 'Understand job', 'desc': 'Check fit and gaps.', 'action': 'Understand Job'},
-        {'icon': '🎯', 'title': 'Prepare job', 'desc': 'Plan CV, letter, and interview.', 'action': 'Prepare for a Job'},
-    ]
-
-
-def _wz106_render_tool_action_buttons(prefix='wz124_tools'):
-    """v124: polished compact toolbox. Keeps existing routing helper unchanged."""
+# =========================================================
+# WorkZo v142 - route Work-O-Bot/interview aliases to the real interview page
+# Fixes cases where onboarding or stale state opens the generic Work-O-Bot assistant
+# instead of the real interview setup/simulation page.
+# =========================================================
+def _wz142_force_real_interview_route():
     try:
-        st.markdown("""
-        <style id="workzo-v124-toolbox-polish">
-
-        /* v126 compact toolbox dropdown */
-        div[data-testid="stPopoverBody"]{
-            width: min(360px, calc(100vw - 2rem)) !important;
-            max-width: min(360px, calc(100vw - 2rem)) !important;
-            padding: .85rem !important;
-            border-radius: 20px !important;
-            background: rgba(2,6,23,.96) !important;
-            border: 1px solid rgba(148,163,184,.18) !important;
-            box-shadow: 0 18px 46px rgba(2,6,23,.42) !important;
-        }
-        div[data-testid="stPopoverBody"] .wz124-toolbox-title{
-            font-size: .96rem !important;
-            margin-bottom: .18rem !important;
-        }
-        div[data-testid="stPopoverBody"] .wz124-toolbox-sub{
-            font-size: .78rem !important;
-            margin-bottom: .65rem !important;
-            line-height: 1.25 !important;
-        }
-        div[data-testid="stPopoverBody"] div[data-testid="stButton"] > button{
-            min-height: 46px !important;
-            max-width: 250px !important;
-            width: fit-content !important;
-            border-radius: 14px !important;
-            padding: .48rem .68rem !important;
-            font-size: .88rem !important;
-            line-height: 1.18 !important;
-            margin-bottom: .35rem !important;
-            box-shadow: none !important;
-        }
-        .wz124-toolbox-title{
-            font-size:1.05rem;font-weight:950;color:#f8fafc;margin:0 0 .25rem;
-            letter-spacing:-.01em;
-        }
-        .wz124-toolbox-sub{
-            color:#94a3b8;font-size:.86rem;line-height:1.35;margin:0 0 .9rem;
-        }
-        .st-key-wz104_more_popover div[data-testid="stButton"] > button,
-        .st-key-wz104_more_expander div[data-testid="stButton"] > button,
-        div[data-testid="stPopoverBody"] div[data-testid="stButton"] > button{
-            min-height:58px!important;
-            border-radius:18px!important;
-            padding:.7rem .85rem!important;
-            background:linear-gradient(135deg,rgba(15,23,42,.96),rgba(30,41,59,.9))!important;
-            border:1px solid rgba(148,163,184,.18)!important;
-            color:#f8fafc!important;
-            font-weight:850!important;
-            text-align:left!important;
-            box-shadow:0 10px 26px rgba(2,6,23,.22)!important;
-            white-space:pre-line!important;
-            line-height:1.25!important;
-        }
-        .st-key-wz104_more_popover div[data-testid="stButton"] > button:hover,
-        .st-key-wz104_more_expander div[data-testid="stButton"] > button:hover,
-        div[data-testid="stPopoverBody"] div[data-testid="stButton"] > button:hover{
-            transform:translateY(-1px)!important;
-            border-color:rgba(34,211,238,.5)!important;
-            background:linear-gradient(135deg,rgba(8,47,73,.96),rgba(30,64,175,.62))!important;
-            box-shadow:0 14px 30px rgba(6,182,212,.16)!important;
-        }
-        </style>
-        <div class='wz124-toolbox-title'>Choose your next step</div>
-        <div class='wz124-toolbox-sub'>Use your CV, job description, role, and company context automatically.</div>
-        """, unsafe_allow_html=True)
-    except Exception:
-        pass
-    for idx, item in enumerate(_wz124_toolbox_items()):
-        label = f"{item['icon']}  {item['title']}\n{item['desc']}"
-        if st.button(label, key=f'{prefix}_{idx}', use_container_width=True):
+        raw_page = str(st.session_state.get('_wz_force_page') or st.session_state.get('nav_page') or st.session_state.get('page') or '').strip().lower()
+        query_page = ''
+        try:
+            query_page = st.query_params.get('page', '')
+            if isinstance(query_page, (list, tuple)):
+                query_page = query_page[0] if query_page else ''
+            query_page = str(query_page or '').strip().lower()
+        except Exception:
+            query_page = ''
+        # Old builds used workobot for interview practice. The current product direction is Real Interview.
+        if raw_page in {'workobot', 'work-o-bot', 'work_o_bot', 'bot', 'interview'} or query_page in {'workobot', 'work-o-bot', 'work_o_bot', 'bot', 'interview'}:
+            st.session_state['page'] = 'real_interview'
+            st.session_state['nav_page'] = 'real_interview'
+            st.session_state['_wz_force_page'] = 'real_interview'
+            st.session_state.pop('workobot_mode', None)
+            st.session_state.pop('_wz_force_workobot', None)
+            st.session_state.pop('_wz_allow_workobot_route', None)
             try:
-                if callable(globals().get('_wz119_track_event')):
-                    _wz119_track_event('toolbox_action', item['title'], {'source': 'topbar_toolbox_v124'})
+                st.query_params['page'] = 'real_interview'
             except Exception:
                 pass
-            st.session_state['wz104_more_open'] = False
-            _wz104_go_to_action(item['action'])
+    except Exception:
+        pass
+
+try:
+    if callable(globals().get('show_dashboard')) and not globals().get('_wz142_show_dashboard_route_wrapped'):
+        _wz142_previous_show_dashboard = show_dashboard
+        def show_dashboard():
+            _wz142_force_real_interview_route()
+            return _wz142_previous_show_dashboard()
+        globals()['_wz142_show_dashboard_route_wrapped'] = True
+except Exception:
+    pass
 
 
-def _wz124_apply_clean_workobot_css():
+# =========================================================
+# WorkZo v143 - Safe dashboard routing
+# Prevents stale ?page=real_interview/workobot from bypassing landing/onboarding on fresh app open.
+# Keeps real_interview available after onboarding is complete.
+# =========================================================
+def _wz143_has_user_started_workzo():
+    try:
+        has_cv = bool(str(st.session_state.get('cv_text') or st.session_state.get('workzo_live_cv_text') or st.session_state.get('clean_structured_cv_text') or '').strip())
+        return bool(st.session_state.get('onboarding_complete') or has_cv or st.session_state.get('wz_ri_started'))
+    except Exception:
+        return False
+
+# Replace the earlier aggressive route-forcer with a guarded version.
+def _wz142_force_real_interview_route():
+    try:
+        if not _wz143_has_user_started_workzo():
+            # Fresh user must see landing/onboarding, not dashboard or Work-O-Bot.
+            st.session_state['page'] = 'landing'
+            st.session_state['nav_page'] = 'landing'
+            st.session_state.pop('_wz_force_page', None)
+            st.session_state.pop('workobot_mode', None)
+            try:
+                st.query_params['page'] = 'landing'
+            except Exception:
+                pass
+            return
+
+        raw_page = str(st.session_state.get('_wz_force_page') or st.session_state.get('nav_page') or st.session_state.get('page') or '').strip().lower()
+        query_page = ''
+        try:
+            query_page = st.query_params.get('page', '')
+            if isinstance(query_page, (list, tuple)):
+                query_page = query_page[0] if query_page else ''
+            query_page = str(query_page or '').strip().lower()
+        except Exception:
+            query_page = ''
+
+        # Only redirect old Work-O-Bot aliases after the user has actually started/onboarded.
+        if raw_page in {'workobot', 'work-o-bot', 'work_o_bot', 'bot', 'interview'} or query_page in {'workobot', 'work-o-bot', 'work_o_bot', 'bot', 'interview'}:
+            st.session_state['page'] = 'real_interview'
+            st.session_state['nav_page'] = 'real_interview'
+            st.session_state['_wz_force_page'] = 'real_interview'
+            for _k in ['workobot_mode','_wz_force_workobot','_wz_allow_workobot_route']:
+                st.session_state.pop(_k, None)
+            try:
+                st.query_params['page'] = 'real_interview'
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
+# =========================================================
+# WorkZo v144 - Interview dashboard visual fix
+# Purpose:
+# - Make the main dashboard visibly different from v141/v143.
+# - Remove the isolated large logo strip feeling.
+# - Tighten dead vertical space between header, hero, and setup form.
+# - Make AI voice / recruiter ready state feel alive.
+# - Make the primary CTA feel like entering an interview room.
+# =========================================================
+
+def _wz144_apply_interview_dashboard_css():
     try:
         st.markdown("""
-        <style id="workzo-v124-clean-workobot-css">
-        .wz124-bot-shell{max-width:980px;margin:0 auto 2rem;}
-        .wz124-brand-card{
-            display:flex;align-items:center;gap:1rem;
-            border:1px solid rgba(148,163,184,.20);
-            background:linear-gradient(135deg,rgba(15,23,42,.84),rgba(8,47,73,.32));
-            border-radius:28px;padding:1.25rem 1.35rem;margin:.25rem 0 1rem;
-            box-shadow:0 18px 48px rgba(2,6,23,.24);
+        <style id="workzo-v144-interview-dashboard-final-css">
+        .block-container{
+            padding-top:.25rem!important;
+            padding-bottom:1.1rem!important;
+            max-width:1160px!important;
         }
-        .wz124-logo{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(135deg,#06b6d4,#2563eb);font-size:1.7rem;box-shadow:0 12px 30px rgba(6,182,212,.22);}
-        .wz124-brand-title{font-size:1.25rem;font-weight:950;color:#f8fafc;line-height:1.1;}
-        .wz124-brand-sub{font-size:.88rem;color:#93c5fd;font-weight:850;margin-top:.2rem;}
-        .wz124-hero{
-            text-align:center;border:1px solid rgba(34,211,238,.18);
-            background:radial-gradient(circle at top,rgba(6,182,212,.16),transparent 38%),rgba(15,23,42,.52);
-            border-radius:30px;padding:2.1rem 1.2rem 1.45rem;margin:1rem 0;
+        [data-testid="stVerticalBlock"]{gap:.46rem!important;}
+        hr{margin:.55rem 0!important;border-color:rgba(148,163,184,.18)!important;}
+
+        /* Make the old topbar a compact utility strip, not a floating brand section */
+        .st-key-wz104_topbar_shell_final,
+        .st-key-wz104_topbar_shell{
+            margin:.05rem 0 .28rem 0!important;
+            padding:.28rem .35rem!important;
+            min-height:42px!important;
+            background:transparent!important;
+            border:0!important;
+            box-shadow:none!important;
         }
-        .wz124-orb{width:70px;height:70px;border-radius:24px;margin:0 auto .85rem;display:grid;place-items:center;background:linear-gradient(135deg,rgba(20,184,166,.95),rgba(37,99,235,.95));font-size:2rem;box-shadow:0 18px 40px rgba(37,99,235,.25);}
-        .wz124-title{font-size:clamp(1.65rem,3vw,2.35rem);font-weight:950;color:#f8fafc;letter-spacing:-.04em;margin-bottom:.45rem;}
-        .wz124-sub{max-width:720px;margin:0 auto;color:#cbd5e1;font-size:1rem;line-height:1.55;}
-        .wz124-context{border:1px solid rgba(96,165,250,.20);background:rgba(30,64,175,.16);border-radius:20px;padding:.9rem 1rem;margin:1rem 0;color:#dbeafe;}
-        .wz124-input-card{border:1px solid rgba(148,163,184,.18);background:rgba(15,23,42,.72);border-radius:26px;padding:.8rem;box-shadow:0 14px 38px rgba(2,6,23,.22);margin:1rem 0;}
-        .wz124-tip{color:#93c5fd;background:rgba(30,64,175,.20);border:1px solid rgba(96,165,250,.20);border-radius:16px;padding:.8rem .95rem;font-size:.92rem;margin:.85rem 0;}
-        .wz124-conv-title{color:#f8fafc;font-weight:950;margin:1.2rem 0 .65rem;font-size:1rem;}
-        .wz124-chat-row{display:flex;gap:.75rem;margin:.8rem 0;align-items:flex-start;}
-        .wz124-chat-row.user{justify-content:flex-end;}
-        .wz124-avatar{width:36px;height:36px;border-radius:14px;display:grid;place-items:center;flex:0 0 auto;background:rgba(15,23,42,.78);border:1px solid rgba(148,163,184,.20);}
-        .wz124-bubble{max-width:min(760px,82vw);border:1px solid rgba(148,163,184,.18);border-radius:22px;padding:.85rem 1rem;color:#f8fafc;line-height:1.55;white-space:pre-wrap;box-shadow:0 10px 30px rgba(2,6,23,.18);}
-        .wz124-bubble.user{background:rgba(30,64,175,.30);border-color:rgba(96,165,250,.33);border-top-right-radius:8px;}
-        .wz124-bubble.bot{background:rgba(8,47,73,.38);border-color:rgba(20,184,166,.28);border-top-left-radius:8px;}
-        .wz124-speaker{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:#93c5fd;font-weight:950;margin-bottom:.24rem;}
-        @media(max-width:780px){.wz124-brand-card{border-radius:22px;padding:1rem}.wz124-hero{padding:1.35rem .8rem}.wz124-bubble{max-width:calc(100vw - 5.8rem);font-size:.94rem;}}
+        .st-key-wz104_topbar_shell_final .wz122-brand-wrap,
+        .st-key-wz104_topbar_shell_final .wz106-brand-wrap,
+        .st-key-wz104_topbar_shell .wz122-brand-wrap,
+        .st-key-wz104_topbar_shell .wz106-brand-wrap,
+        .st-key-wz122_logo_home,
+        .st-key-wz106_logo_home{
+            display:none!important;
+        }
+        .wz141-tools-label{
+            font-size:.66rem!important;
+            color:#7dd3fc!important;
+            margin-bottom:.08rem!important;
+            letter-spacing:.08em!important;
+        }
+        .st-key-wz141_tools_anchor div[data-testid="stPopover"] button,
+        .st-key-wz141_tools_anchor div[data-testid="stExpander"] summary{
+            min-height:40px!important;
+            border-radius:16px!important;
+            font-size:.88rem!important;
+            background:rgba(15,23,42,.42)!important;
+        }
+
+        /* New integrated hero */
+        .wz141-call-shell{
+            margin:.10rem 0 .45rem 0!important;
+            padding:18px 22px!important;
+            border-radius:24px!important;
+            background:
+              radial-gradient(circle at 10% 0%,rgba(34,211,238,.22),transparent 33%),
+              radial-gradient(circle at 88% 18%,rgba(37,99,235,.18),transparent 36%),
+              linear-gradient(135deg,rgba(8,47,73,.90),rgba(2,6,23,.96))!important;
+        }
+        .wz144-brand-mini{
+            display:flex;align-items:center;gap:10px;margin-bottom:12px;
+        }
+        .wz144-logo-dot{
+            width:34px;height:34px;border-radius:12px;
+            background:linear-gradient(135deg,rgba(34,211,238,.30),rgba(37,99,235,.20));
+            border:1px solid rgba(34,211,238,.55);
+            box-shadow:0 0 22px rgba(34,211,238,.18);
+            position:relative;flex:0 0 auto;
+        }
+        .wz144-logo-dot:after{
+            content:"WZ";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+            font-size:.62rem;font-weight:950;color:#e0f2fe;letter-spacing:-.03em;
+        }
+        .wz144-brand-name{font-weight:950;color:#fff;font-size:.98rem;line-height:1.05;}
+        .wz144-brand-sub{font-weight:850;color:#93c5fd;font-size:.72rem;line-height:1.1;margin-top:2px;}
+        .wz141-call-grid{gap:18px!important;align-items:center!important;}
+        .wz141-live-row{margin-bottom:9px!important;}
+        .wz141-title{
+            font-size:2.28rem!important;
+            line-height:1.02!important;
+            margin:0 0 8px 0!important;
+        }
+        .wz141-sub{font-size:.96rem!important;line-height:1.42!important;margin-bottom:0!important;}
+        .wz141-chip{padding:6px 10px!important;font-size:.76rem!important;}
+        .wz141-chip.voice{
+            border-color:rgba(34,211,238,.70)!important;
+            color:#cffafe!important;
+            background:rgba(8,145,178,.20)!important;
+            box-shadow:0 0 0 0 rgba(34,211,238,.45);
+            animation:wz144VoiceGlow 1.7s infinite ease-in-out;
+        }
+        .wz141-chip.voice:before{content:"🎙 ";}
+        @keyframes wz144VoiceGlow{
+            0%,100%{box-shadow:0 0 0 0 rgba(34,211,238,.20);filter:brightness(1)}
+            50%{box-shadow:0 0 24px 2px rgba(34,211,238,.30);filter:brightness(1.12)}
+        }
+        .wz141-live-panel{padding:14px!important;border-radius:21px!important;}
+        .wz141-countdown{font-size:1.82rem!important;margin-bottom:7px!important;}
+        .wz141-question-preview{font-size:.86rem!important;margin-top:10px!important;}
+        .wz141-voice-bars{height:26px!important;margin-top:8px!important;}
+
+        /* Form: tighter vertical rhythm */
+        div[data-testid="stTextInput"]{margin-bottom:.25rem!important;}
+        div[data-testid="stTextArea"]{margin-bottom:.25rem!important;}
+        div[data-testid="stSelectbox"]{margin-bottom:.25rem!important;}
+        div[data-testid="stExpander"]{margin:.22rem 0 .35rem 0!important;}
+        div[data-testid="stExpander"] details{border-radius:14px!important;}
+
+        /* Signature CTA */
+        div[data-testid="stButton"] > button[kind="primary"],
+        div[data-testid="stButton"] > button[data-testid="baseButton-primary"]{
+            min-height:62px!important;
+            border-radius:999px!important;
+            font-size:1.02rem!important;
+            letter-spacing:-.01em!important;
+            background:linear-gradient(135deg,#06b6d4,#2563eb,#4f46e5)!important;
+            border:1px solid rgba(125,211,252,.52)!important;
+            box-shadow:0 16px 42px rgba(37,99,235,.34),0 0 24px rgba(34,211,238,.18)!important;
+            animation:wz144CtaBreath 2.1s infinite ease-in-out!important;
+        }
+        div[data-testid="stButton"] > button[kind="primary"]:hover,
+        div[data-testid="stButton"] > button[data-testid="baseButton-primary"]:hover{
+            transform:translateY(-2px) scale(1.015)!important;
+            box-shadow:0 22px 58px rgba(37,99,235,.48),0 0 38px rgba(34,211,238,.30)!important;
+        }
+        @keyframes wz144CtaBreath{
+            0%,100%{filter:brightness(1);box-shadow:0 16px 42px rgba(37,99,235,.30),0 0 20px rgba(34,211,238,.16)}
+            50%{filter:brightness(1.08);box-shadow:0 20px 54px rgba(37,99,235,.44),0 0 34px rgba(34,211,238,.28)}
+        }
+
+        /* Work-O-Bot chip should not cover content */
+        .st-key-wz141_float_workobot{transform:scale(.88)!important;right:14px!important;bottom:14px!important;}
+
+        @media(max-width:900px){
+            .block-container{padding-top:.12rem!important;}
+            .st-key-wz104_topbar_shell_final,.st-key-wz104_topbar_shell{padding:.12rem 0!important;}
+            .wz141-call-shell{padding:16px 15px!important;border-radius:22px!important;margin:.05rem 0 .35rem 0!important;}
+            .wz141-title{font-size:1.86rem!important;}
+            .wz144-brand-mini{margin-bottom:10px;}
+            .wz141-call-grid{grid-template-columns:1fr!important;gap:12px!important;}
+            div[data-testid="stButton"] > button[kind="primary"],
+            div[data-testid="stButton"] > button[data-testid="baseButton-primary"]{min-height:56px!important;font-size:.96rem!important;}
+        }
         </style>
         """, unsafe_allow_html=True)
     except Exception:
         pass
 
-
-def _wz110_render_workobot_chat(compact: bool = False):
-    """v124: clean Work-O-Bot. Removes old shortcut grid/buttons and keeps only one back button."""
+# Override topbar: keep only utilities on the interview page; brand now lives inside hero.
+def _wz104_render_topbar(page_key='real_interview'):
     try:
-        _wz110_apply_workobot_css()
+        _wz144_apply_interview_dashboard_css()
     except Exception:
         pass
-    _wz124_apply_clean_workobot_css()
-    ctx = {}
     try:
-        ctx = _wz110_get_current_interview_context()
+        if str(page_key) == 'real_interview':
+            with st.container(key='wz104_topbar_shell_final'):
+                c_space, c_tools, c_more = st.columns([6.0, 2.1, .45], vertical_alignment='center')
+                with c_space:
+                    st.markdown("<div style='height:1px'></div>", unsafe_allow_html=True)
+                with c_tools:
+                    with st.container(key='wz141_tools_anchor'):
+                        st.markdown("<div class='wz141-tools-label'>Interview utilities</div>", unsafe_allow_html=True)
+                        if hasattr(st, 'popover'):
+                            with st.popover('More interview tools', use_container_width=True):
+                                _wz106_render_tool_action_buttons('wz144_popover_action')
+                        else:
+                            with st.expander('More interview tools', expanded=False):
+                                _wz106_render_tool_action_buttons('wz144_fallback_action')
+                with c_more:
+                    if st.button('⋯', key='wz104_topbar_arrow', use_container_width=True, help='More'):
+                        st.session_state['wz104_more_open'] = not bool(st.session_state.get('wz104_more_open'))
+                        st.rerun()
+            if st.session_state.get('wz104_more_open'):
+                with st.container(key='wz104_topbar_more'):
+                    if st.button('📊  Founder Dashboard', key='wz144_more_founder_dashboard', use_container_width=True):
+                        st.session_state['wz104_more_open'] = False
+                        _wz104_go_to_action('founder_dashboard')
+                    if st.button('↩  Exit', key='wz144_more_exit', use_container_width=True):
+                        st.session_state['wz104_more_open'] = False
+                        _wz104_exit_to_onboarding()
+            return
+        # non-interview pages keep a very small fallback
+        st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
     except Exception:
-        ctx = {}
-    live_question = bool(ctx.get('current_question'))
+        pass
 
-    if 'wz110_workobot_messages' not in st.session_state:
-        st.session_state['wz110_workobot_messages'] = []
-
-    if compact:
-        st.markdown("""
-        <div class='wz124-context'>
-          <b>Career assistant</b><br>
-          Ask about your CV, cover letter, job search, recruiter messages, or interview preparation.
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("<div class='wz124-bot-shell'>", unsafe_allow_html=True)
-        if st.button('← Back to previous page', key='wz124_bot_back_prev', use_container_width=False):
-            previous = str(st.session_state.get('wz110_workobot_source_page') or 'real_interview')
-            st.session_state['wz75_workobot_open'] = False
-            _wz104_go_to_action(previous)
-        st.markdown("""
-        <div class='wz124-brand-card'>
-          <div class='wz124-logo'>↻</div>
-          <div>
-            <div class='wz124-brand-title'>WorkZo AI</div>
-            <div class='wz124-brand-sub'>Real Interview Practice</div>
+# Override hero: integrated brand + active voice chip.
+def _wz104_render_call_screen_hero():
+    try:
+        _wz144_apply_interview_dashboard_css()
+    except Exception:
+        pass
+    try:
+        duration_min = int(st.session_state.get('wz104_interview_duration_min') or 30)
+    except Exception:
+        duration_min = 30
+    role = str(st.session_state.get('target_role') or st.session_state.get('real_interview_target_role') or '').strip()
+    company = str(st.session_state.get('target_company') or st.session_state.get('real_interview_company') or '').strip()
+    role_line = role or 'your target role'
+    company_line = f' at {company}' if company else ''
+    try:
+        st.markdown(f"""
+        <div class="wz141-call-shell">
+          <div class="wz141-call-grid">
+            <div>
+              <div class="wz144-brand-mini">
+                <div class="wz144-logo-dot"></div>
+                <div>
+                  <div class="wz144-brand-name">WorkZo AI</div>
+                  <div class="wz144-brand-sub">Real Interview Practice</div>
+                </div>
+              </div>
+              <div class="wz141-live-row">
+                <span class="wz141-chip live">● Recruiter simulation</span>
+                <span class="wz141-chip voice">AI voice ready</span>
+                <span class="wz141-chip">Pressure mode</span>
+              </div>
+              <h1 class="wz141-title">Practice like a real recruiter call</h1>
+              <p class="wz141-sub">WorkZo uses your CV and job description to ask role-specific questions, smart follow-ups, and pressure-style prompts for {html.escape(role_line)}{html.escape(company_line)}.</p>
+            </div>
+            <div class="wz141-live-panel">
+              <div class="wz141-muted">Interview countdown</div>
+              <div class="wz141-countdown">{duration_min:02d}:00</div>
+              <div class="wz141-muted">Recruiter pressure level</div>
+              <div class="wz141-pressure"><span></span></div>
+              <div class="wz141-status"><span class="wz141-dot"></span> Recruiter preparing follow-up questions <span class="wz141-typing"><i></i><i></i><i></i></span></div>
+              <div class="wz141-question-preview">Preview: “Give me one measurable result from your last role.”</div>
+              <div class="wz141-voice-bars" aria-label="AI voice visualizer"><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
           </div>
         </div>
-        <div class='wz124-hero'>
-          <div class='wz124-orb'>🤖</div>
-          <div class='wz124-title'>Ask Work-O-Bot</div>
-          <div class='wz124-sub'>Ask one clear career question. Work-O-Bot can help with your CV, cover letter, job search, recruiter messages, interview answers, or professional wording.</div>
-        </div>
         """, unsafe_allow_html=True)
-
-    try:
-        _wz110_render_context_badge(ctx)
     except Exception:
         pass
 
-    pending = st.session_state.pop('wz110_pending_user_message', '')
-    placeholder = "Ask anything career-related…" if not live_question else "Ask about this interview question, or any career topic…"
-    with st.container():
-        st.markdown("<div class='wz124-input-card'>", unsafe_allow_html=True)
-        with st.form(key=f"wz124_workobot_form_{'compact' if compact else 'page'}", clear_on_submit=True):
-            user_msg = st.text_area(
-                "Ask Work-O-Bot",
-                value=pending,
-                placeholder=placeholder,
-                height=72 if compact else 96,
-                label_visibility='collapsed',
-                key=f"wz124_workobot_input_{'compact' if compact else 'page'}",
+try:
+    _wz144_apply_interview_dashboard_css()
+except Exception:
+    pass
+
+
+# =========================================================
+# WorkZo v145 - Final live-interview immersion polish
+# Purpose:
+# - Remove remaining dead vertical space above the hero.
+# - Overlay interview utilities into the hero top-right instead of a detached row.
+# - Expand recruiter personality choices for replayability.
+# - Add live-state / reactive recruiter feeling and sound-cue thinking.
+# =========================================================
+
+def _wz145_apply_interview_immersion_css():
+    try:
+        st.markdown("""
+        <style id="workzo-v145-interview-immersion-css">
+        .block-container{
+            padding-top:.10rem!important;
+            padding-bottom:.85rem!important;
+            max-width:1160px!important;
+        }
+        [data-testid="stVerticalBlock"]{gap:.32rem!important;}
+        hr{margin:.38rem 0!important;}
+
+        /* The utilities are now a zero-height overlay, not a separate floating row. */
+        .st-key-wz104_topbar_shell_final,
+        .st-key-wz104_topbar_shell{
+            height:0!important;
+            min-height:0!important;
+            margin:0!important;
+            padding:0!important;
+            border:0!important;
+            background:transparent!important;
+            box-shadow:none!important;
+            overflow:visible!important;
+            position:relative!important;
+            z-index:50!important;
+        }
+        .st-key-wz104_topbar_shell_final > div,
+        .st-key-wz104_topbar_shell > div{
+            height:0!important;
+            min-height:0!important;
+            overflow:visible!important;
+        }
+        .st-key-wz141_tools_anchor{
+            position:absolute!important;
+            right:58px!important;
+            top:20px!important;
+            width:250px!important;
+            z-index:70!important;
+        }
+        .st-key-wz104_topbar_arrow{
+            position:absolute!important;
+            right:8px!important;
+            top:20px!important;
+            width:46px!important;
+            z-index:72!important;
+        }
+        .wz141-tools-label{
+            font-size:.62rem!important;
+            letter-spacing:.12em!important;
+            text-transform:uppercase!important;
+            color:#a5b4fc!important;
+            margin:0 0 .12rem 0!important;
+            line-height:1!important;
+        }
+        .st-key-wz141_tools_anchor div[data-testid="stPopover"] button,
+        .st-key-wz141_tools_anchor div[data-testid="stExpander"] summary{
+            min-height:38px!important;
+            border-radius:999px!important;
+            font-size:.82rem!important;
+            background:rgba(15,23,42,.38)!important;
+            border:1px solid rgba(125,211,252,.25)!important;
+            backdrop-filter:blur(14px)!important;
+            box-shadow:0 10px 28px rgba(2,6,23,.16)!important;
+        }
+        .st-key-wz104_topbar_arrow button{
+            min-height:42px!important;
+            height:42px!important;
+            border-radius:14px!important;
+            background:rgba(15,23,42,.42)!important;
+            border:1px solid rgba(125,211,252,.22)!important;
+            backdrop-filter:blur(14px)!important;
+        }
+
+        /* Tightened hero rhythm */
+        .wz141-call-shell{
+            margin:0 0 .28rem 0!important;
+            padding:16px 20px 15px 20px!important;
+            border-radius:23px!important;
+            position:relative!important;
+            overflow:hidden!important;
+        }
+        .wz141-call-shell:before{
+            content:"";
+            position:absolute;
+            inset:0;
+            pointer-events:none;
+            background:linear-gradient(90deg,transparent,rgba(34,211,238,.055),transparent);
+            transform:translateX(-100%);
+            animation:wz145Scan 5.5s infinite ease-in-out;
+        }
+        @keyframes wz145Scan{0%,72%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+        .wz144-brand-mini{margin-bottom:9px!important;}
+        .wz141-live-row{margin-bottom:7px!important;}
+        .wz141-title{
+            font-size:2.18rem!important;
+            line-height:1.02!important;
+            margin:0 0 7px 0!important;
+            letter-spacing:-.045em!important;
+        }
+        .wz141-sub{font-size:.94rem!important;line-height:1.38!important;max-width:720px!important;}
+        .wz141-call-grid{gap:15px!important;align-items:center!important;}
+        .wz141-live-panel{padding:13px!important;border-radius:20px!important;}
+        .wz141-countdown{font-size:1.72rem!important;margin:4px 0 6px!important;}
+        .wz141-question-preview{margin-top:8px!important;padding:10px 12px!important;font-size:.84rem!important;}
+        .wz141-voice-bars i{animation-duration:1.1s!important;}
+
+        .wz145-reactive-strip{
+            display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;
+        }
+        .wz145-state-pill{
+            display:inline-flex;align-items:center;gap:6px;
+            border:1px solid rgba(148,163,184,.18);
+            background:rgba(15,23,42,.38);
+            color:#cbd5e1;
+            border-radius:999px;
+            padding:6px 9px;
+            font-size:.72rem;
+            font-weight:850;
+        }
+        .wz145-state-pill.live{
+            color:#cffafe;border-color:rgba(34,211,238,.36);background:rgba(8,145,178,.18);
+        }
+        .wz145-pulse-dot{
+            width:7px;height:7px;border-radius:999px;background:#22d3ee;
+            box-shadow:0 0 14px rgba(34,211,238,.9);
+            animation:wz145Dot 1.15s infinite ease-in-out;
+        }
+        @keyframes wz145Dot{0%,100%{opacity:.45;transform:scale(.75)}50%{opacity:1;transform:scale(1.18)}}
+
+        /* Tighter form + setup */
+        div[data-testid="stExpander"]{margin:.16rem 0 .26rem 0!important;}
+        div[data-testid="stTextInput"],div[data-testid="stTextArea"],div[data-testid="stSelectbox"]{margin-bottom:.14rem!important;}
+        .st-key-wz145_personality_setup{
+            margin:.05rem 0 .32rem 0!important;
+        }
+        .st-key-wz145_personality_setup [data-testid="stExpander"] details{
+            background:rgba(15,23,42,.38)!important;
+            border-color:rgba(125,211,252,.20)!important;
+        }
+
+        /* CTA feels like entering the interview room. */
+        div[data-testid="stButton"] > button[kind="primary"],
+        div[data-testid="stButton"] > button[data-testid="baseButton-primary"]{
+            min-height:60px!important;
+            border-radius:999px!important;
+            position:relative!important;
+            overflow:hidden!important;
+        }
+        div[data-testid="stButton"] > button[kind="primary"]:before,
+        div[data-testid="stButton"] > button[data-testid="baseButton-primary"]:before{
+            content:"";position:absolute;left:-40%;top:0;width:35%;height:100%;
+            background:linear-gradient(90deg,transparent,rgba(255,255,255,.24),transparent);
+            transform:skewX(-18deg);
+            animation:wz145CtaSweep 3.2s infinite ease-in-out;
+        }
+        @keyframes wz145CtaSweep{0%,55%{left:-45%}100%{left:120%}}
+
+        @media(max-width:900px){
+            .block-container{padding-top:.05rem!important;}
+            .st-key-wz141_tools_anchor{position:static!important;width:100%!important;margin:0 0 .18rem 0!important;}
+            .st-key-wz104_topbar_arrow{position:absolute!important;right:0!important;top:0!important;transform:scale(.82)!important;}
+            .st-key-wz104_topbar_shell_final,.st-key-wz104_topbar_shell{height:auto!important;min-height:0!important;margin:0 0 .12rem 0!important;}
+            .st-key-wz104_topbar_shell_final > div,.st-key-wz104_topbar_shell > div{height:auto!important;}
+            .wz141-call-shell{padding:15px 14px!important;margin:0 0 .22rem 0!important;}
+            .wz141-title{font-size:1.76rem!important;}
+            .wz141-sub{font-size:.9rem!important;}
+            .wz145-reactive-strip{gap:6px;}
+            .wz145-state-pill{font-size:.68rem;padding:5px 8px;}
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz104_render_topbar(page_key='real_interview'):
+    """v145: interview tools overlay into hero top-right with zero vertical space."""
+    try:
+        _wz145_apply_interview_immersion_css()
+    except Exception:
+        pass
+    try:
+        if str(page_key) == 'real_interview':
+            with st.container(key='wz104_topbar_shell_final'):
+                c_space, c_tools, c_more = st.columns([6.0, 2.1, .45], vertical_alignment='center')
+                with c_space:
+                    st.markdown("<div style='height:0'></div>", unsafe_allow_html=True)
+                with c_tools:
+                    with st.container(key='wz141_tools_anchor'):
+                        st.markdown("<div class='wz141-tools-label'>Interview utilities</div>", unsafe_allow_html=True)
+                        if hasattr(st, 'popover'):
+                            with st.popover('More interview tools', use_container_width=True):
+                                _wz106_render_tool_action_buttons('wz145_popover_action')
+                        else:
+                            with st.expander('More interview tools', expanded=False):
+                                _wz106_render_tool_action_buttons('wz145_fallback_action')
+                with c_more:
+                    if st.button('⋯', key='wz104_topbar_arrow', use_container_width=True, help='More'):
+                        st.session_state['wz104_more_open'] = not bool(st.session_state.get('wz104_more_open'))
+                        st.rerun()
+            if st.session_state.get('wz104_more_open'):
+                with st.container(key='wz104_topbar_more'):
+                    if st.button('📊  Founder Dashboard', key='wz145_more_founder_dashboard', use_container_width=True):
+                        st.session_state['wz104_more_open'] = False
+                        _wz104_go_to_action('founder_dashboard')
+                    if st.button('↩  Exit', key='wz145_more_exit', use_container_width=True):
+                        st.session_state['wz104_more_open'] = False
+                        _wz104_exit_to_onboarding()
+            return
+        st.markdown("<div style='height:3px'></div>", unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz104_render_call_screen_hero():
+    """v145: compact hero with live/reaction cues and brand integrated."""
+    try:
+        _wz145_apply_interview_immersion_css()
+    except Exception:
+        pass
+    try:
+        duration_min = int(st.session_state.get('wz104_interview_duration_min') or 30)
+    except Exception:
+        duration_min = 30
+    role = str(st.session_state.get('target_role') or st.session_state.get('real_interview_target_role') or st.session_state.get('wz_ri_role') or '').strip()
+    company = str(st.session_state.get('target_company') or st.session_state.get('real_interview_company') or st.session_state.get('wz_ri_company') or '').strip()
+    personality = str(st.session_state.get('wz_ri_personality') or 'Friendly HR').strip()
+    pressure = str(st.session_state.get('wz_ri_pressure_level') or st.session_state.get('wz_ri_pressure_level_v150') or 'Realistic').strip()
+    role_line = role or 'your target role'
+    company_line = f' at {company}' if company else ''
+    try:
+        st.markdown(f"""
+        <div class="wz141-call-shell">
+          <div class="wz141-call-grid">
+            <div>
+              <div class="wz144-brand-mini">
+                <div class="wz144-logo-dot"></div>
+                <div>
+                  <div class="wz144-brand-name">WorkZo AI</div>
+                  <div class="wz144-brand-sub">Real Interview Practice</div>
+                </div>
+              </div>
+              <div class="wz141-live-row">
+                <span class="wz141-chip live">● Recruiter simulation</span>
+                <span class="wz141-chip voice">AI voice ready</span>
+                <span class="wz141-chip">{html.escape(personality)}</span>
+                <span class="wz141-chip">{html.escape(pressure)}</span>
+              </div>
+              <h1 class="wz141-title">Practice like a real recruiter call</h1>
+              <p class="wz141-sub">WorkZo uses your CV and job description to ask role-specific questions, smart follow-ups, interruptions, and pressure-style prompts for {html.escape(role_line)}{html.escape(company_line)}.</p>
+              <div class="wz145-reactive-strip">
+                <span class="wz145-state-pill live"><span class="wz145-pulse-dot"></span> Recruiter listening</span>
+                <span class="wz145-state-pill">Thinking follow-ups</span>
+                <span class="wz145-state-pill">Numbers check</span>
+                <span class="wz145-state-pill">Sound cues ready</span>
+              </div>
+            </div>
+            <div class="wz141-live-panel">
+              <div class="wz141-muted">Interview countdown</div>
+              <div class="wz141-countdown">{duration_min:02d}:00</div>
+              <div class="wz141-muted">Recruiter pressure level</div>
+              <div class="wz141-pressure"><span></span></div>
+              <div class="wz141-status"><span class="wz141-dot"></span> Recruiter preparing follow-up questions <span class="wz141-typing"><i></i><i></i><i></i></span></div>
+              <div class="wz141-question-preview">Preview: “That’s broad. Give me one measurable result.”</div>
+              <div class="wz141-voice-bars" aria-label="AI voice visualizer"><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz118_render_prestart_coach_setup():
+    """v145: compact personality/reaction setup with more recruiter modes."""
+    if _wz116_is_interview_live():
+        return
+    try:
+        personalities = [
+            'Friendly HR',
+            'Strict recruiter',
+            'Startup founder',
+            'FAANG interviewer',
+            'Rapid-fire interviewer',
+            'Behavioral-focused recruiter',
+            'Technical screening mode',
+        ]
+        current_personality = st.session_state.get('wz_ri_personality', 'Friendly HR')
+        if current_personality not in personalities:
+            current_personality = 'Friendly HR'
+        pressure_options = ['Normal', 'Realistic', 'High pressure']
+        current_pressure = st.session_state.get('wz_ri_pressure_level', st.session_state.get('wz_ri_pressure_level_v150', 'Realistic'))
+        if current_pressure not in pressure_options:
+            current_pressure = 'Realistic'
+        with st.container(key='wz145_personality_setup'):
+            with st.expander('🎭 Recruiter personality, sound cues, and live reactions', expanded=False):
+                st.caption('Optional. These settings make each practice round feel different without adding more clutter to the dashboard.')
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    st.selectbox(
+                        'Recruiter personality',
+                        personalities,
+                        index=personalities.index(current_personality),
+                        key='wz_ri_personality',
+                    )
+                with c2:
+                    st.selectbox(
+                        'Pressure level',
+                        pressure_options,
+                        index=pressure_options.index(current_pressure),
+                        key='wz_ri_pressure_level',
+                    )
+                    # Keep the v150 key aligned when the newer interview module reads it.
+                    st.session_state['wz_ri_pressure_level_v150'] = st.session_state.get('wz_ri_pressure_level', current_pressure)
+                with c3:
+                    st.toggle('Sound cues feel', value=bool(st.session_state.get('wz_ri_sound_cues', True)), key='wz_ri_sound_cues')
+                    st.toggle('Interrupt weak answers', value=bool(st.session_state.get('wz_ri_interruptions', True)), key='wz_ri_interruptions')
+                st.markdown('**Live behavior:** recruiter listens, reacts, asks for numbers, and can push back when the answer is too broad.')
+    except Exception:
+        pass
+
+try:
+    _wz145_apply_interview_immersion_css()
+except Exception:
+    pass
+
+
+# =========================================================
+# v146 PERFECT TOPBAR + REAL WORKZO LOGO + FLOATING WORK-O-BOT
+# Added to override earlier dashboard UI renderers without touching product logic.
+# =========================================================
+
+_WZ146_LOGO_DATA_URI = 'data:image/png;base64,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'
+
+
+def _wz146_apply_perfect_dashboard_css():
+    try:
+        st.markdown(f"""
+        <style id="workzo-v146-perfect-dashboard-css">
+        .block-container{{padding-top:.35rem!important;max-width:1220px!important;}}
+        [data-testid="stVerticalBlock"]{{gap:.52rem!important;}}
+        .st-key-wz146_topbar{{
+            margin:.10rem 0 .70rem 0!important;padding:.72rem .72rem!important;
+            border-bottom:1px solid rgba(148,163,184,.14)!important;
+            background:linear-gradient(180deg,rgba(2,6,23,.80),rgba(2,6,23,.46))!important;
+            backdrop-filter:blur(14px)!important;position:sticky!important;top:0!important;z-index:90000!important;
+        }}
+        .wz146-brand-top{{display:flex;align-items:center;gap:12px;min-height:54px;}}
+        .wz146-top-logo{{width:54px;height:54px;border-radius:15px;box-shadow:0 0 26px rgba(34,211,238,.26);object-fit:cover;}}
+        .wz146-top-name{{font-size:1.08rem;font-weight:950;color:#f8fafc;line-height:1.05;letter-spacing:-.02em;}}
+        .wz146-top-sub{{font-size:.78rem;font-weight:850;color:#22d3ee;margin-top:3px;}}
+        .st-key-wz146_menu_anchor div[data-testid="stPopover"] button,
+        .st-key-wz146_more_tools div[data-testid="stPopover"] button,
+        .st-key-wz146_more_menu button,
+        .st-key-wz146_toolbox_button button{{
+            min-height:52px!important;border-radius:17px!important;
+            border:1px solid rgba(148,163,184,.18)!important;
+            background:linear-gradient(135deg,rgba(15,23,42,.82),rgba(30,41,59,.42))!important;
+            color:#f8fafc!important;font-weight:900!important;box-shadow:0 12px 30px rgba(2,6,23,.20)!important;
+        }}
+        .st-key-wz146_more_tools div[data-testid="stPopover"] button{{border-radius:999px!important;padding-left:1.4rem!important;padding-right:1.4rem!important;}}
+        .st-key-wz146_menu_anchor div[data-testid="stPopover"] button:hover,
+        .st-key-wz146_more_tools div[data-testid="stPopover"] button:hover,
+        .st-key-wz146_more_menu button:hover,
+        .st-key-wz146_toolbox_button button:hover{{
+            border-color:rgba(34,211,238,.50)!important;transform:translateY(-1px)!important;box-shadow:0 18px 40px rgba(14,165,233,.14)!important;
+        }}
+        .st-key-wz104_topbar_shell_final,.st-key-wz104_topbar_shell{{margin:0!important;padding:0!important;min-height:0!important;}}
+        .wz141-call-shell{{
+            margin:.10rem 0 .52rem 0!important;padding:22px 24px!important;border-radius:26px!important;
+            border:1px solid rgba(34,211,238,.36)!important;
+            background:radial-gradient(circle at 8% 5%,rgba(34,211,238,.23),transparent 34%),radial-gradient(circle at 96% 18%,rgba(168,85,247,.15),transparent 35%),linear-gradient(135deg,rgba(8,47,73,.90),rgba(2,6,23,.97))!important;
+        }}
+        .wz141-call-grid{{grid-template-columns:1.12fr .88fr!important;gap:20px!important;}}
+        .wz146-hero-brand{{display:flex;align-items:center;gap:14px;margin-bottom:14px;}}
+        .wz146-hero-logo{{width:66px;height:66px;border-radius:17px;object-fit:cover;box-shadow:0 0 28px rgba(34,211,238,.24);}}
+        .wz146-hero-name{{font-size:1.34rem;font-weight:950;color:#fff;letter-spacing:-.035em;line-height:1.03;}}
+        .wz146-hero-sub{{font-size:.89rem;font-weight:850;color:#38bdf8;margin-top:4px;}}
+        .wz144-brand-mini{{display:none!important;}}
+        .wz141-title{{font-size:2.45rem!important;margin-bottom:10px!important;}}
+        .wz141-sub{{font-size:.98rem!important;margin-bottom:10px!important;}}
+        .wz141-chip.voice{{border-color:rgba(34,211,238,.62)!important;color:#e0f2fe!important;background:rgba(8,145,178,.18)!important;box-shadow:0 0 20px rgba(34,211,238,.22), inset 0 0 18px rgba(34,211,238,.08)!important;animation:wz146VoiceGlow 1.9s infinite ease-in-out!important;}}
+        .wz141-chip.voice:before{{content:"▮▮▮";letter-spacing:1px;margin-right:7px;color:#22d3ee;animation:wz146Bars .8s infinite ease-in-out;}}
+        @keyframes wz146VoiceGlow{{0%,100%{{box-shadow:0 0 16px rgba(34,211,238,.16)}}50%{{box-shadow:0 0 34px rgba(34,211,238,.42)}}}}
+        @keyframes wz146Bars{{0%,100%{{opacity:.45}}50%{{opacity:1}}}}
+        .st-key-wz145_personality_setup{{margin-top:.10rem!important;margin-bottom:.46rem!important;}}
+        .st-key-wz145_personality_setup details{{border-radius:22px!important;}}
+        .st-key-wz141_float_workobot{{
+            position:fixed!important;right:24px!important;bottom:24px!important;z-index:999999!important;width:280px!important;height:86px!important;border-radius:22px!important;padding:0!important;
+            background:linear-gradient(135deg,rgba(8,47,73,.96),rgba(15,23,42,.96) 52%,rgba(30,64,175,.78))!important;
+            border:1px solid rgba(34,211,238,.72)!important;box-shadow:0 0 0 1px rgba(34,211,238,.08),0 18px 50px rgba(2,6,23,.52),0 0 38px rgba(34,211,238,.28)!important;overflow:hidden!important;
+        }}
+        .st-key-wz141_float_workobot:before{{content:"🤖";position:absolute;left:18px;top:17px;width:52px;height:52px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:26px;background:radial-gradient(circle,rgba(34,211,238,.30),rgba(15,118,110,.36));border:1px solid rgba(125,211,252,.40);box-shadow:0 0 24px rgba(34,211,238,.36);pointer-events:none;animation:wz146BotPulse 2s infinite ease-in-out;}}
+        .st-key-wz141_float_workobot:after{{content:"Ask Work-O-Bot\A career questions        →";white-space:pre;position:absolute;left:82px;top:18px;color:#f8fafc;font-size:1.02rem;font-weight:950;line-height:1.15;pointer-events:none;opacity:1!important;transform:none!important;background:transparent!important;border:0!important;padding:0!important;border-radius:0!important;}}
+        @keyframes wz146BotPulse{{0%,100%{{transform:scale(.98);filter:brightness(.95)}}50%{{transform:scale(1.05);filter:brightness(1.15)}}}}
+        .st-key-wz141_float_workobot div[data-testid="stButton"] > button{{width:280px!important;height:86px!important;min-height:86px!important;border-radius:22px!important;padding:0!important;background:transparent!important;border:0!important;color:transparent!important;font-size:0!important;box-shadow:none!important;}}
+        .st-key-wz141_float_workobot div[data-testid="stButton"] > button:before{{content:""!important;}}
+        .st-key-wz141_float_workobot:hover{{transform:translateY(-2px)!important;box-shadow:0 22px 60px rgba(2,6,23,.60),0 0 52px rgba(34,211,238,.38)!important;}}
+        @media(max-width:900px){{
+            .st-key-wz146_topbar{{padding:.52rem .55rem!important;margin-bottom:.45rem!important;}}
+            .wz146-top-logo{{width:42px;height:42px;border-radius:12px;}}.wz146-top-name{{font-size:.95rem;}}.wz146-top-sub{{font-size:.68rem;}}
+            .wz141-call-shell{{padding:16px 14px!important;margin-top:0!important;}}.wz141-call-grid{{grid-template-columns:1fr!important;}}
+            .wz146-hero-logo{{width:52px;height:52px;border-radius:14px;}}.wz141-title{{font-size:1.72rem!important;}}
+            .st-key-wz141_float_workobot{{right:14px!important;bottom:14px!important;width:225px!important;height:74px!important;border-radius:19px!important;}}
+            .st-key-wz141_float_workobot div[data-testid="stButton"] > button{{width:225px!important;height:74px!important;min-height:74px!important;}}
+            .st-key-wz141_float_workobot:before{{left:14px;top:14px;width:46px;height:46px;font-size:23px;}}
+            .st-key-wz141_float_workobot:after{{left:70px;top:15px;font-size:.92rem;}}
+        }}
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz104_render_topbar(page_key='real_interview'):
+    """v146: top row like ChatGPT with toolbox, real logo, tools, and dots."""
+    try: _wz145_apply_interview_immersion_css()
+    except Exception: pass
+    try: _wz146_apply_perfect_dashboard_css()
+    except Exception: pass
+    try:
+        with st.container(key='wz146_topbar'):
+            c_menu, c_logo, c_spacer, c_tools, c_toolbox, c_more = st.columns([.52, 3.0, 3.6, 2.5, .58, .58], vertical_alignment='center')
+            with c_menu:
+                with st.container(key='wz146_menu_anchor'):
+                    if hasattr(st, 'popover'):
+                        with st.popover('▦', use_container_width=True):
+                            _wz106_render_tool_action_buttons('wz146_left_toolbox')
+                    elif st.button('▦', key='wz146_left_toolbox_btn', use_container_width=True):
+                        _wz104_go_to_action('toolbox')
+            with c_logo:
+                st.markdown(f"""
+                <div class="wz146-brand-top"><img class="wz146-top-logo" src="{_WZ146_LOGO_DATA_URI}" alt="WorkZo AI logo" /><div><div class="wz146-top-name">WorkZo AI</div><div class="wz146-top-sub">Real Interview Practice</div></div></div>
+                """, unsafe_allow_html=True)
+            with c_spacer:
+                st.markdown("<div></div>", unsafe_allow_html=True)
+            with c_tools:
+                with st.container(key='wz146_more_tools'):
+                    if hasattr(st, 'popover'):
+                        with st.popover('More interview tools ⌄', use_container_width=True):
+                            _wz106_render_tool_action_buttons('wz146_top_action')
+                    else:
+                        with st.expander('More interview tools', expanded=False):
+                            _wz106_render_tool_action_buttons('wz146_top_action')
+            with c_toolbox:
+                with st.container(key='wz146_toolbox_button'):
+                    if st.button('▣', key='wz146_open_toolbox', use_container_width=True, help='Toolbox'):
+                        _wz104_go_to_action('toolbox')
+            with c_more:
+                with st.container(key='wz146_more_menu'):
+                    if st.button('⋯', key='wz146_more_menu_btn', use_container_width=True, help='More'):
+                        st.session_state['wz146_more_open'] = not bool(st.session_state.get('wz146_more_open'))
+                        st.rerun()
+        if st.session_state.get('wz146_more_open'):
+            with st.container(key='wz104_topbar_more'):
+                if st.button('📊  Founder Dashboard', key='wz146_more_founder_dashboard', use_container_width=True):
+                    st.session_state['wz146_more_open'] = False
+                    _wz104_go_to_action('founder_dashboard')
+                if st.button('↩  Exit', key='wz146_more_exit', use_container_width=True):
+                    st.session_state['wz146_more_open'] = False
+                    _wz104_exit_to_onboarding()
+    except Exception:
+        pass
+
+
+def _wz104_render_call_screen_hero():
+    """v146: compact hero with approved logo and immersive live panel."""
+    try: _wz145_apply_interview_immersion_css()
+    except Exception: pass
+    try: _wz146_apply_perfect_dashboard_css()
+    except Exception: pass
+    try: duration_min = int(st.session_state.get('wz104_interview_duration_min') or 30)
+    except Exception: duration_min = 30
+    role = str(st.session_state.get('target_role') or st.session_state.get('real_interview_target_role') or st.session_state.get('wz_ri_role') or '').strip()
+    company = str(st.session_state.get('target_company') or st.session_state.get('real_interview_company') or st.session_state.get('wz_ri_company') or '').strip()
+    personality = str(st.session_state.get('wz_ri_personality') or 'Friendly HR').strip()
+    pressure = str(st.session_state.get('wz_ri_pressure_level') or st.session_state.get('wz_ri_pressure_level_v150') or 'Realistic').strip()
+    role_line = role or 'your target role'
+    company_line = f' at {company}' if company else ''
+    try:
+        st.markdown(f"""
+        <div class="wz141-call-shell">
+          <div class="wz141-call-grid">
+            <div>
+              <div class="wz146-hero-brand"><img class="wz146-hero-logo" src="{_WZ146_LOGO_DATA_URI}" alt="WorkZo AI logo" /><div><div class="wz146-hero-name">WorkZo AI</div><div class="wz146-hero-sub">Real Interview Practice</div></div></div>
+              <div class="wz141-live-row"><span class="wz141-chip live">● Recruiter simulation</span><span class="wz141-chip voice">AI voice ready</span><span class="wz141-chip">{html.escape(personality)}</span><span class="wz141-chip">{html.escape(pressure)}</span></div>
+              <h1 class="wz141-title">Practice like a real recruiter call</h1>
+              <p class="wz141-sub">WorkZo uses your CV and job description to ask role-specific questions, smart follow-ups, interruptions, and pressure-style prompts for {html.escape(role_line)}{html.escape(company_line)}.</p>
+              <div class="wz145-reactive-strip"><span class="wz145-state-pill live"><span class="wz145-pulse-dot"></span> Recruiter listening</span><span class="wz145-state-pill">Thinking follow-ups</span><span class="wz145-state-pill">Numbers check</span><span class="wz145-state-pill">Sound cues ready</span></div>
+            </div>
+            <div class="wz141-live-panel"><div class="wz141-muted">Interview countdown</div><div class="wz141-countdown">{duration_min:02d}:00</div><div class="wz141-muted">Recruiter pressure level</div><div class="wz141-pressure"><span></span></div><div class="wz141-status"><span class="wz141-dot"></span> Recruiter preparing follow-up questions <span class="wz141-typing"><i></i><i></i><i></i></span></div><div class="wz141-question-preview">Preview: “Give me one measurable result from your last role.”</div><div class="wz141-voice-bars" aria-label="AI voice visualizer"><i></i><i></i><i></i><i></i><i></i></div></div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+try:
+    _wz146_apply_perfect_dashboard_css()
+except Exception:
+    pass
+
+# =========================================================
+# WorkZo v187 - FINAL toolbox routing fix
+# Scope:
+# - Prepare Job, Understand Job, and Find Jobs open separate direct pages.
+# - Toolbox no longer routes Understand/Prepare into Find Jobs.
+# - Removes Job Assist mode radio/tabs from these direct pages by bypassing old wrapper.
+# - Keeps existing page names and session state compatible with the router.
+# =========================================================
+
+
+def _wz187_set_route(target: str, **state):
+    try:
+        for k, v in (state or {}).items():
+            st.session_state[k] = v
+        st.session_state['page'] = target
+        st.session_state['nav_page'] = target
+        st.session_state['current_page'] = target
+        st.session_state['_wz_force_page'] = target
+        try:
+            st.query_params['page'] = target
+            st.query_params['nav_page'] = target
+            st.query_params['wz_page'] = target
+            if 'job_assist_mode_key' in state:
+                st.query_params['job_mode'] = str(state.get('job_assist_mode_key') or '')
+        except Exception:
+            pass
+        try:
+            request_scroll_to_top()
+        except Exception:
+            pass
+        st.rerun()
+    except Exception:
+        pass
+
+
+def _wz104_go_to_action(action: str):
+    """v187: single, explicit routing for every toolbox/topbar action."""
+    try:
+        action = _wz104_normalize_action(action) if callable(globals().get('_wz104_normalize_action')) else str(action or '').lower().replace(' ', '_')
+
+        if action in {'dashboard', 'home', 'real_interview'}:
+            return _wz187_set_route('real_interview')
+
+        if action == 'improve_cv':
+            return _wz187_set_route(
+                'cv_documents',
+                document_tools_mode='Improve / Update CV',
+                cv_documents_mode='improve_cv',
+                wz108_direct_document_tool='improve_cv',
+                wz104_last_tool_action='Improve CV',
             )
-            submitted = st.form_submit_button("Ask Work-O-Bot", use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
 
-    if submitted and str(user_msg or '').strip():
-        clean_msg = str(user_msg).strip()
+        if action == 'cover_letter':
+            return _wz187_set_route(
+                'cv_documents',
+                document_tools_mode='Cover Letter Generator + Language',
+                cv_documents_mode='cover_letter',
+                wz108_direct_document_tool='cover_letter',
+                wz104_last_tool_action='Cover Letter Generator',
+            )
+
+        if action == 'find_job':
+            return _wz187_set_route(
+                'job_assist',
+                job_assist_mode_key='find',
+                wz108_direct_job_mode='find',
+                wz187_job_mode='find',
+                wz104_last_tool_action='Find Job',
+            )
+
+        if action == 'understand_job':
+            return _wz187_set_route(
+                'job_assist',
+                job_assist_mode_key='understand',
+                wz108_direct_job_mode='understand',
+                wz187_job_mode='understand',
+                wz104_last_tool_action='Understand Job',
+            )
+
+        if action == 'prepare_job':
+            return _wz187_set_route(
+                'job_assist',
+                job_assist_mode_key='prepare',
+                wz108_direct_job_mode='prepare',
+                wz187_job_mode='prepare',
+                wz104_last_tool_action='Prepare Job',
+            )
+
+        if action in {'cv_documents', 'job_assist', 'cv_editor', 'workobot', 'founder_dashboard', 'onboarding'}:
+            return _wz187_set_route(action)
+
+        return _wz187_set_route('real_interview')
+    except Exception:
+        pass
+
+
+def _wz187_render_find_jobs_direct():
+    st.session_state['job_assist_mode_key'] = 'find'
+    st.session_state['wz108_direct_job_mode'] = 'find'
+    st.session_state['wz187_job_mode'] = 'find'
+    if callable(globals().get('_wz51_render_find_jobs')):
+        return _wz51_render_find_jobs()
+    st.warning('Find Jobs is not available in this build.')
+
+
+def _wz187_render_understand_job_direct():
+    st.session_state['job_assist_mode_key'] = 'understand'
+    st.session_state['wz108_direct_job_mode'] = 'understand'
+    st.session_state['wz187_job_mode'] = 'understand'
+    # Prefer the newest direct Understand Job renderer, not the old Job Assist wrapper.
+    if callable(globals().get('_wz51_render_understand_job')):
+        return _wz51_render_understand_job()
+    st.warning('Understand Job is not available in this build.')
+
+
+def _wz187_render_prepare_job_direct():
+    st.session_state['job_assist_mode_key'] = 'prepare'
+    st.session_state['wz108_direct_job_mode'] = 'prepare'
+    st.session_state['wz187_job_mode'] = 'prepare'
+    if callable(globals().get('_wz51_render_prepare_job')):
+        return _wz51_render_prepare_job()
+    st.warning('Prepare Job is not available in this build.')
+
+
+def _wz84_render_job_assist_page():
+    """v187: direct split render; no Find/Understand/Prepare radio group."""
+    try:
+        # Query param support, but session state wins after clicking toolbox buttons.
+        query_mode = ''
         try:
-            if callable(globals().get('_wz119_track_event')):
-                _wz119_track_event('workobot_question', 'Work-O-Bot', {'compact': compact, 'has_live_question': live_question})
+            query_mode = st.query_params.get('job_mode', '')
+            if isinstance(query_mode, list):
+                query_mode = query_mode[0] if query_mode else ''
         except Exception:
-            pass
-        st.session_state['wz110_workobot_messages'].append({'role': 'user', 'content': clean_msg})
-        with st.spinner('Work-O-Bot is thinking with your current career context...'):
-            answer = _wz110_call_workobot_ai(clean_msg)
-        st.session_state['wz110_workobot_messages'].append({'role': 'assistant', 'content': answer})
-        st.rerun()
+            query_mode = ''
 
-    messages = st.session_state.get('wz110_workobot_messages') or []
-    if messages:
-        st.markdown("<div class='wz124-conv-title'>Conversation</div>", unsafe_allow_html=True)
-        for item in messages[-8:]:
-            role = item.get('role')
-            content = _wz110_safe_str(item.get('content'), 4000) if callable(globals().get('_wz110_safe_str')) else str(item.get('content') or '')[:4000]
-            is_user = role == 'user'
-            speaker = 'You' if is_user else 'Work-O-Bot'
-            avatar = '👤' if is_user else '🤖'
-            if is_user:
-                st.markdown(f"""
-                <div class='wz124-chat-row user'>
-                  <div class='wz124-bubble user'><div class='wz124-speaker'>{html.escape(speaker)}</div>{html.escape(content)}</div>
-                  <div class='wz124-avatar'>{avatar}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div class='wz124-chat-row bot'>
-                  <div class='wz124-avatar'>{avatar}</div>
-                  <div class='wz124-bubble bot'><div class='wz124-speaker'>{html.escape(speaker)}</div>{html.escape(content)}</div>
-                </div>
-                """, unsafe_allow_html=True)
-    else:
-        st.markdown("<div class='wz124-tip'>Try: ‘Improve this recruiter message’, ‘Make my answer STAR’, or ‘Which jobs fit my CV?’</div>", unsafe_allow_html=True)
+        mode = str(
+            st.session_state.get('wz187_job_mode')
+            or st.session_state.get('wz108_direct_job_mode')
+            or st.session_state.get('job_assist_mode_key')
+            or query_mode
+            or 'find'
+        ).strip().lower()
 
-    if st.button("Clear Work-O-Bot chat", key=f"wz124_clear_bot_{'compact' if compact else 'page'}", use_container_width=False):
-        st.session_state['wz110_workobot_messages'] = []
-        st.rerun()
-
-    if not compact:
-        st.markdown("</div>", unsafe_allow_html=True)
-
-# =========================================================
-# WorkZo v125 - Work-O-Bot ChatGPT-style cleanup
-# - Removes extra Career assistant / Ask Work-O-Bot card
-# - Removes old shortcut cards/buttons from Work-O-Bot page
-# - Shows conversation ABOVE the input
-# - Uses st.chat_input so user can type and press Enter
-# =========================================================
-
-def _wz125_apply_chatgpt_workobot_css():
-    try:
-        st.markdown("""
-        <style id="workzo-v125-chatgpt-workobot-css">
-        .wz125-chat-shell{
-            max-width: 900px;
-            margin: 0 auto 1.5rem auto;
-            padding: 0 .25rem;
-        }
-        .wz125-empty-state{
-            min-height: 38vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            color: #e5e7eb;
-        }
-        .wz125-empty-orb{
-            width: 64px;
-            height: 64px;
-            border-radius: 22px;
-            display: grid;
-            place-items: center;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, #06b6d4, #2563eb);
-            box-shadow: 0 18px 42px rgba(37,99,235,.28);
-            font-size: 1.85rem;
-        }
-        .wz125-empty-title{
-            font-size: clamp(1.45rem, 3vw, 2.15rem);
-            font-weight: 950;
-            letter-spacing: -.04em;
-            color: #f8fafc;
-            margin-bottom: .45rem;
-        }
-        .wz125-empty-sub{
-            max-width: 620px;
-            color: #94a3b8;
-            line-height: 1.55;
-            font-size: .98rem;
-        }
-        .wz125-message-row{
-            display: flex;
-            gap: .85rem;
-            align-items: flex-start;
-            padding: 1.05rem 0;
-            border-bottom: 1px solid rgba(148,163,184,.08);
-        }
-        .wz125-message-row.user{
-            justify-content: flex-end;
-        }
-        .wz125-avatar{
-            width: 34px;
-            height: 34px;
-            min-width: 34px;
-            border-radius: 12px;
-            display: grid;
-            place-items: center;
-            background: rgba(15,23,42,.86);
-            border: 1px solid rgba(148,163,184,.20);
-            box-shadow: 0 8px 22px rgba(2,6,23,.18);
-        }
-        .wz125-message{
-            max-width: min(740px, calc(100vw - 7rem));
-            color: #f8fafc;
-            line-height: 1.62;
-            white-space: pre-wrap;
-            font-size: .98rem;
-        }
-        .wz125-message.user{
-            background: rgba(37,99,235,.22);
-            border: 1px solid rgba(96,165,250,.26);
-            border-radius: 20px 8px 20px 20px;
-            padding: .78rem .95rem;
-        }
-        .wz125-message.assistant{
-            background: transparent;
-            padding-top: .25rem;
-        }
-        .wz125-small-actions{
-            display:flex;
-            justify-content:flex-end;
-            margin-top:.75rem;
-        }
-        div[data-testid="stChatInput"] textarea{
-            min-height: 54px !important;
-            border-radius: 18px !important;
-            border: 1px solid rgba(148,163,184,.24) !important;
-            background: rgba(15,23,42,.92) !important;
-            color: #f8fafc !important;
-            box-shadow: 0 14px 38px rgba(2,6,23,.24) !important;
-        }
-        div[data-testid="stChatInput"] textarea:focus{
-            border-color: rgba(34,211,238,.46) !important;
-            box-shadow: 0 0 0 1px rgba(34,211,238,.22), 0 14px 38px rgba(2,6,23,.24) !important;
-        }
-        @media(max-width:700px){
-            .wz125-chat-shell{padding:0 .1rem;}
-            .wz125-empty-state{min-height:32vh;}
-            .wz125-message{max-width:calc(100vw - 5.5rem);font-size:.95rem;}
-        }
-        </style>
-        """, unsafe_allow_html=True)
-    except Exception:
-        pass
+        if mode.startswith('understand'):
+            return _wz187_render_understand_job_direct()
+        if mode.startswith('prepare'):
+            return _wz187_render_prepare_job_direct()
+        return _wz187_render_find_jobs_direct()
+    except Exception as exc:
+        st.error(f'Job Assist could not load safely: {exc}')
 
 
-def _wz110_render_workobot_chat(compact: bool = False):
-    """v125: ChatGPT-style Work-O-Bot. Conversation first, input at bottom, Enter submits."""
-    try:
-        _wz125_apply_chatgpt_workobot_css()
-    except Exception:
-        pass
-
-    try:
-        ctx = _wz110_get_current_interview_context()
-    except Exception:
-        ctx = {}
-    live_question = bool(ctx.get('current_question')) if isinstance(ctx, dict) else False
-
-    if 'wz110_workobot_messages' not in st.session_state:
-        st.session_state['wz110_workobot_messages'] = []
-
-    if not compact:
-        st.markdown("<div class='wz125-chat-shell'>", unsafe_allow_html=True)
-    messages = st.session_state.get('wz110_workobot_messages') or []
-
-    # Conversation appears above the input, like ChatGPT.
-    if messages:
-        for item in messages[-20:]:
-            role = item.get('role')
-            raw_content = item.get('content')
-            try:
-                content = _wz110_safe_str(raw_content, 5000)
-            except Exception:
-                content = str(raw_content or '')[:5000]
-            is_user = role == 'user'
-            avatar = '👤' if is_user else '🤖'
-            role_class = 'user' if is_user else 'assistant'
-            if is_user:
-                st.markdown(f"""
-                <div class='wz125-message-row user'>
-                  <div class='wz125-message user'>{html.escape(content)}</div>
-                  <div class='wz125-avatar'>{avatar}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div class='wz125-message-row assistant'>
-                  <div class='wz125-avatar'>{avatar}</div>
-                  <div class='wz125-message assistant'>{html.escape(content)}</div>
-                </div>
-                """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div class='wz125-empty-state'>
-          <div class='wz125-empty-orb'>🤖</div>
-          <div class='wz125-empty-title'>How can I help with your career today?</div>
-          <div class='wz125-empty-sub'>Ask about your CV, cover letter, job search, recruiter messages, interview answers, salary questions, or professional wording.</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    placeholder = "Ask anything career-related…" if not live_question else "Ask about this interview question, or any career topic…"
-    user_msg = st.chat_input(placeholder, key=f"wz125_workobot_chat_input_{'compact' if compact else 'page'}")
-
-    if user_msg and str(user_msg).strip():
-        clean_msg = str(user_msg).strip()
-        try:
-            if callable(globals().get('_wz119_track_event')):
-                _wz119_track_event('workobot_question', 'Work-O-Bot', {'compact': compact, 'has_live_question': live_question})
-        except Exception:
-            pass
-        st.session_state['wz110_workobot_messages'].append({'role': 'user', 'content': clean_msg})
-        with st.spinner('Work-O-Bot is thinking...'):
-            answer = _wz110_call_workobot_ai(clean_msg)
-        st.session_state['wz110_workobot_messages'].append({'role': 'assistant', 'content': answer})
-        st.rerun()
-
-    if messages:
-        st.markdown("<div class='wz125-small-actions'>", unsafe_allow_html=True)
-        if st.button("Clear chat", key=f"wz125_clear_bot_{'compact' if compact else 'page'}", use_container_width=False):
-            st.session_state['wz110_workobot_messages'] = []
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    if not compact:
-        st.markdown("</div>", unsafe_allow_html=True)
-
-
-# =========================================================
-# WorkZo v126 - Final polish requested May 6
-# - Compact polished toolbox dropdown
-# - Better logo/name card polish via CSS
-# - Work-O-Bot renders only ONE back button
-# =========================================================
-
-def _wz126_apply_final_polish_css():
-    try:
-        st.markdown("""
-        <style id="workzo-v126-final-polish-css">
-        /* Better top logo/name card */
-        .wz104-topbar,
-        .wz108-topbar,
-        .wz122-topbar,
-        .workzo-topbar,
-        .wz109-topbar {
-            border-radius: 24px !important;
-            border: 1px solid rgba(34,211,238,.26) !important;
-            background: linear-gradient(135deg, rgba(8,47,73,.62), rgba(15,23,42,.96)) !important;
-            box-shadow: 0 18px 48px rgba(2,6,23,.28) !important;
-        }
-        .wz104-brand-card,
-        .wz108-brand-card,
-        .wz122-brand-card,
-        .workzo-brand-card,
-        .wz109-brand-card {
-            gap: .9rem !important;
-        }
-        .wz104-brand-title,
-        .wz108-brand-title,
-        .wz122-brand-title,
-        .workzo-brand-title,
-        .wz109-brand-title {
-            font-size: 1.15rem !important;
-            letter-spacing: -.03em !important;
-        }
-        .wz104-brand-sub,
-        .wz108-brand-sub,
-        .wz122-brand-sub,
-        .workzo-brand-sub,
-        .wz109-brand-sub {
-            font-size: .82rem !important;
-            color: #93c5fd !important;
-            font-weight: 800 !important;
-        }
-
-        /* Compact toolbox trigger */
-        .wz122-tools-wrap, .wz109-tools, .wz108-tools-wrap {
-            max-width: 270px !important;
-            margin-left: auto !important;
-        }
-        .wz122-tools-label, .wz106-label {
-            font-size: .68rem !important;
-            margin-bottom: .15rem !important;
-            color: #a5b4fc !important;
-        }
-        .st-key-wz122_tools_anchor div[data-testid="stPopover"] > button,
-        .st-key-wz109_tools_anchor div[data-testid="stPopover"] > button,
-        .st-key-wz108_tools_anchor div[data-testid="stPopover"] > button,
-        div[data-testid="stPopover"] > button[kind="secondary"] {
-            min-height: 48px !important;
-            height: 48px !important;
-            border-radius: 16px !important;
-            font-size: .9rem !important;
-            padding: .55rem .9rem !important;
-            background: rgba(15,23,42,.72) !important;
-            border: 1px solid rgba(96,165,250,.24) !important;
-            box-shadow: none !important;
-        }
-
-        /* Compact dropdown panel */
-        div[data-testid="stPopoverBody"] {
-            width: 335px !important;
-            max-width: calc(100vw - 2rem) !important;
-            min-width: 0 !important;
-            padding: .78rem !important;
-            border-radius: 18px !important;
-            background: rgba(2,6,23,.97) !important;
-            border: 1px solid rgba(148,163,184,.18) !important;
-            box-shadow: 0 18px 44px rgba(2,6,23,.46) !important;
-        }
-        div[data-testid="stPopoverBody"] .wz124-toolbox-title,
-        div[data-testid="stPopoverBody"] .wz122-toolbox-head {
-            font-size: .94rem !important;
-            line-height: 1.15 !important;
-            margin: 0 0 .2rem 0 !important;
-        }
-        div[data-testid="stPopoverBody"] .wz124-toolbox-sub,
-        div[data-testid="stPopoverBody"] .wz122-toolbox-sub {
-            font-size: .76rem !important;
-            line-height: 1.25 !important;
-            margin: 0 0 .58rem 0 !important;
-            max-width: 285px !important;
-        }
-        div[data-testid="stPopoverBody"] div[data-testid="stButton"] {
-            margin-bottom: .32rem !important;
-        }
-        div[data-testid="stPopoverBody"] div[data-testid="stButton"] > button {
-            width: 100% !important;
-            max-width: 245px !important;
-            min-height: 44px !important;
-            border-radius: 14px !important;
-            padding: .45rem .62rem !important;
-            font-size: .84rem !important;
-            line-height: 1.16 !important;
-            background: linear-gradient(135deg, rgba(15,23,42,.98), rgba(30,41,59,.86)) !important;
-            border: 1px solid rgba(148,163,184,.16) !important;
-            box-shadow: none !important;
-            text-align: left !important;
-            white-space: pre-line !important;
-        }
-        div[data-testid="stPopoverBody"] div[data-testid="stButton"] > button:hover {
-            transform: translateY(-1px) !important;
-            border-color: rgba(34,211,238,.42) !important;
-            background: linear-gradient(135deg, rgba(8,47,73,.92), rgba(30,64,175,.55)) !important;
-        }
-        @media(max-width: 760px){
-            .wz122-tools-wrap, .wz109-tools, .wz108-tools-wrap{max-width:100%!important;margin-left:0!important;}
-            div[data-testid="stPopoverBody"]{width:calc(100vw - 1.5rem)!important;}
-        }
-        </style>
-        """, unsafe_allow_html=True)
-    except Exception:
-        pass
-
-
-def _wz126_toolbox_items():
-    return [
-        {'icon':'✨','title':'Improve CV','desc':'Tailor your CV for this job.','action':'Improve CV'},
-        {'icon':'📄','title':'Cover letter','desc':'Create a job-specific letter.','action':'Cover Letter Generator'},
-        {'icon':'🔎','title':'Find jobs','desc':'Search matching roles.','action':'Find Job'},
-        {'icon':'🧩','title':'Understand job','desc':'Check fit and gaps.','action':'Understand Job'},
-        {'icon':'🎯','title':'Prepare job','desc':'Plan CV, letter, and interview.','action':'Prepare for a Job'},
-    ]
-
-
-def _wz106_render_tool_action_buttons(prefix='wz126_tools'):
-    """v126: smaller, cleaner toolbox content."""
-    try:
-        _wz126_apply_final_polish_css()
-        st.markdown("""
-        <div class='wz124-toolbox-title'>Choose next step</div>
-        <div class='wz124-toolbox-sub'>Uses your CV, job, role, and company context.</div>
-        """, unsafe_allow_html=True)
-    except Exception:
-        pass
-    for idx, item in enumerate(_wz126_toolbox_items()):
-        label = f"{item['icon']}  {item['title']}\n{item['desc']}"
-        if st.button(label, key=f'{prefix}_{idx}', use_container_width=True):
-            try:
-                if callable(globals().get('_wz119_track_event')):
-                    _wz119_track_event('toolbox_action', item['title'], {'source':'topbar_toolbox_v126'})
-            except Exception:
-                pass
-            st.session_state['wz104_more_open'] = False
-            _wz104_go_to_action(item['action'])
-
-
-def _wz110_render_workobot_chat(compact: bool = False):
-    """v126: ChatGPT-style Work-O-Bot with only one back button."""
-    try:
-        _wz125_apply_chatgpt_workobot_css()
-        _wz126_apply_final_polish_css()
-    except Exception:
-        pass
-    try:
-        ctx = _wz110_get_current_interview_context()
-    except Exception:
-        ctx = {}
-    live_question = bool(ctx.get('current_question')) if isinstance(ctx, dict) else False
-    if 'wz110_workobot_messages' not in st.session_state:
-        st.session_state['wz110_workobot_messages'] = []
-
-    if not compact:
-        st.markdown("<div class='wz125-chat-shell'>", unsafe_allow_html=True)
-        if st.button('← Back to previous page', key='wz126_single_workobot_back', use_container_width=False):
-            previous = str(st.session_state.get('wz110_workobot_source_page') or 'real_interview')
-            st.session_state['wz75_workobot_open'] = False
-            _wz104_go_to_action(previous)
-
-    messages = st.session_state.get('wz110_workobot_messages') or []
-    if messages:
-        for item in messages[-20:]:
-            role = item.get('role')
-            raw_content = item.get('content')
-            try:
-                content = _wz110_safe_str(raw_content, 5000)
-            except Exception:
-                content = str(raw_content or '')[:5000]
-            is_user = role == 'user'
-            avatar = '👤' if is_user else '🤖'
-            if is_user:
-                st.markdown(f"""
-                <div class='wz125-message-row user'>
-                  <div class='wz125-message user'>{html.escape(content)}</div>
-                  <div class='wz125-avatar'>{avatar}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div class='wz125-message-row assistant'>
-                  <div class='wz125-avatar'>{avatar}</div>
-                  <div class='wz125-message assistant'>{html.escape(content)}</div>
-                </div>
-                """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div class='wz125-empty-state'>
-          <div class='wz125-empty-orb'>🤖</div>
-          <div class='wz125-empty-title'>How can I help with your career today?</div>
-          <div class='wz125-empty-sub'>Ask about your CV, cover letter, job search, recruiter messages, interview answers, salary questions, or professional wording.</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    placeholder = "Ask anything career-related…" if not live_question else "Ask about this interview question, or any career topic…"
-    user_msg = st.chat_input(placeholder, key=f"wz126_workobot_chat_input_{'compact' if compact else 'page'}")
-    if user_msg and str(user_msg).strip():
-        clean_msg = str(user_msg).strip()
-        try:
-            if callable(globals().get('_wz119_track_event')):
-                _wz119_track_event('workobot_question', 'Work-O-Bot', {'compact': compact, 'has_live_question': live_question})
-        except Exception:
-            pass
-        st.session_state['wz110_workobot_messages'].append({'role':'user','content':clean_msg})
-        with st.spinner('Work-O-Bot is thinking...'):
-            answer = _wz110_call_workobot_ai(clean_msg)
-        st.session_state['wz110_workobot_messages'].append({'role':'assistant','content':answer})
-        st.rerun()
-
-    if messages:
-        st.markdown("<div class='wz125-small-actions'>", unsafe_allow_html=True)
-        if st.button('Clear chat', key=f"wz126_clear_bot_{'compact' if compact else 'page'}", use_container_width=False):
-            st.session_state['wz110_workobot_messages'] = []
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-    if not compact:
-        st.markdown("</div>", unsafe_allow_html=True)
-
-
-# Override final router only to remove duplicate Work-O-Bot back button from the wrapper.
-def show_dashboard():
-    try: _wz57_apply_page_query_param()
-    except Exception: pass
-    try: _wz61_apply_global_top_compact_css()
-    except Exception: pass
-    try: _wz72_apply_mobile_css()
-    except Exception: pass
-    try: _wz73_apply_final_css()
-    except Exception: pass
-    try: _wz75_apply_compact_top_css()
-    except Exception: pass
-    try: _wz108_apply_topbar_cleanup_css()
-    except Exception: pass
-    try: _wz126_apply_final_polish_css()
-    except Exception: pass
-
-    raw_page = str(st.session_state.get('_wz_force_page') or st.session_state.get('nav_page', st.session_state.get('page', 'real_interview')) or 'real_interview')
-    try:
-        page_key = _wz96_normalize_page(raw_page) if callable(globals().get('_wz96_normalize_page')) else raw_page
-    except Exception:
-        page_key = raw_page
-    allowed = {'real_interview', 'cv_documents', 'cv_editor', 'job_assist', 'workobot', 'founder_dashboard', 'onboarding'}
-    if page_key in {'dashboard', 'home', 'main', ''} or page_key not in allowed:
-        page_key = 'real_interview'
-    st.session_state['page'] = page_key
-    st.session_state['nav_page'] = page_key
-    st.session_state['_wz_force_page'] = page_key
-
-    try:
-        _wz104_render_topbar(page_key)
-    except Exception:
-        pass
-    try:
-        if page_key != 'workobot':
-            _wz71_floating_workobot()
-    except Exception:
-        pass
-
-    if page_key == 'real_interview':
-        try:
-            if st.session_state.get('wz75_workobot_open'):
-                _wz75_render_workobot_panel()
-        except Exception:
-            pass
-        _wz96_render_real_interview_home()
-        _wz107_render_beta_feedback('Real Interview')
-        return
-
-    if page_key == 'workobot':
-        st.session_state['wz75_workobot_open'] = False
-        _wz110_render_workobot_chat(compact=False)
-        _wz107_render_beta_feedback('Work-O-Bot')
-        return
-
-    try:
-        if st.session_state.get('wz75_workobot_open'):
-            _wz75_render_workobot_panel()
-    except Exception:
-        pass
-    if page_key == 'cv_documents':
-        try: _wz92_render_cv_documents_page()
-        except Exception as exc: st.error(f'CV & Documents could not load safely: {exc}')
-        _wz107_render_beta_feedback('CV & Documents')
-        return
-    if page_key == 'cv_editor':
-        try: _wz92_render_cv_editor_page()
-        except Exception as exc: st.error(f'CV Editor could not load safely: {exc}')
-        _wz107_render_beta_feedback('CV Preview')
-        return
-    if page_key == 'job_assist':
-        try: _wz84_render_job_assist_page()
-        except Exception as exc: st.error(f'Job Assist could not load safely: {exc}')
-        _wz107_render_beta_feedback('Job Assist')
-        return
-    if page_key == 'founder_dashboard':
-        _wz107_founder_access_panel()
-        _wz107_render_beta_feedback('Founder Dashboard')
-        return
-    if page_key == 'onboarding':
-        try:
-            if callable(globals().get('show_onboarding')):
-                show_onboarding()
-            else:
-                st.info('Setup page is not available.')
-        except Exception as exc:
-            st.error(f'Setup could not load safely: {exc}')
-        _wz107_render_beta_feedback('Setup')
-        return
-
-
-# =========================================================
-# WorkZo v128 - Final polish requested May 6
-# - Smaller/neater toolbox dropdown
-# - Remove duplicate Work-O-Bot back buttons by using final chat renderer
-# - Remove bottom duplicate cover-letter translation block
-# - Force real interview hero card to appear when returning home
-# =========================================================
-def _wz128_final_polish_css():
-    try:
-        st.markdown("""
-        <style id="workzo-v128-final-polish-css">
-        /* Neat top toolbox popover */
-        div[data-testid="stPopoverBody"]{
-            width:360px!important;max-width:360px!important;min-width:0!important;
-            padding:12px!important;border-radius:22px!important;
-            background:linear-gradient(180deg,rgba(15,23,42,.98),rgba(2,6,23,.98))!important;
-            border:1px solid rgba(148,163,184,.22)!important;
-            box-shadow:0 22px 60px rgba(2,6,23,.46)!important;
-        }
-        div[data-testid="stPopoverBody"] .wz124-toolbox-title{font-size:1rem!important;margin-bottom:4px!important;}
-        div[data-testid="stPopoverBody"] .wz124-toolbox-sub{font-size:.78rem!important;line-height:1.35!important;margin-bottom:10px!important;white-space:normal!important;}
-        div[data-testid="stPopoverBody"] div[data-testid="stButton"] > button{
-            min-height:58px!important;padding:9px 12px!important;border-radius:16px!important;
-            font-size:.9rem!important;line-height:1.22!important;
-            background:rgba(15,23,42,.82)!important;border:1px solid rgba(148,163,184,.18)!important;
-            box-shadow:none!important;text-align:left!important;white-space:pre-line!important;
-        }
-        div[data-testid="stPopoverBody"] div[data-testid="stButton"] > button p{font-size:.9rem!important;line-height:1.22!important;}
-        .wz104-call-shell{display:block!important;visibility:visible!important;opacity:1!important;margin-top:1.5rem!important;}
-        .wz-main-dashboard-card,.wz-command-hero{display:none!important;}
-        @media(max-width:760px){div[data-testid="stPopoverBody"]{width:calc(100vw - 2rem)!important;max-width:calc(100vw - 2rem)!important;}}
-        </style>
-        """, unsafe_allow_html=True)
-    except Exception:
-        pass
-
-
-def _wz126_toolbox_items():
-    return [
-        {'icon':'✨','title':'Improve CV','desc':'Tailor CV for this job.','action':'Improve CV'},
-        {'icon':'📄','title':'Cover letter','desc':'Create job-specific letter.','action':'Cover Letter Generator'},
-        {'icon':'🔎','title':'Find jobs','desc':'Search matching roles.','action':'Find Job'},
-        {'icon':'🧩','title':'Understand job','desc':'Check fit and gaps.','action':'Understand Job'},
-        {'icon':'🎯','title':'Prepare job','desc':'CV, letter, interview.','action':'Prepare for a Job'},
-    ]
-
-
-def _wz106_render_tool_action_buttons(prefix='wz128_tools'):
-    """v128: compact, polished toolbox menu."""
-    try:
-        _wz126_apply_final_polish_css()
-        _wz128_final_polish_css()
-        st.markdown("""
-        <div class='wz124-toolbox-title'>Next step</div>
-        <div class='wz124-toolbox-sub'>Uses your CV, job, role, and company context.</div>
-        """, unsafe_allow_html=True)
-    except Exception:
-        pass
-    for idx, item in enumerate(_wz126_toolbox_items()):
-        label = f"{item['icon']}  {item['title']}\n{item['desc']}"
-        if st.button(label, key=f'{prefix}_{idx}', use_container_width=True):
-            st.session_state['wz104_more_open'] = False
-            _wz104_go_to_action(item['action'])
-
-
-def _wz52_render_cover_letter_tool():
-    """v128: existing cover letter generator only. Bottom duplicate translation section removed."""
-    try:
-        if callable(globals().get('_wz108_base_cover_letter_tool')):
-            return _wz108_base_cover_letter_tool()
-    except Exception:
-        pass
-    try:
-        if callable(globals().get('_wz52_render_cover_letter_tool_original')):
-            return _wz52_render_cover_letter_tool_original()
-    except Exception:
-        pass
-    st.warning('Cover Letter Generator is not available in this build.')
-
-
-def _wz110_render_workobot_chat(compact: bool = False):
-    """v128: ChatGPT-style Work-O-Bot with one back button only."""
-    try:
-        _wz125_apply_chatgpt_workobot_css()
-        _wz126_apply_final_polish_css()
-        _wz128_final_polish_css()
-    except Exception:
-        pass
-    try:
-        ctx = _wz110_get_current_interview_context()
-    except Exception:
-        ctx = {}
-    live_question = bool(ctx.get('current_question')) if isinstance(ctx, dict) else False
-    if 'wz110_workobot_messages' not in st.session_state:
-        st.session_state['wz110_workobot_messages'] = []
-
-    if not compact:
-        st.markdown("<div class='wz125-chat-shell'>", unsafe_allow_html=True)
-        if st.button('← Back to previous page', key='wz128_single_workobot_back', use_container_width=False):
-            previous = str(st.session_state.get('wz110_workobot_source_page') or 'real_interview')
-            st.session_state['wz75_workobot_open'] = False
-            _wz104_go_to_action(previous)
-
-    messages = st.session_state.get('wz110_workobot_messages') or []
-    if messages:
-        for item in messages[-20:]:
-            role = item.get('role')
-            content = str(item.get('content') or '')[:5000]
-            is_user = role == 'user'
-            avatar = '👤' if is_user else '🤖'
-            if is_user:
-                st.markdown(f"""
-                <div class='wz125-message-row user'>
-                  <div class='wz125-message user'>{html.escape(content)}</div>
-                  <div class='wz125-avatar'>{avatar}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div class='wz125-message-row assistant'>
-                  <div class='wz125-avatar'>{avatar}</div>
-                  <div class='wz125-message assistant'>{html.escape(content)}</div>
-                </div>
-                """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div class='wz125-empty-state'>
-          <div class='wz125-empty-orb'>🤖</div>
-          <div class='wz125-empty-title'>How can I help with your career today?</div>
-          <div class='wz125-empty-sub'>Type your question below. Your conversation will appear here.</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    placeholder = "Ask anything career-related…" if not live_question else "Ask about this interview question, or any career topic…"
-    user_msg = st.chat_input(placeholder, key=f"wz128_workobot_chat_input_{'compact' if compact else 'page'}")
-    if user_msg and str(user_msg).strip():
-        clean_msg = str(user_msg).strip()
-        st.session_state['wz110_workobot_messages'].append({'role':'user','content':clean_msg})
-        with st.spinner('Work-O-Bot is thinking...'):
-            answer = _wz110_call_workobot_ai(clean_msg)
-        st.session_state['wz110_workobot_messages'].append({'role':'assistant','content':answer})
-        st.rerun()
-
-    if messages:
-        if st.button('Clear chat', key=f"wz128_clear_bot_{'compact' if compact else 'page'}", use_container_width=False):
-            st.session_state['wz110_workobot_messages'] = []
-            st.rerun()
-    if not compact:
-        st.markdown("</div>", unsafe_allow_html=True)
-
-
-def show_dashboard():
-    """v128 final router: stable home hero + compact toolbox + clean Work-O-Bot."""
-    try: _wz57_apply_page_query_param()
-    except Exception: pass
-    for fn in ['_wz61_apply_global_top_compact_css','_wz72_apply_mobile_css','_wz73_apply_final_css','_wz75_apply_compact_top_css','_wz108_apply_topbar_cleanup_css','_wz126_apply_final_polish_css']:
-        try:
-            f = globals().get(fn)
-            if callable(f): f()
-        except Exception: pass
-    try: _wz128_final_polish_css()
-    except Exception: pass
-
-    raw_page = str(st.session_state.get('_wz_force_page') or st.session_state.get('nav_page', st.session_state.get('page', 'real_interview')) or 'real_interview')
-    try:
-        page_key = _wz96_normalize_page(raw_page) if callable(globals().get('_wz96_normalize_page')) else raw_page
-    except Exception:
-        page_key = raw_page
-    allowed = {'real_interview', 'cv_documents', 'cv_editor', 'job_assist', 'workobot', 'founder_dashboard', 'onboarding'}
-    if page_key in {'dashboard', 'home', 'main', ''} or page_key not in allowed:
-        page_key = 'real_interview'
-    st.session_state['page'] = page_key
-    st.session_state['nav_page'] = page_key
-    st.session_state['_wz_force_page'] = page_key
-
-    try: _wz104_render_topbar(page_key)
-    except Exception: pass
-    try: _wz128_final_polish_css()
-    except Exception: pass
-    try:
-        if page_key != 'workobot': _wz71_floating_workobot()
-    except Exception: pass
-
-    if page_key == 'real_interview':
-        try:
-            st.session_state['wz75_workobot_open'] = False
-            _wz104_render_call_screen_hero()
-        except Exception:
-            pass
-        try:
-            if callable(globals().get('render_real_interview_simulation')):
-                render_real_interview_simulation()
-            elif callable(globals().get('show_real_interview')):
-                show_real_interview()
-            elif callable(globals().get('show_real_interview_stimulator')):
-                show_real_interview_stimulator()
-            else:
-                _wz96_render_real_interview_home()
-        except Exception as exc:
-            st.error(f'Real Interview could not load safely: {exc}')
-        try: _wz107_render_beta_feedback('Real Interview')
-        except Exception: pass
-        return
-
-    if page_key == 'workobot':
-        st.session_state['wz75_workobot_open'] = False
-        _wz110_render_workobot_chat(compact=False)
-        try: _wz107_render_beta_feedback('Work-O-Bot')
-        except Exception: pass
-        return
-    if page_key == 'cv_documents':
-        try: _wz92_render_cv_documents_page()
-        except Exception as exc: st.error(f'CV & Documents could not load safely: {exc}')
-        try: _wz107_render_beta_feedback('CV & Documents')
-        except Exception: pass
-        return
-    if page_key == 'cv_editor':
-        try: _wz92_render_cv_editor_page()
-        except Exception as exc: st.error(f'CV Editor could not load safely: {exc}')
-        try: _wz107_render_beta_feedback('CV Preview')
-        except Exception: pass
-        return
-    if page_key == 'job_assist':
-        try: _wz84_render_job_assist_page()
-        except Exception as exc: st.error(f'Job Assist could not load safely: {exc}')
-        try: _wz107_render_beta_feedback('Job Assist')
-        except Exception: pass
-        return
-    if page_key == 'founder_dashboard':
-        try: _wz107_founder_access_panel()
-        except Exception as exc: st.error(f'Founder dashboard could not load safely: {exc}')
-        try: _wz107_render_beta_feedback('Founder Dashboard')
-        except Exception: pass
-        return
-    if page_key == 'onboarding':
-        try:
-            if callable(globals().get('show_onboarding')): show_onboarding()
-            else: st.info('Setup page is not available.')
-        except Exception as exc: st.error(f'Setup could not load safely: {exc}')
-        try: _wz107_render_beta_feedback('Setup')
-        except Exception: pass
-        return
-
+# Ensure alternate renderer names also point to the fixed direct router.
+try:
+    render_job_assist_page = _wz84_render_job_assist_page
+except Exception:
+    pass

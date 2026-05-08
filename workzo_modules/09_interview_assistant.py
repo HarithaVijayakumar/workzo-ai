@@ -310,43 +310,217 @@ Return ONLY valid JSON:
     return [intro_question] + [str(q).strip() for q in extra[:3] if str(q).strip()]
 
 
-def _wz_ri_answer_quality_flags(answer: str, jd: str) -> dict:
-    words = len(str(answer or "").split())
-    lower = str(answer or "").lower()
-    jd_lower = str(jd or "").lower()
 
-    has_impact = any(x in lower for x in ["result", "impact", "improved", "reduced", "increased", "%", "saved", "measured", "outcome"])
-    jd_tools = [tool for tool in ["sql", "python", "excel", "tableau", "power bi", "api", "dashboard"] if tool in jd_lower]
-    missed_tools = [tool for tool in jd_tools if tool not in lower]
-    vague = words < 35 or not any(x in lower for x in ["example", "project", "worked", "built", "created", "handled", "solved", "analyzed"])
-    too_long = words > 130
-    off_topic = words > 25 and len(set(lower.split()).intersection(set(jd_lower.split()))) < 4 if jd_lower else False
+def _wz_ri_country_rules(country: str) -> dict:
+    """Subtle country adaptation without stereotyping."""
+    c = str(country or "").strip().lower()
+    rules = {
+        "communication_expectation": "clear, professional, structured",
+        "confidence_style": "balanced",
+        "interview_pacing": "moderate",
+        "formality": "professional",
+        "what_recruiters_value": ["specific examples", "measurable impact", "role relevance"],
+    }
+    if "germany" in c or "deutsch" in c:
+        rules.update({
+            "communication_expectation": "structured, precise, direct, realistic claims",
+            "confidence_style": "moderate and evidence-backed",
+            "interview_pacing": "step-by-step",
+            "formality": "formal-professional",
+            "what_recruiters_value": ["clear process", "truthful scope", "technical precision", "structured examples"],
+        })
+    elif "usa" in c or "united states" in c or "america" in c:
+        rules.update({
+            "communication_expectation": "impact-first, concise, confident",
+            "confidence_style": "confident with metrics",
+            "interview_pacing": "fast and outcome-focused",
+            "what_recruiters_value": ["measurable impact", "ownership", "leadership", "business results"],
+        })
+    elif "uk" in c or "united kingdom" in c or "britain" in c:
+        rules.update({
+            "communication_expectation": "professional, balanced, collaborative",
+            "confidence_style": "moderate confidence",
+            "what_recruiters_value": ["teamwork", "clear reasoning", "professional communication"],
+        })
+    elif "india" in c:
+        rules.update({
+            "communication_expectation": "clear, skill-specific, ATS/recruiter-friendly",
+            "confidence_style": "confident but evidence-based",
+            "what_recruiters_value": ["skills proof", "project examples", "adaptability", "communication"],
+        })
+    return rules
 
+
+def _wz_ri_role_rules(role: str, jd: str) -> dict:
+    text = f"{role or ''} {jd or ''}".lower()
+    rules = {
+        "role_family": "general",
+        "focus": ["role fit", "communication", "specific examples", "measurable impact"],
+        "likely_followups": ["Give one specific example.", "What was your individual contribution?", "What was the result?"],
+    }
+    if any(x in text for x in ["data analyst", "business analyst", "analytics", "sql", "tableau", "power bi", "dashboard"]):
+        rules.update({
+            "role_family": "data_analytics",
+            "focus": ["SQL depth", "dashboarding", "business impact", "metrics", "stakeholder communication", "data cleaning"],
+            "likely_followups": ["Which metric improved?", "What SQL logic did you use?", "Who used the dashboard?", "How did this influence a decision?"],
+        })
+    elif any(x in text for x in ["customer success", "account manager", "client success"]):
+        rules.update({
+            "role_family": "customer_success",
+            "focus": ["client communication", "retention", "escalation handling", "prioritization", "relationship building"],
+            "likely_followups": ["How did you handle the difficult customer?", "What was the retention or satisfaction impact?", "How did you prioritize accounts?"],
+        })
+    elif any(x in text for x in ["support", "helpdesk", "service desk", "technical support", "it support"]):
+        rules.update({
+            "role_family": "support_it",
+            "focus": ["troubleshooting", "ticket ownership", "SLA", "customer communication", "root-cause analysis"],
+            "likely_followups": ["How did you diagnose the issue?", "What was the SLA impact?", "How did you communicate with the customer?"],
+        })
+    return rules
+
+
+def _wz_ri_default_candidate_state() -> dict:
     return {
-        "words": words,
-        "has_impact": has_impact,
-        "missed_tools": missed_tools,
-        "vague": vague,
-        "too_long": too_long,
-        "off_topic": off_topic,
+        "answers_seen": 0,
+        "metrics_usage": 0,
+        "generic_answers": 0,
+        "missing_impact_count": 0,
+        "ownership_clarity": 5,
+        "confidence_level": 5,
+        "technical_depth": 5,
+        "communication_clarity": 5,
+        "star_quality": 5,
+        "repeated_weaknesses": [],
+        "unproven_claims": [],
+        "last_recruiter_pressure": "neutral",
     }
 
 
+def _wz_ri_get_candidate_state() -> dict:
+    state = st.session_state.get("wz_ri_candidate_state")
+    if not isinstance(state, dict):
+        state = _wz_ri_default_candidate_state()
+        st.session_state["wz_ri_candidate_state"] = state
+    return state
+
+
+def _wz_ri_answer_quality_flags(answer: str, jd: str, cv_text: str = "", question: str = "") -> dict:
+    text = str(answer or "")
+    words = len(text.split())
+    lower = text.lower()
+    jd_lower = str(jd or "").lower()
+    cv_lower = str(cv_text or "").lower()
+
+    number_patterns = [r"\b\d+\s?%", r"\b\d+\s?(hours?|days?|weeks?|months?)\b", r"\b\d+\+?\s?(tickets?|users?|customers?|reports?|dashboards?|cases?)\b", r"\b\d+[,.]?\d*\b"]
+    has_metric = any(re.search(pat, lower) for pat in number_patterns)
+    has_impact_words = any(x in lower for x in ["improved", "reduced", "increased", "saved", "resolved", "optimized", "automated", "impact", "result", "outcome"])
+    has_ownership = any(x in lower for x in ["i ", "i was", "i built", "i created", "i handled", "i analyzed", "my role", "my responsibility", "i worked"])
+    star_signals = sum(1 for x in ["situation", "task", "action", "result", "because", "so i", "then", "finally"] if x in lower)
+
+    jd_tools = [tool for tool in ["sql", "python", "excel", "tableau", "power bi", "api", "dashboard", "crm", "sla", "ticket", "report"] if tool in jd_lower]
+    missed_tools = [tool for tool in jd_tools if tool not in lower]
+    mentioned_tools = [tool for tool in jd_tools if tool in lower]
+
+    vague_phrases = ["etc", "many things", "various", "good communication", "hard working", "team player", "helped", "worked on", "responsible for"]
+    vague = words < 35 or sum(1 for p in vague_phrases if p in lower) >= 2
+    too_long = words > 135
+    off_topic = words > 25 and len(set(lower.split()).intersection(set(jd_lower.split()))) < 4 if jd_lower else False
+    claim_words = [x for x in ["sql", "python", "tableau", "power bi", "dashboard", "stakeholder", "customer", "analytics"] if x in lower and x not in cv_lower]
+
+    return {
+        "words": words,
+        "has_metric": has_metric,
+        "has_impact": bool(has_impact_words or has_metric),
+        "has_ownership": has_ownership,
+        "star_signals": star_signals,
+        "star_quality_estimate": min(10, max(1, 2 + star_signals * 2 + (2 if has_metric else 0) + (1 if has_ownership else 0))),
+        "missed_tools": missed_tools[:5],
+        "mentioned_tools": mentioned_tools[:5],
+        "vague": vague,
+        "too_long": too_long,
+        "off_topic": off_topic,
+        "unproven_claims": claim_words[:5],
+        "missing_impact": not has_metric and not has_impact_words,
+        "missing_ownership": not has_ownership,
+    }
+
+
+def _wz_ri_update_candidate_state(flags: dict, reaction: dict) -> dict:
+    state = dict(_wz_ri_get_candidate_state())
+    state["answers_seen"] = int(state.get("answers_seen", 0) or 0) + 1
+    if flags.get("has_metric"):
+        state["metrics_usage"] = int(state.get("metrics_usage", 0) or 0) + 1
+    if flags.get("vague"):
+        state["generic_answers"] = int(state.get("generic_answers", 0) or 0) + 1
+    if flags.get("missing_impact"):
+        state["missing_impact_count"] = int(state.get("missing_impact_count", 0) or 0) + 1
+
+    def clamp(v):
+        return max(1, min(10, int(round(v))))
+
+    state["ownership_clarity"] = clamp(state.get("ownership_clarity", 5) + (1 if flags.get("has_ownership") else -1))
+    state["technical_depth"] = clamp(state.get("technical_depth", 5) + (1 if flags.get("mentioned_tools") else -1 if flags.get("missed_tools") else 0))
+    state["communication_clarity"] = clamp(state.get("communication_clarity", 5) + (-1 if flags.get("too_long") or flags.get("off_topic") else 1 if not flags.get("vague") else 0))
+    state["star_quality"] = clamp(flags.get("star_quality_estimate", state.get("star_quality", 5)))
+    state["confidence_level"] = clamp(state.get("confidence_level", 5) + (1 if flags.get("has_metric") and flags.get("has_ownership") else -1 if flags.get("vague") else 0))
+
+    weaknesses = list(state.get("repeated_weaknesses", []) or [])
+    for label, cond in [
+        ("missing measurable result", flags.get("missing_impact")),
+        ("too general", flags.get("vague")),
+        ("weak ownership", flags.get("missing_ownership")),
+        ("too long", flags.get("too_long")),
+        ("missed role tools", bool(flags.get("missed_tools"))),
+    ]:
+        if cond and label not in weaknesses:
+            weaknesses.append(label)
+    state["repeated_weaknesses"] = weaknesses[-6:]
+    state["unproven_claims"] = list(dict.fromkeys((state.get("unproven_claims", []) or []) + (flags.get("unproven_claims", []) or [])))[-8:]
+    state["last_recruiter_pressure"] = str(reaction.get("interruption_reason") or "neutral")
+    st.session_state["wz_ri_candidate_state"] = state
+    return state
+
+
+def _wz_ri_render_intelligence_panel():
+    state = _wz_ri_get_candidate_state()
+    if int(state.get("answers_seen", 0) or 0) <= 0:
+        return
+    with st.expander("🧠 Live recruiter intelligence", expanded=True):
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("STAR quality", f"{state.get('star_quality', 5)}/10")
+        c2.metric("Metrics used", str(state.get("metrics_usage", 0)))
+        c3.metric("Ownership", f"{state.get('ownership_clarity', 5)}/10")
+        c4.metric("Clarity", f"{state.get('communication_clarity', 5)}/10")
+        weaknesses = state.get("repeated_weaknesses", []) or []
+        if weaknesses:
+            st.caption("Recruiter memory: " + " · ".join(weaknesses[-4:]))
+
+
 def _wz_ri_react_to_answer(question: str, answer: str, cv_text: str, jd: str, qa_pairs: list, language: str, personality: str):
-    flags = _wz_ri_answer_quality_flags(answer, jd)
+    flags = _wz_ri_answer_quality_flags(answer, jd, cv_text=cv_text, question=question)
+    candidate_state = _wz_ri_get_candidate_state()
+    country = st.session_state.get("selected_country") or st.session_state.get("user_country") or st.session_state.get("country") or "Global"
+    role = st.session_state.get("wz_ri_role") or st.session_state.get("target_role") or st.session_state.get("target_job_title") or ""
+    country_rules = _wz_ri_country_rules(country)
+    role_rules = _wz_ri_role_rules(role, jd)
 
     if flags["too_long"]:
-        return {
-            "reaction": "I'll stop you there.",
+        reaction = {
+            "reaction": "I'll stop you there — that was too long.",
             "needs_followup": True,
-            "followup_question": "Let's move on. Give me the same answer again, but in one specific example with the result.",
+            "followup_question": "Give me the same answer again in 45 seconds: one example, your action, and one measurable result.",
             "interruption_reason": "too long",
+            "live_reaction": "Too long",
+            "pressure_change": "+1",
         }
+        _wz_ri_update_candidate_state(flags, reaction)
+        return reaction
 
     prompt = f"""
-You are a realistic {personality.lower()} interviewer.
+You are WorkZo's Recruiter Intelligence Engine, not a generic chatbot.
+You behave like a realistic {personality.lower()} recruiter.
 
-React briefly to the user's latest answer and decide whether the next question should become a follow-up.
+Your job: evaluate the latest answer, remember repeated weaknesses, and decide the next recruiter move.
 
 Current question:
 {question}
@@ -354,73 +528,102 @@ Current question:
 User answer:
 {answer}
 
-Previous answers:
+Previous Q&A memory:
 {json.dumps(qa_pairs, ensure_ascii=False)}
 
-Detected quality flags:
+Candidate state memory:
+{json.dumps(candidate_state, ensure_ascii=False)}
+
+Detected answer signals:
 {json.dumps(flags, ensure_ascii=False)}
 
-CV:
-{cv_text[:5000]}
+Role intelligence:
+{json.dumps(role_rules, ensure_ascii=False)}
 
-Job Description:
-{jd[:5000]}
+Country expectation layer:
+{json.dumps(country_rules, ensure_ascii=False)}
+
+CV excerpt:
+{cv_text[:4500]}
+
+Job Description excerpt:
+{jd[:4500]}
 
 Return ONLY valid JSON:
 {{
-  "reaction": "brief human reaction, e.g. Hmm... / That's quite general / Good, that's clearer",
+  "reaction": "brief human recruiter reaction",
   "needs_followup": true,
-  "followup_question": "specific follow-up question if needed",
-  "interruption_reason": "too vague|too long|missing impact|missing tools|off-topic|none"
+  "followup_question": "specific pressure follow-up question",
+  "interruption_reason": "too vague|too long|missing impact|weak ownership|missing tools|off-topic|strong answer|none",
+  "live_reaction": "Too broad|Good metric|Weak ownership|Can you quantify that?|Strong STAR|Avoided question",
+  "pressure_change": "+1|0|-1",
+  "memory_note": "what the recruiter will remember for later"
 }}
 
-Rules:
-- If vague: "That's quite general—can you give a specific example?"
-- If no impact: "What was the result of that?"
-- If off-topic: "Let's stay focused on the question."
-- If missing tools: ask what tools/methods were used.
-- Use layered follow-up style: ask how, then tools, then measurable impact.
-- Use memory if previous answers mention a relevant skill.
-- Match interviewer personality: {personality}
-- Keep it firm, not rude.
+Recruiter behavior rules:
+- If answer is generic, challenge it directly.
+- If no metric/result, ask for one measurable outcome.
+- If ownership is unclear, ask what the candidate personally did.
+- If role tools are missing, ask about the most relevant missing tool.
+- If this repeats an earlier weakness, mention that briefly: "Earlier you also..."
+- If answer is strong, acknowledge briefly and go deeper.
+- Adapt subtly to country expectations without stereotypes.
+- Keep reaction firm, useful, and human. Do not be rude.
 - Language: {language}
 """
     raw = _wz_ri_ai(prompt, json_mode=True, language=language)
     data = _wz_ri_json(raw, {})
     if not isinstance(data, dict) or not data:
         if flags["vague"]:
-            return {
-                "reaction": "That's quite general.",
+            data = {
+                "reaction": "That's still too general.",
                 "needs_followup": True,
-                "followup_question": "Can you give a specific example?",
+                "followup_question": "Give me one specific example from your experience. What did you personally do and what changed because of it?",
                 "interruption_reason": "too vague",
+                "live_reaction": "Too broad",
+                "pressure_change": "+1",
+                "memory_note": "candidate gave a generic answer",
             }
-        if not flags["has_impact"]:
-            return {
-                "reaction": "Hmm...",
+        elif flags["missing_impact"]:
+            data = {
+                "reaction": "I’m missing the business result.",
                 "needs_followup": True,
-                "followup_question": "What was the result of that, and how did you measure success?",
+                "followup_question": "What was the measurable result — time saved, tickets reduced, users helped, or quality improved?",
                 "interruption_reason": "missing impact",
+                "live_reaction": "Can you quantify that?",
+                "pressure_change": "+1",
+                "memory_note": "candidate did not quantify impact",
             }
-        if flags["missed_tools"]:
-            return {
-                "reaction": "Okay.",
+        elif flags["missed_tools"]:
+            data = {
+                "reaction": "Okay, but I expected more role-specific detail.",
                 "needs_followup": True,
-                "followup_question": f"Which tools did you use? I expected to hear about {', '.join(flags['missed_tools'][:3])}.",
+                "followup_question": f"This role mentions {', '.join(flags['missed_tools'][:3])}. Which of these have you actually used, and in what context?",
                 "interruption_reason": "missing tools",
+                "live_reaction": "Missing role tools",
+                "pressure_change": "+1",
+                "memory_note": "candidate missed key tools",
             }
-        return {
-            "reaction": "Good, that gives me some context.",
-            "needs_followup": False,
-            "followup_question": "",
-            "interruption_reason": "none",
-        }
+        else:
+            data = {
+                "reaction": "Good, that gives me useful context.",
+                "needs_followup": False,
+                "followup_question": "",
+                "interruption_reason": "strong answer",
+                "live_reaction": "Good example",
+                "pressure_change": "-1",
+                "memory_note": "candidate answered clearly",
+            }
+
     data.setdefault("reaction", "Hmm...")
     data.setdefault("needs_followup", False)
     data.setdefault("followup_question", "")
     data.setdefault("interruption_reason", "none")
+    data.setdefault("live_reaction", "Recruiter thinking")
+    data.setdefault("pressure_change", "0")
+    data.setdefault("memory_note", "")
+    _wz_ri_update_candidate_state(flags, data)
     return data
-
 
 def _wz_ri_score_full_interview(cv_text: str, jd: str, company: str, role: str, qa_pairs: list, reactions: list, language: str) -> dict:
     prompt = f"""
@@ -708,6 +911,7 @@ def render_real_interview_simulation():
         "wz_ri_live_reactions": [],
         "wz_ri_closing_reached": False,
         "wz_ri_last_processed_audio_key": "",
+        "wz_ri_candidate_state": _wz_ri_default_candidate_state(),
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -835,6 +1039,7 @@ def render_real_interview_simulation():
             st.session_state["wz_ri_current_index"] = 0
             st.session_state["wz_ri_answers"] = []
             st.session_state["wz_ri_live_reactions"] = []
+            st.session_state["wz_ri_candidate_state"] = _wz_ri_default_candidate_state()
             st.session_state["wz_ri_final_score"] = {}
             st.session_state["wz_ri_started"] = True
             st.session_state["wz_ri_closing_reached"] = False
@@ -862,11 +1067,13 @@ def render_real_interview_simulation():
                 "wz_ri_live_reactions",
                 "wz_ri_closing_reached",
                 "wz_ri_last_processed_audio_key",
+                "wz_ri_candidate_state",
             ]:
                 st.session_state.pop(key, None)
             st.rerun()
 
     _wz_ri_render_dialogue()
+    _wz_ri_render_intelligence_panel()
 
     questions = st.session_state.get("wz_ri_questions", [])
     if not questions:
@@ -1075,6 +1282,7 @@ def _wz_ri_render_final_score(result: dict, company: str, role: str, website: st
                 "wz_ri_live_reactions",
                 "wz_ri_closing_reached",
                 "wz_ri_last_processed_audio_key",
+                "wz_ri_candidate_state",
             ]:
                 st.session_state.pop(key, None)
             st.rerun()
@@ -1091,6 +1299,9 @@ Interview Answers:
 
 Live Reactions:
 {json.dumps(st.session_state.get("wz_ri_live_reactions", []), indent=2, ensure_ascii=False)}
+
+Recruiter Intelligence Memory:
+{json.dumps(st.session_state.get("wz_ri_candidate_state", {}), indent=2, ensure_ascii=False)}
 
 Final Evaluation:
 {json.dumps(result, indent=2, ensure_ascii=False)}
@@ -1598,6 +1809,7 @@ def render_real_interview_simulation():
             st.session_state["wz_ri_current_index"] = 0
             st.session_state["wz_ri_answers"] = []
             st.session_state["wz_ri_live_reactions"] = []
+            st.session_state["wz_ri_candidate_state"] = _wz_ri_default_candidate_state()
             st.session_state["wz_ri_final_score"] = {}
             st.session_state["wz_ri_started"] = True
             st.session_state["wz_ri_closing_reached"] = False
@@ -1622,6 +1834,7 @@ def render_real_interview_simulation():
             st.rerun()
 
     _wz_ri_render_dialogue()
+    _wz_ri_render_intelligence_panel()
 
     questions = st.session_state.get("wz_ri_questions", [])
     if not questions:
@@ -3194,6 +3407,7 @@ def render_real_interview_simulation():
             st.session_state["wz_ri_current_index"] = 0
             st.session_state["wz_ri_answers"] = []
             st.session_state["wz_ri_live_reactions"] = []
+            st.session_state["wz_ri_candidate_state"] = _wz_ri_default_candidate_state()
             st.session_state["wz_ri_final_score"] = {}
             st.session_state["wz_ri_started"] = True
             st.session_state["wz_ri_question_started_at"] = time.time()
@@ -5379,3 +5593,860 @@ def _wz_ri_render_final_score(result: dict, company: str, role: str, website: st
 # End WorkZo v170 patch
 # =========================================================
 
+
+
+# =========================================================
+# WorkZo v186 - Recruiter psychology output loop
+# Adds patterns across sessions, retry weakest answer loop, emotional timeline,
+# compact AI-native cards, and recruiter confidence framing.
+# =========================================================
+import html as _wz186_html
+import re as _wz186_re
+
+
+def _wz186_list(value):
+    try:
+        if isinstance(value, list):
+            return [str(x).strip() for x in value if str(x).strip()]
+        if isinstance(value, str) and value.strip():
+            return [x.strip() for x in _wz186_re.split(r"[\n;•]+", value) if x.strip()]
+    except Exception:
+        pass
+    return []
+
+
+def _wz186_txt(value, fallback=""):
+    try:
+        text = str(value or "").strip()
+        return text if text else fallback
+    except Exception:
+        return fallback
+
+
+def _wz186_int(value, default=0):
+    try:
+        return int(float(value))
+    except Exception:
+        return default
+
+
+def _wz186_short_answer(answer, limit=520):
+    text = _wz186_txt(answer)
+    if len(text) > limit:
+        return text[:limit].rsplit(" ", 1)[0] + "…"
+    return text
+
+
+def _wz186_build_patterns(history, result):
+    result = result if isinstance(result, dict) else {}
+    patterns = []
+    all_weak = []
+    try:
+        for entry in history[-5:]:
+            all_weak.extend(_wz186_list(entry.get('weak_areas')))
+    except Exception:
+        pass
+    all_weak.extend(_wz186_list(result.get('trust_risk_flags')))
+    all_weak.extend(_wz186_list(result.get('what_hurt_you_most')))
+    text = ' '.join(all_weak).lower()
+    if any(x in text for x in ['metric', 'measurable', 'impact', 'quantifiable', 'result']):
+        patterns.append('Consistently needs stronger measurable outcomes.')
+    if any(x in text for x in ['vague', 'generic', 'specific', 'clarity']):
+        patterns.append('Answers become too broad when follow-ups get specific.')
+    if any(x in text for x in ['too long', 'rambling', 'background']):
+        patterns.append('Tends to give background before the result.')
+    if any(x in text for x in ['ownership', 'team-based', 'what specifically did you']):
+        patterns.append('Needs clearer individual ownership.')
+    if any(x in text for x in ['job description', 'jd', 'relevance']):
+        patterns.append('Should connect answers more directly to the job description.')
+    if not patterns:
+        patterns = [
+            'Strong communication baseline; improve proof with numbers.',
+            'Interview confidence improves when answers use STAR structure.',
+            'Next session should focus on concise, result-first examples.',
+        ]
+    return patterns[:5]
+
+
+def _wz186_reaction_timeline(result):
+    score = _wz186_int((result or {}).get('overall_score'), 0)
+    flags = ' '.join(_wz186_list((result or {}).get('trust_risk_flags'))).lower()
+    timeline = ['🙂 Interested']
+    if score < 80:
+        timeline.append('😐 Neutral after broad answer')
+    if any(x in flags for x in ['metric', 'impact', 'vague', 'generic', 'too long']):
+        timeline.append('⚠️ Doubt increased')
+    if score < 65:
+        timeline.append('🔴 Confidence dropped')
+    else:
+        timeline.append('🟢 Recoverable with one stronger STAR example')
+    timeline.append('🎯 Next: retry weakest answer')
+    return timeline[:5]
+
+
+def _wz186_compact_cards(title, items, icon='⚠️'):
+    items = _wz186_list(items)[:6]
+    if not items:
+        return
+    st.markdown(f'#### {title}')
+    cols = st.columns(min(3, max(1, len(items))))
+    for i, item in enumerate(items):
+        with cols[i % len(cols)]:
+            st.markdown(
+                f"""
+                <div style='border:1px solid rgba(148,163,184,.20);background:rgba(15,23,42,.52);border-radius:16px;padding:14px 15px;margin:5px 0 10px 0;min-height:72px;'>
+                    <div style='font-size:1.05rem;margin-bottom:6px;'>{icon}</div>
+                    <div style='color:#f8fafc;font-weight:850;line-height:1.35;'>{_wz186_html.escape(str(item))}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
+def _wz186_render_patterns_panel(result):
+    try:
+        history = _wz160_load_history() if callable(globals().get('_wz160_load_history')) else []
+    except Exception:
+        history = []
+    patterns = _wz186_build_patterns(history, result)
+    st.markdown('### 🧠 Patterns across sessions')
+    st.caption('WorkZo tracks recurring recruiter signals so each practice round becomes smarter.')
+    cols = st.columns(min(3, len(patterns)))
+    for i, pattern in enumerate(patterns):
+        with cols[i % len(cols)]:
+            st.markdown(
+                f"""
+                <div style='border:1px solid rgba(56,189,248,.22);background:linear-gradient(135deg,rgba(14,165,233,.10),rgba(15,23,42,.58));border-radius:18px;padding:16px;min-height:96px;margin-bottom:12px;'>
+                    <div style='color:#67e8f9;font-weight:900;font-size:.75rem;letter-spacing:.10em;text-transform:uppercase;margin-bottom:8px;'>Recurring pattern</div>
+                    <div style='color:#f8fafc;font-weight:850;line-height:1.4;'>{_wz186_html.escape(pattern)}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
+def _wz186_render_retry_weakest(result):
+    result = result if isinstance(result, dict) else {}
+    weak_answer = _wz186_txt(result.get('answer_that_damaged_trust'))
+    improved = _wz186_txt(result.get('improved_version_of_weakest_answer'))
+    st.markdown('### 🎤 Retry weakest answer immediately')
+    st.caption('Learning loop: retry the answer that damaged recruiter trust, then compare old vs improved.')
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown('#### Old answer / trust damage')
+        st.warning(_wz186_short_answer(weak_answer or 'Your weakest answer lacked specific proof, ownership, or measurable impact.'))
+    with c2:
+        st.markdown('#### Better direction')
+        st.success(_wz186_short_answer(improved or 'Answer with result first, one concrete example, your exact action, and one truthful metric or business outcome.'))
+    if st.button('🎤 Retry this answer now', key='wz186_retry_weakest_answer_now', use_container_width=True):
+        try:
+            st.session_state['wz_ri_retry_mode'] = True
+            st.session_state['wz_ri_retry_prompt'] = weak_answer or 'Retry the weakest answer with measurable impact and clearer ownership.'
+            st.session_state['wz_ri_live_reaction_override'] = 'Retry mode: compare old vs new answer.'
+            st.session_state['page'] = 'real_interview'
+            st.session_state['nav_page'] = 'real_interview'
+            st.session_state['_wz_force_page'] = 'real_interview'
+            st.rerun()
+        except Exception:
+            pass
+
+
+def _wz186_render_confidence_and_timeline(result):
+    result = result if isinstance(result, dict) else {}
+    score = _wz186_int(result.get('overall_score'), 0)
+    confidence = max(35, min(94, score + 6))
+    risk = _wz186_txt(result.get('rejection_risk'), 'Medium')
+    st.markdown('### 📈 Recruiter confidence timeline')
+    c1, c2, c3 = st.columns(3)
+    c1.metric('Recruiter confidence', f'{confidence}%')
+    c2.metric('Rejection risk', risk)
+    c3.metric('Trust recovery target', f'{min(95, confidence + 15)}%')
+    timeline = _wz186_reaction_timeline(result)
+    st.markdown(
+        "<div style='display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 18px 0;'>" +
+        ''.join([f"<div style='border:1px solid rgba(148,163,184,.22);background:rgba(15,23,42,.54);border-radius:999px;padding:10px 13px;color:#e5e7eb;font-weight:850;'>{_wz186_html.escape(x)}</div>" for x in timeline]) +
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def _wz186_render_referral_decision(result):
+    result = result if isinstance(result, dict) else {}
+    score = _wz186_int(result.get('overall_score'), 0)
+    if score >= 82:
+        verdict = 'YES — likely referral to hiring manager'
+        detail = 'The recruiter has enough evidence to justify moving you forward.'
+        kind = 'success'
+    elif score >= 65:
+        verdict = 'MAYBE — one stronger practice round needed'
+        detail = 'You show role fit, but recruiter confidence drops where impact or metrics are unclear.'
+        kind = 'warning'
+    else:
+        verdict = 'NO — not ready to refer yet'
+        detail = 'The recruiter would need clearer proof, stronger structure, and more job-specific examples.'
+        kind = 'error'
+    st.markdown('### 🤝 Would this recruiter refer you internally?')
+    getattr(st, kind)(f'{verdict}\n\n{detail}')
+
+
+try:
+    _wz186_previous_render_final_score = _wz_ri_render_final_score
+except Exception:
+    _wz186_previous_render_final_score = None
+
+
+def _wz_ri_render_final_score(result: dict, company: str, role: str, website: str, language: str):
+    """Final recruiter-psychology result page: memory, retry loop, confidence timeline, compact cards."""
+    try:
+        if callable(globals().get('_wz170_normalize_hiring_decision')):
+            result = _wz170_normalize_hiring_decision(result)
+    except Exception:
+        result = result if isinstance(result, dict) else {}
+
+    try:
+        st.session_state['wz_ri_final_score'] = result
+    except Exception:
+        pass
+
+    score = _wz186_int(result.get('overall_score'), 0)
+    target = _wz186_int(result.get('target_score'), 80)
+    decision = _wz186_txt(result.get('hiring_decision'), 'Borderline — needs one more practice round')
+    next_target = _wz186_txt(result.get('next_practice_target'), 'Practice one answer with result first, one example, measurable impact, and job relevance.')
+
+    st.markdown('## 🧑‍💼 Recruiter psychology report')
+    st.caption('WorkZo shows where recruiter confidence increased, dropped, and what to retry next.')
+    a, b, c = st.columns(3)
+    a.metric('Readiness score', f'{score}/100')
+    b.metric('Target', f'{target}+')
+    c.metric('Next focus', next_target[:32] + ('…' if len(next_target) > 32 else ''))
+
+    if score >= target:
+        st.success(decision)
+    elif score >= 60:
+        st.warning(decision)
+    else:
+        st.error(decision)
+
+    summary = _wz186_txt(result.get('recruiter_decision_summary'), _wz186_txt(result.get('biggest_reason_for_rejection'), 'Recruiter confidence depends on clearer measurable proof.'))
+    st.markdown(
+        f"""
+        <div style='border:1px solid rgba(56,189,248,.20);background:rgba(15,23,42,.48);border-radius:18px;padding:18px;margin:14px 0;'>
+            <div style='color:#93c5fd;font-weight:900;font-size:.78rem;text-transform:uppercase;letter-spacing:.10em;margin-bottom:8px;'>Would you pass?</div>
+            <div style='color:#f8fafc;font-size:1.05rem;font-weight:850;line-height:1.5;'>{_wz186_html.escape(summary)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    _wz186_render_confidence_and_timeline(result)
+    _wz186_render_referral_decision(result)
+    _wz186_render_patterns_panel(result)
+
+    c1, c2 = st.columns(2)
+    with c1:
+        _wz186_compact_cards('⚠️ Trust risk flags', result.get('trust_risk_flags'), '⚠️')
+    with c2:
+        _wz186_compact_cards('✅ Fix before the real interview', result.get('what_to_fix_before_real_interview'), '✅')
+
+    _wz186_render_retry_weakest(result)
+
+    strengths = _wz186_list(result.get('strengths')) or ['Relevant experience', 'Communication potential', 'Role motivation']
+    mistakes = _wz186_list(result.get('top_3_mistakes')) or _wz186_list(result.get('what_hurt_you_most'))
+    c3, c4 = st.columns(2)
+    with c3:
+        _wz186_compact_cards('What helped recruiter trust', strengths, '🟢')
+    with c4:
+        _wz186_compact_cards('What to fix next', mistakes, '🔴')
+
+    st.markdown('### 🎯 Next practice target')
+    st.info(next_target)
+
+    try:
+        if callable(globals().get('_wz160_store_interview_result')):
+            _wz160_store_interview_result(result, company, role, language)
+    except Exception:
+        pass
+
+    # Preserve the old full result only behind an expander to avoid document-like overload.
+    if callable(_wz186_previous_render_final_score):
+        with st.expander('View detailed legacy feedback', expanded=False):
+            try:
+                _wz186_previous_render_final_score(result, company, role, website, language)
+            except Exception:
+                st.caption('Detailed feedback unavailable for this session.')
+
+# ================================================================
+# WorkZo v188 — Adaptive AI Recruiter Simulation Engine
+# Adds: follow-up chaining, candidate memory, recruiter personalities,
+# dynamic pressure state, role/country behaviour layers, structured scoring,
+# and pre-interview intelligence hooks without changing the main UI flow.
+# ================================================================
+
+try:
+    _wz188_previous_build_questions = _wz_ri_build_questions
+except Exception:
+    _wz188_previous_build_questions = None
+try:
+    _wz188_previous_react_to_answer = _wz_ri_react_to_answer
+except Exception:
+    _wz188_previous_react_to_answer = None
+try:
+    _wz188_previous_score_full_interview = _wz_ri_score_full_interview
+except Exception:
+    _wz188_previous_score_full_interview = None
+
+import re as _wz188_re
+import time as _wz188_time
+
+_WZ188_RECRUITER_PROFILES = {
+    "Sarah": {
+        "label": "👩 Sarah — Friendly HR",
+        "tone": "supportive, warm, communication-focused",
+        "push_style": "gentle but persistent",
+        "focus": ["communication", "motivation", "teamwork", "role fit"],
+        "weak_followup": "Good start. Can you walk me through one specific example with a clear result?",
+        "metric_followup": "That sounds useful. How did you measure the improvement?",
+        "ramble_interrupt": "Let me pause you gently — what was the main result?",
+    },
+    "Daniel": {
+        "label": "👨 Daniel — Technical Hiring Manager",
+        "tone": "analytical, direct, technical, detail-oriented",
+        "push_style": "evidence-first and process-heavy",
+        "focus": ["technical depth", "tools", "process", "validation", "metrics"],
+        "weak_followup": "What exactly did you do technically? Walk me through the process.",
+        "metric_followup": "What metric changed, and how did you validate it?",
+        "ramble_interrupt": "I need the technical point, not the background. What was your method?",
+    },
+    "Priya": {
+        "label": "👩 Priya — Fast-paced Startup Recruiter",
+        "tone": "fast, impact-focused, skeptical of rambling",
+        "push_style": "quick interruptions and business-impact pressure",
+        "focus": ["ownership", "speed", "impact", "ambiguity", "execution"],
+        "weak_followup": "Too broad. What changed for the business? Give me the impact quickly.",
+        "metric_followup": "How much faster, cheaper, or better did this make the process?",
+        "ramble_interrupt": "I’m going to interrupt — summarize the result in one sentence.",
+    },
+    "Markus": {
+        "label": "👨 Markus — German Corporate Interviewer",
+        "tone": "structured, formal, precise, process-oriented",
+        "push_style": "calm precision and step-by-step validation",
+        "focus": ["structure", "precision", "process", "realistic claims", "responsibility"],
+        "weak_followup": "Please structure the answer more clearly: situation, your responsibility, action, result.",
+        "metric_followup": "What evidence supports that result? Please be precise.",
+        "ramble_interrupt": "Let us make this more structured. What was your exact responsibility?",
+    },
+}
+
+_WZ188_ROLE_LAYERS = {
+    "data": {
+        "probe": ["SQL depth", "dashboarding", "business impact", "data quality", "stakeholder communication"],
+        "question": "You mentioned analysis/reporting. What data did you use, what logic did you apply, and what decision changed because of it?",
+    },
+    "analyst": {
+        "probe": ["SQL depth", "dashboarding", "business impact", "data quality", "stakeholder communication"],
+        "question": "You mentioned analysis/reporting. What data did you use, what logic did you apply, and what decision changed because of it?",
+    },
+    "support": {
+        "probe": ["customer handling", "escalations", "ticket ownership", "resolution impact", "communication"],
+        "question": "Tell me about a difficult support case. What did you own, how did you resolve it, and what improved for the customer?",
+    },
+    "customer success": {
+        "probe": ["retention", "difficult clients", "expectation management", "escalation", "business relationship"],
+        "question": "Tell me about a customer situation where expectations were difficult. How did you manage it and what was the outcome?",
+    },
+    "product": {
+        "probe": ["user problem", "prioritization", "stakeholders", "trade-offs", "measurable outcome"],
+        "question": "Describe a product decision you influenced. What trade-off did you make and how did you measure success?",
+    },
+    "engineer": {
+        "probe": ["technical depth", "systems thinking", "debugging", "ownership", "trade-offs"],
+        "question": "Describe a technical problem you solved. What was your approach, what trade-off did you make, and what changed after it shipped?",
+    },
+}
+
+_WZ188_COUNTRY_LAYERS = {
+    "germany": {
+        "expectation": "structured, precise, process-oriented, realistic claims",
+        "coach": "Structure the answer step-by-step and avoid exaggerated claims.",
+    },
+    "usa": {
+        "expectation": "achievement-focused, confident, metric-heavy, fast communication",
+        "coach": "Make the achievement more outcome-driven and quantify impact.",
+    },
+    "uk": {
+        "expectation": "balanced confidence, teamwork, professional clarity",
+        "coach": "Keep confidence balanced and show collaboration plus ownership.",
+    },
+    "india": {
+        "expectation": "skills proof, ATS-fit keywords, clear project ownership, communication clarity",
+        "coach": "Show concrete projects, tools, and your exact contribution.",
+    },
+}
+
+
+def _wz188_text(value, default=""):
+    try:
+        return str(value or default).strip()
+    except Exception:
+        return default
+
+
+def _wz188_words(text):
+    return _wz188_re.findall(r"[a-zA-Z][a-zA-Z0-9+.#-]{2,}", _wz188_text(text).lower())
+
+
+def _wz188_has_metric(text):
+    t = _wz188_text(text).lower()
+    return bool(_wz188_re.search(r"\b\d+[\d,.]*\s*(%|percent|users?|customers?|tickets?|cases?|minutes?|hours?|days?|weeks?|months?|years?|€|\$|k|m|x|times|seconds?|reports?|dashboards?)?\b", t))
+
+
+def _wz188_has_result_language(text):
+    t = _wz188_text(text).lower()
+    return any(x in t for x in ["improved", "reduced", "increased", "saved", "delivered", "resolved", "automated", "built", "created", "impact", "result", "outcome", "faster", "better", "efficiency", "customer", "business"])
+
+
+def _wz188_has_ownership(text):
+    t = _wz188_text(text).lower()
+    return any(x in t for x in ["i ", "i'm", "i’ve", "i have", "my role", "i worked", "i built", "i created", "i handled", "i analyzed", "i improved", "i led"])
+
+
+def _wz188_profile_from_personality(personality):
+    p = _wz188_text(personality).lower()
+    for key, data in _WZ188_RECRUITER_PROFILES.items():
+        if key.lower() in p or key.lower() in _wz188_text(data.get("label")).lower():
+            return key, data
+    if "technical" in p or "manager" in p:
+        return "Daniel", _WZ188_RECRUITER_PROFILES["Daniel"]
+    if "startup" in p or "fast" in p or "priya" in p:
+        return "Priya", _WZ188_RECRUITER_PROFILES["Priya"]
+    if "german" in p or "corporate" in p or "markus" in p:
+        return "Markus", _WZ188_RECRUITER_PROFILES["Markus"]
+    return "Sarah", _WZ188_RECRUITER_PROFILES["Sarah"]
+
+
+def _wz188_role_layer(role, jd=""):
+    combined = f"{role} {jd}".lower()
+    for key, layer in _WZ188_ROLE_LAYERS.items():
+        if key in combined:
+            return key, layer
+    return "general", {"probe": ["ownership", "measurable impact", "communication", "role fit"], "question": "Give me one specific example that proves you can do this role. What changed because of your work?"}
+
+
+def _wz188_country_layer(country_or_jd=""):
+    text = _wz188_text(country_or_jd).lower()
+    for key, layer in _WZ188_COUNTRY_LAYERS.items():
+        if key in text:
+            return key, layer
+    return "global", {"expectation": "clear, specific, measurable, role-relevant answers", "coach": "Be specific, truthful, concise, and connect your answer to the job."}
+
+
+def _wz188_default_memory():
+    return {
+        "strong_points": [],
+        "weak_points": [],
+        "mentioned_metrics": [],
+        "mentioned_claims": [],
+        "contradictions": [],
+        "areas_to_probe": [],
+        "communication_style": "unknown",
+        "confidence_level": 70,
+        "pressure_level": 30,
+        "answer_count": 0,
+        "last_followup_chain": [],
+    }
+
+
+def _wz188_get_memory():
+    try:
+        mem = st.session_state.get("wz_recruiter_memory")
+        if not isinstance(mem, dict):
+            mem = _wz188_default_memory()
+            st.session_state["wz_recruiter_memory"] = mem
+        for k, v in _wz188_default_memory().items():
+            mem.setdefault(k, v)
+        return mem
+    except Exception:
+        return _wz188_default_memory()
+
+
+def _wz188_add_unique(items, value, limit=8):
+    if not isinstance(items, list):
+        items = []
+    value = _wz188_text(value)
+    if value and value not in items:
+        items.append(value)
+    return items[-limit:]
+
+
+def _wz188_detect_contradiction(answer, memory):
+    t = _wz188_text(answer).lower()
+    claims = memory.get("mentioned_claims", []) if isinstance(memory, dict) else []
+    contradiction = ""
+    if any("independent" in c or "ownership" in c for c in claims) and any(x in t for x in ["manager guided", "my manager", "team did", "we all", "not sure"]):
+        contradiction = "Earlier you signaled independent ownership, but now the answer sounds heavily team/manager-led."
+    if any("sql" in c for c in claims) and any(x in t for x in ["i don't know sql", "not much sql", "basic sql only"]):
+        contradiction = "Earlier SQL appeared important, but this answer reduces confidence in SQL depth."
+    return contradiction
+
+
+def _wz188_update_memory(question, answer, jd, role, reaction_type=""):
+    mem = _wz188_get_memory()
+    ans = _wz188_text(answer)
+    low = ans.lower()
+    words = len(ans.split())
+    mem["answer_count"] = int(mem.get("answer_count", 0) or 0) + 1
+
+    has_metric = _wz188_has_metric(ans)
+    has_result = _wz188_has_result_language(ans)
+    has_ownership = _wz188_has_ownership(ans)
+
+    if has_metric:
+        found = _wz188_re.findall(r"\b\d+[\d,.]*\s*(?:%|percent|users?|customers?|tickets?|cases?|minutes?|hours?|days?|weeks?|months?|years?|€|\$|k|m|x|times|seconds?|reports?|dashboards?)?\b", ans, flags=_wz188_re.I)
+        for metric in found[:3]:
+            mem["mentioned_metrics"] = _wz188_add_unique(mem.get("mentioned_metrics", []), metric)
+        mem["strong_points"] = _wz188_add_unique(mem.get("strong_points", []), "uses measurable evidence")
+    else:
+        mem["weak_points"] = _wz188_add_unique(mem.get("weak_points", []), "missing measurable impact")
+        mem["areas_to_probe"] = _wz188_add_unique(mem.get("areas_to_probe", []), "quantified outcome")
+
+    if has_result:
+        mem["strong_points"] = _wz188_add_unique(mem.get("strong_points", []), "result-oriented answer")
+    else:
+        mem["weak_points"] = _wz188_add_unique(mem.get("weak_points", []), "unclear business outcome")
+
+    if has_ownership:
+        mem["strong_points"] = _wz188_add_unique(mem.get("strong_points", []), "clear personal ownership")
+        mem["mentioned_claims"] = _wz188_add_unique(mem.get("mentioned_claims", []), "ownership")
+    else:
+        mem["weak_points"] = _wz188_add_unique(mem.get("weak_points", []), "weak individual ownership")
+        mem["areas_to_probe"] = _wz188_add_unique(mem.get("areas_to_probe", []), "exact personal contribution")
+
+    if words > 145:
+        mem["weak_points"] = _wz188_add_unique(mem.get("weak_points", []), "rambling / too long")
+        mem["communication_style"] = "detailed but too long"
+    elif words < 25:
+        mem["weak_points"] = _wz188_add_unique(mem.get("weak_points", []), "too short / not enough evidence")
+        mem["communication_style"] = "too brief"
+    else:
+        mem["communication_style"] = "clear enough, needs sharper proof" if mem.get("weak_points") else "clear and specific"
+
+    role_key, role_layer = _wz188_role_layer(role, jd)
+    for probe in role_layer.get("probe", [])[:3]:
+        if probe.lower() not in low:
+            mem["areas_to_probe"] = _wz188_add_unique(mem.get("areas_to_probe", []), probe)
+
+    contradiction = _wz188_detect_contradiction(ans, mem)
+    if contradiction:
+        mem["contradictions"] = _wz188_add_unique(mem.get("contradictions", []), contradiction)
+        mem["areas_to_probe"] = _wz188_add_unique(mem.get("areas_to_probe", []), "clarify contradiction")
+
+    pressure = int(mem.get("pressure_level", 30) or 30)
+    confidence = int(mem.get("confidence_level", 70) or 70)
+    if has_metric and has_result and has_ownership and words <= 130:
+        pressure = max(10, pressure - 8)
+        confidence = min(95, confidence + 7)
+    else:
+        pressure = min(95, pressure + 8)
+        confidence = max(20, confidence - 6)
+    if reaction_type in ["avoidance", "contradiction", "rambling"]:
+        pressure = min(95, pressure + 10)
+        confidence = max(15, confidence - 8)
+
+    mem["pressure_level"] = pressure
+    mem["confidence_level"] = confidence
+    try:
+        st.session_state["wz_recruiter_memory"] = mem
+        st.session_state["wz_recruiter_confidence"] = confidence
+        st.session_state["wz_recruiter_pressure"] = pressure
+    except Exception:
+        pass
+    return mem
+
+
+def _wz188_answer_scores(answer, question=""):
+    ans = _wz188_text(answer)
+    words = len(ans.split())
+    has_metric = _wz188_has_metric(ans)
+    has_result = _wz188_has_result_language(ans)
+    has_ownership = _wz188_has_ownership(ans)
+    specificity = 80 if has_metric else 55
+    impact = 82 if has_result and has_metric else (65 if has_result else 45)
+    ownership = 78 if has_ownership else 45
+    clarity = 80 if 35 <= words <= 120 else (58 if words > 145 else 50)
+    star_quality = int((specificity + impact + ownership + clarity) / 4)
+    return {
+        "star_quality": star_quality,
+        "specificity": specificity,
+        "measurable_impact": impact,
+        "ownership": ownership,
+        "clarity": clarity,
+        "rambling": words > 145,
+        "too_short": words < 25,
+        "has_metric": has_metric,
+        "has_result": has_result,
+        "has_ownership": has_ownership,
+    }
+
+
+def _wz_ri_build_questions(cv_text: str, jd: str, company: str, role: str, website: str, company_context: str, language: str, personality: str):
+    """Layered question generation: role context + candidate context + recruiter personality + memory + country expectations."""
+    mem = _wz188_get_memory()
+    recruiter_key, recruiter = _wz188_profile_from_personality(personality)
+    role_key, role_layer = _wz188_role_layer(role, jd)
+    country_key, country_layer = _wz188_country_layer(f"{jd} {company_context} {st.session_state.get('target_country','') if 'st' in globals() else ''}")
+
+    memory_probe = ""
+    if mem.get("areas_to_probe"):
+        memory_probe = f"Earlier weak area to probe: {mem.get('areas_to_probe')[-1]}."
+    elif mem.get("weak_points"):
+        memory_probe = f"Candidate often struggles with: {mem.get('weak_points')[-1]}."
+
+    fallback = [
+        f"Your recruiter already read your CV. Tell me about yourself for the {role or 'target'} role, but keep it relevant to this job.",
+        role_layer.get("question") or "Give me one specific example that proves you can do this role.",
+        f"{memory_probe} Give me one measurable result from your most relevant experience.",
+        f"I want to verify ownership. What specifically did YOU do, not the team?",
+        f"How does your experience match the most important requirement in this job description?",
+        f"Now answer under pressure: summarize your strongest fit in 45 seconds with one example and one measurable impact.",
+    ]
+    fallback = [q for q in fallback if _wz188_text(q)]
+
+    # Use existing generator when available, but prepend intelligence-driven questions.
+    try:
+        if callable(_wz188_previous_build_questions):
+            old = _wz188_previous_build_questions(cv_text, jd, company, role, website, company_context, language, personality)
+            old_list = old if isinstance(old, list) else []
+            combined = fallback[:3] + [x for x in old_list if _wz188_text(x)][:6]
+            return combined[:8]
+    except Exception:
+        pass
+    return fallback[:6]
+
+
+def _wz_ri_react_to_answer(question: str, answer: str, cv_text: str, jd: str, qa_pairs: list, language: str, personality: str):
+    """Adaptive recruiter reaction: memory-aware, personality-specific, pressure-sensitive, and role-aware."""
+    role = st.session_state.get("target_role", "") if "st" in globals() else ""
+    mem = _wz188_update_memory(question, answer, jd, role)
+    recruiter_key, recruiter = _wz188_profile_from_personality(personality)
+    role_key, role_layer = _wz188_role_layer(role, jd)
+    country_key, country_layer = _wz188_country_layer(jd)
+    scores = _wz188_answer_scores(answer, question)
+    ans = _wz188_text(answer)
+    words = len(ans.split())
+
+    contradiction = _wz188_detect_contradiction(ans, mem)
+    if contradiction:
+        mem = _wz188_update_memory(question, answer, jd, role, "contradiction")
+        return {
+            "reaction": "I need to clarify something — this sounds inconsistent with what you said earlier.",
+            "needs_followup": True,
+            "followup_question": f"{contradiction} What was your exact role and responsibility?",
+            "interruption_reason": "contradiction",
+            "coach_note": "Recruiters lose trust when ownership or claims shift. Clarify precisely.",
+            "recruiter_confidence": mem.get("confidence_level", 60),
+            "pressure_level": mem.get("pressure_level", 50),
+        }
+
+    if scores["rambling"]:
+        mem = _wz188_update_memory(question, answer, jd, role, "rambling")
+        return {
+            "reaction": recruiter.get("ramble_interrupt", "I’m going to stop you there — this is too long."),
+            "needs_followup": True,
+            "followup_question": "Answer again in 30–45 seconds: result first, then one example, then why it matters for this role.",
+            "interruption_reason": "too long",
+            "coach_note": "Lead with the result. Cut background. Recruiters reward concise evidence.",
+            "recruiter_confidence": mem.get("confidence_level", 55),
+            "pressure_level": mem.get("pressure_level", 65),
+        }
+
+    if scores["too_short"]:
+        return {
+            "reaction": "That is not enough evidence for me to evaluate you.",
+            "needs_followup": True,
+            "followup_question": "Give me one concrete example: situation, your action, and what changed.",
+            "interruption_reason": "too short",
+            "coach_note": "Short answers need proof. Add one specific example.",
+            "recruiter_confidence": mem.get("confidence_level", 55),
+            "pressure_level": mem.get("pressure_level", 55),
+        }
+
+    if not scores["has_ownership"]:
+        return {
+            "reaction": "That sounds team-based. I still don’t know what YOU personally did.",
+            "needs_followup": True,
+            "followup_question": "What was your exact contribution, and which part would not have happened without you?",
+            "interruption_reason": "weak ownership",
+            "coach_note": "Recruiters need your individual contribution, not only team activity.",
+            "recruiter_confidence": mem.get("confidence_level", 58),
+            "pressure_level": mem.get("pressure_level", 60),
+        }
+
+    if not scores["has_metric"]:
+        return {
+            "reaction": recruiter.get("metric_followup", "I’m missing the measurable impact."),
+            "needs_followup": True,
+            "followup_question": "How did you measure that? Give me a number, comparison, volume, speed, quality, customer result, or business impact.",
+            "interruption_reason": "missing metric",
+            "coach_note": "This is the highest-value fix: add truthful measurable impact.",
+            "recruiter_confidence": mem.get("confidence_level", 60),
+            "pressure_level": mem.get("pressure_level", 62),
+        }
+
+    # Role-specific deepener after a decent answer.
+    if role_key in ["data", "analyst"] and not any(x in ans.lower() for x in ["sql", "dashboard", "tableau", "power bi", "data"]):
+        return {
+            "reaction": "Good example, but I want to test the data depth now.",
+            "needs_followup": True,
+            "followup_question": "What data, SQL logic, dashboard, or metric did you use, and how did it support a business decision?",
+            "interruption_reason": "technical depth probe",
+            "coach_note": "For analyst roles, recruiters expect tools + logic + business impact.",
+            "recruiter_confidence": mem.get("confidence_level", 70),
+            "pressure_level": mem.get("pressure_level", 45),
+        }
+    if role_key in ["support", "customer success"] and not any(x in ans.lower() for x in ["customer", "client", "ticket", "escalation", "retention", "resolution"]):
+        return {
+            "reaction": "Good, but I need to hear customer impact.",
+            "needs_followup": True,
+            "followup_question": "Which customer/client problem did this solve, and what changed after your action?",
+            "interruption_reason": "customer impact probe",
+            "coach_note": "For support/customer roles, show escalation handling and customer outcome.",
+            "recruiter_confidence": mem.get("confidence_level", 70),
+            "pressure_level": mem.get("pressure_level", 45),
+        }
+
+    # Memory callback if a previous weak area still exists.
+    if mem.get("weak_points") and mem.get("answer_count", 0) >= 2:
+        last_weak = mem.get("weak_points")[-1]
+        if "missing measurable" in last_weak and not scores["has_metric"]:
+            return {
+                "reaction": "I’m noticing the same pattern again: not enough measurable proof.",
+                "needs_followup": True,
+                "followup_question": "Earlier answers also lacked numbers. Try again with one specific measurable outcome.",
+                "interruption_reason": "repeated weak area",
+                "coach_note": "Repeated weak areas are exactly what real recruiters remember.",
+                "recruiter_confidence": mem.get("confidence_level", 56),
+                "pressure_level": mem.get("pressure_level", 70),
+            }
+
+    return {
+        "reaction": "Good — this gives me specific evidence to evaluate.",
+        "needs_followup": False,
+        "followup_question": "",
+        "interruption_reason": "none",
+        "coach_note": f"Strong enough to continue. {country_layer.get('coach', '')}",
+        "recruiter_confidence": mem.get("confidence_level", 78),
+        "pressure_level": mem.get("pressure_level", 35),
+        "answer_scores": scores,
+    }
+
+
+def _wz_ri_score_full_interview(cv_text: str, jd: str, company: str, role: str, qa_pairs: list, reactions: list, language: str) -> dict:
+    """Structured recruiter psychology scoring with memory, trust, pressure, and next practice loop."""
+    mem = _wz188_get_memory()
+    qa_pairs = qa_pairs if isinstance(qa_pairs, list) else []
+    all_answers = []
+    for item in qa_pairs:
+        if isinstance(item, dict):
+            all_answers.append(_wz188_text(item.get("answer") or item.get("a") or item.get("response")))
+        elif isinstance(item, (list, tuple)) and len(item) > 1:
+            all_answers.append(_wz188_text(item[1]))
+    all_answers = [a for a in all_answers if a]
+
+    scores = [_wz188_answer_scores(a) for a in all_answers] or [_wz188_answer_scores("")]
+    avg = lambda key: int(sum(s.get(key, 0) for s in scores) / max(1, len(scores)))
+    star = avg("star_quality")
+    specificity = avg("specificity")
+    impact = avg("measurable_impact")
+    ownership = avg("ownership")
+    clarity = avg("clarity")
+    overall = int((star * 0.28) + (specificity * 0.18) + (impact * 0.24) + (ownership * 0.16) + (clarity * 0.14))
+
+    weak = []
+    strong = []
+    if impact < 70: weak.append("measurable outcomes")
+    else: strong.append("measurable business impact")
+    if ownership < 65: weak.append("individual ownership")
+    else: strong.append("clear ownership")
+    if clarity < 65: weak.append("concise communication")
+    else: strong.append("clear communication")
+    if specificity < 65: weak.append("specific examples")
+    else: strong.append("specific examples")
+    if star < 70: weak.append("STAR structure")
+    else: strong.append("STAR structure")
+
+    mem["weak_points"] = list(dict.fromkeys((mem.get("weak_points") or []) + weak))[-8:]
+    mem["strong_points"] = list(dict.fromkeys((mem.get("strong_points") or []) + strong))[-8:]
+    mem["areas_to_probe"] = list(dict.fromkeys((mem.get("areas_to_probe") or []) + weak))[-8:]
+    try:
+        st.session_state["wz_recruiter_memory"] = mem
+    except Exception:
+        pass
+
+    decision = "Strong — ready for a real recruiter round" if overall >= 82 else ("Borderline — needs one more practice round" if overall >= 60 else "High risk — practice before applying")
+    reason = "The recruiter has enough evidence to trust your fit." if overall >= 82 else f"Recruiter confidence drops mainly around {', '.join(weak[:2]) or 'clear proof'}."
+
+    result = {
+        "overall_score": overall,
+        "target_score": 80,
+        "hiring_decision": decision,
+        "recruiter_decision_summary": reason,
+        "would_you_pass": "Yes" if overall >= 82 else ("Maybe" if overall >= 60 else "Not yet"),
+        "referral_decision": "Yes" if overall >= 82 else ("Maybe" if overall >= 65 else "No"),
+        "referral_reason": "A recruiter would refer you only if your answers show measurable impact, ownership, and role relevance.",
+        "strengths": strong or mem.get("strong_points") or ["relevant background"],
+        "weak_areas": weak or mem.get("weak_points") or ["needs more measurable evidence"],
+        "top_3_mistakes": weak[:3] or ["missing measurable impact", "too much background", "weak job-description alignment"],
+        "what_went_well": strong[:3] or ["role motivation", "communication potential"],
+        "what_to_fix_next": [f"Add clearer proof of {x}" for x in (weak[:3] or ["measurable impact"])],
+        "trust_risk_flags": [f"Weak signal: {x}" for x in (weak[:4] or ["specific proof"])] + (mem.get("contradictions") or [])[:1],
+        "patterns_across_sessions": [
+            f"Recurring pattern: {x}" for x in (mem.get("weak_points") or weak or ["answers need more measurable outcomes"])[-5:]
+        ],
+        "recruiter_emotional_timeline": [
+            "🙂 Interested at opening" if strong else "😐 Neutral at opening",
+            "⚠️ Doubt increased when evidence was vague" if weak else "🟢 Confidence improved with specific examples",
+            "🔴 Confidence dropped on missing metrics" if "measurable outcomes" in weak else "🟢 Recovered after measurable answer",
+            "🟢 Final confidence stabilized" if overall >= 70 else "🟡 Final confidence remains uncertain",
+        ],
+        "confidence_score": mem.get("confidence_level", overall),
+        "pressure_level": mem.get("pressure_level", 40),
+        "answer_evaluation": {
+            "STAR quality": star,
+            "specificity": specificity,
+            "measurable impact": impact,
+            "ownership": ownership,
+            "clarity": clarity,
+            "rambling_count": sum(1 for s in scores if s.get("rambling")),
+            "filler_words": "Medium",
+        },
+        "next_practice_target": f"Practice {weak[0] if weak else 'one answer'} with result first, one specific example, measurable impact, and job relevance.",
+        "weakest_answer_to_retry": all_answers[0] if all_answers else "Tell me about yourself and keep it relevant to the role.",
+        "retry_instruction": "Retry this answer now with: result first → specific action → measurable outcome → why it matters for this job.",
+        "old_vs_new_comparison_enabled": True,
+    }
+
+    # Merge selected fields from old scorer if it has better content, without losing v188 structure.
+    try:
+        if callable(_wz188_previous_score_full_interview):
+            old = _wz188_previous_score_full_interview(cv_text, jd, company, role, qa_pairs, reactions, language)
+            if isinstance(old, dict):
+                for k in ["improved_answer_example", "strongest_answer", "answer_that_helped_you", "answer_that_damaged_trust"]:
+                    if old.get(k) and not result.get(k):
+                        result[k] = old.get(k)
+    except Exception:
+        pass
+
+    return result
+
+
+def wz188_pre_interview_live_status(role="", jd="", personality=""):
+    """Small helper for dashboard/status widgets: pre-interview intelligence messages."""
+    recruiter_key, recruiter = _wz188_profile_from_personality(personality)
+    role_key, role_layer = _wz188_role_layer(role, jd)
+    return [
+        "Reviewing recruiter expectations...",
+        f"Identified {', '.join(role_layer.get('probe', [])[:2])} as likely focus areas...",
+        f"Preparing {recruiter_key}'s {recruiter.get('push_style', 'adaptive')} follow-ups...",
+        "Extracting measurable achievement opportunities...",
+        "Calibrating pressure based on your answers...",
+    ]

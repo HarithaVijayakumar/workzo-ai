@@ -1,8 +1,10 @@
-"""WorkZo AI - stable session-state router.
+"""WorkZo AI - stable session-state router v145.
 
-Replace workzo_modules/10_stability_patches_router.py with this file.
-This removes query-param/link based navigation so dashboard buttons do not reload
-or fall back to the landing page.
+Fixes:
+- Fresh app open shows Landing, not Dashboard, even if old CV/session state exists.
+- Landing -> Onboarding -> Real Interview flow is preserved.
+- Old Work-O-Bot/interview aliases route to Real Interview only after onboarding/start.
+- Query-param/stale session routes no longer bypass landing/onboarding.
 """
 from __future__ import annotations
 
@@ -41,7 +43,11 @@ PAGE_ALIASES = {
     "real_interview": "real_interview",
     "start_interview": "real_interview",
     "workobot": "workobot",
+    "work-o-bot": "workobot",
+    "work_o_bot": "workobot",
     "bot": "workobot",
+    "prepare_job": "prepare_job",
+    "prepare_this_job": "prepare_job",
     "founder": "founder_dashboard",
     "founder_dashboard": "founder_dashboard",
     "landing": "landing",
@@ -56,34 +62,101 @@ APP_PAGES = {
     "find_jobs",
     "understand_job",
     "real_interview",
-    "workobot",
     "founder_dashboard",
+    "workobot",
+    "prepare_job",
 }
+
+PUBLIC_PAGES = {"landing", "onboarding"}
 
 
 def _normalize_page(value: object, default: str = "dashboard") -> str:
-    raw = str(value or default).strip()
-    return PAGE_ALIASES.get(raw, raw if raw in APP_PAGES | {"landing", "onboarding"} else default)
+    raw = str(value or default).strip().lower()
+    return PAGE_ALIASES.get(raw, raw if raw in APP_PAGES | PUBLIC_PAGES else default)
 
 
-def _sync_page(page: str) -> str:
+def _set_query_page(page: str) -> None:
+    try:
+        st.query_params["page"] = page
+    except Exception:
+        pass
+
+
+def _sync_page(page: str, *, mark_onboarded: bool = True) -> str:
     page = _normalize_page(page)
     for key in ["page", "nav_page", "current_page", "active_page", "selected_page", "workzo_active_page"]:
         st.session_state[key] = page
-    if page in APP_PAGES:
+    if mark_onboarded and page in APP_PAGES:
         st.session_state["onboarding_complete"] = True
     return page
 
 
+def _clear_stale_route_flags() -> None:
+    for key in [
+        "_wz_force_page",
+        "_wz_force_workobot",
+        "_wz_allow_workobot_route",
+        "workobot_mode",
+        "start_real_interview_now",
+        "current_page",
+        "active_page",
+        "selected_page",
+        "workzo_active_page",
+    ]:
+        try:
+            st.session_state.pop(key, None)
+        except Exception:
+            pass
+
+
+def _force_landing_first_run_if_needed() -> bool:
+    """Return True when this run was forced to landing.
+
+    This fixes the user's issue: previous testing leaves cv_text/onboarding_complete/page=dashboard
+    in Streamlit session_state, so the app appears to skip landing/onboarding. We intentionally
+    reset the route once after this router version loads. After the user clicks through landing,
+    the route is no longer reset.
+    """
+    if st.session_state.get("_wz145_landing_route_checked"):
+        return False
+
+    st.session_state["_wz145_landing_route_checked"] = True
+
+    # If a button explicitly queued navigation before the router executes, respect it.
+    if st.session_state.get("_workzo_pending_nav"):
+        return False
+
+    # Always restore the public start on the first run of this router version.
+    # This ignores stale CV/test/demo data that previously made _has_user_context() skip landing.
+    _clear_stale_route_flags()
+    st.session_state["onboarding_complete"] = False
+    _sync_page("landing", mark_onboarded=False)
+    _set_query_page("landing")
+    return True
+
+
 def go_to(page: str, **extra) -> None:
     """Global safe navigation helper for all modules."""
-    current = _normalize_page(st.session_state.get("page"), "dashboard")
+    if st is None:
+        return
+    current = _normalize_page(st.session_state.get("page"), "landing")
     target = _normalize_page(page)
+
     if current != target:
         st.session_state.setdefault("wz_nav_stack", []).append(current)
+
     for k, v in extra.items():
         st.session_state[k] = v
-    _sync_page(target)
+
+    # Clicking into onboarding means the user started the flow, but onboarding is not complete yet.
+    if target in PUBLIC_PAGES:
+        st.session_state["onboarding_complete"] = False
+        _sync_page(target, mark_onboarded=False)
+    else:
+        st.session_state["onboarding_complete"] = True
+        _sync_page(target, mark_onboarded=True)
+
+    _set_query_page(target)
     try:
         st.rerun()
     except Exception:
@@ -93,77 +166,118 @@ def go_to(page: str, **extra) -> None:
             pass
 
 
+def queue_navigation(page: str) -> None:
+    target = _normalize_page(page)
+    st.session_state["_workzo_pending_nav"] = target
+
+
+def sync_navigation_state(page: str) -> None:
+    target = _normalize_page(page)
+    if target in PUBLIC_PAGES:
+        st.session_state["onboarding_complete"] = False
+        _sync_page(target, mark_onboarded=False)
+    else:
+        st.session_state["onboarding_complete"] = True
+        _sync_page(target, mark_onboarded=True)
+    _set_query_page(target)
+
+
+def consume_pending_navigation() -> None:
+    target = st.session_state.pop("_workzo_pending_nav", None)
+    if target:
+        sync_navigation_state(target)
+
+
 def go_back() -> None:
     stack = st.session_state.get("wz_nav_stack") or []
     while stack:
-        target = _normalize_page(stack.pop())
-        if target not in {"landing", "onboarding"}:
+        target = _normalize_page(stack.pop(), "landing")
+        if target:
             st.session_state["wz_nav_stack"] = stack
-            _sync_page(target)
+            sync_navigation_state(target)
             try:
                 st.rerun()
             except Exception:
-                try:
-                    st.experimental_rerun()
-                except Exception:
-                    pass
+                pass
             return
-    go_to("dashboard")
+    go_to("landing")
 
 
 def go_home() -> None:
-    go_to("dashboard")
+    go_to("real_interview")
 
 
-def _has_user_context() -> bool:
-    keys = [
-        "cv_text", "uploaded_cv_text", "clean_structured_cv_text", "structured_cv_json",
-        "approved_cv_text", "workzo_live_cv_text", "selected_job_description",
-        "current_job_description", "job_description",
-    ]
-    return any(bool(st.session_state.get(k)) for k in keys)
-
-
-def _workzo_run_router_if_available() -> None:
-    """Single source of truth router.
-
-    Important: this intentionally does NOT read query params. Query-param links were
-    the reason button clicks sent users back to landing.
-    """
-    if st is None:
-        return
-
-    if "onboarding_complete" not in st.session_state:
-        st.session_state["onboarding_complete"] = _has_user_context()
-
-    requested = _normalize_page(st.session_state.get("page"), "dashboard" if st.session_state.get("onboarding_complete") else "landing")
-
-    # App pages should never be blocked by onboarding once a button navigates there.
-    if requested in APP_PAGES:
-        st.session_state["onboarding_complete"] = True
-
-    _sync_page(requested)
-
+def finish_onboarding_to_interview(**extra) -> None:
+    """Canonical post-onboarding destination."""
+    for k, v in extra.items():
+        st.session_state[k] = v
+    st.session_state["onboarding_complete"] = True
+    st.session_state["_wz_started_real_interview_flow"] = True
+    st.session_state["_wz154_after_onboarding_main"] = True
+    for _k in ["workobot_mode", "start_real_interview_now", "_wz_force_workobot", "_wz_allow_workobot_route"]:
+        try:
+            st.session_state.pop(_k, None)
+        except Exception:
+            pass
+    _sync_page("real_interview", mark_onboarded=True)
+    _set_query_page("real_interview")
     try:
-        if requested == "landing" and not st.session_state.get("onboarding_complete"):
-            fn = globals().get("show_landing_page")
-            if callable(fn):
-                fn()
-                return
+        st.rerun()
+    except Exception:
+        pass
 
-        if requested == "onboarding" or not st.session_state.get("onboarding_complete"):
-            fn = globals().get("show_onboarding")
-            if callable(fn):
-                fn()
-                return
 
-        # All internal feature pages are rendered by show_dashboard(), which reads st.session_state['page'].
-        fn = globals().get("show_dashboard") or globals().get("show_workzo_dashboard")
+def _render_requested_page(requested: str) -> None:
+    if requested == "landing":
+        fn = globals().get("show_landing_page") or globals().get("show_landing")
         if callable(fn):
             fn()
             return
 
-        st.error("WorkZo router could not find show_dashboard().")
+    if requested == "onboarding":
+        fn = globals().get("show_onboarding")
+        if callable(fn):
+            fn()
+            return
+
+    # Internal pages are rendered by dashboard router.
+    fn = globals().get("show_dashboard") or globals().get("show_workzo_dashboard")
+    if callable(fn):
+        fn()
+        return
+
+    st.error("WorkZo router could not find the required page renderer.")
+
+
+def _workzo_run_router_if_available() -> None:
+    """Single source of truth router."""
+    if st is None:
+        return
+
+    try:
+        # Final safety: reset stale dashboard/workobot route once after this router loads.
+        if _force_landing_first_run_if_needed():
+            _render_requested_page("landing")
+            return
+
+        consume_pending_navigation()
+
+        requested = _normalize_page(
+            st.session_state.get("page") or st.session_state.get("nav_page"),
+            "landing" if not st.session_state.get("onboarding_complete") else "dashboard",
+        )
+
+        # If onboarding is not complete, block stale internal pages.
+        if requested in APP_PAGES and not st.session_state.get("onboarding_complete"):
+            requested = "landing"
+
+        if requested in PUBLIC_PAGES:
+            _sync_page(requested, mark_onboarded=False)
+        else:
+            _sync_page(requested, mark_onboarded=True)
+
+        _render_requested_page(requested)
+
     except Exception as exc:
         st.error(f"WorkZo router error: {exc}")
         try:
