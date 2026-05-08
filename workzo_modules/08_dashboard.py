@@ -29285,7 +29285,7 @@ def _wz146_apply_perfect_dashboard_css():
             border:1px solid rgba(34,211,238,.72)!important;box-shadow:0 0 0 1px rgba(34,211,238,.08),0 18px 50px rgba(2,6,23,.52),0 0 38px rgba(34,211,238,.28)!important;overflow:hidden!important;
         }}
         .st-key-wz141_float_workobot:before{{content:"🤖";position:absolute;left:18px;top:17px;width:52px;height:52px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:26px;background:radial-gradient(circle,rgba(34,211,238,.30),rgba(15,118,110,.36));border:1px solid rgba(125,211,252,.40);box-shadow:0 0 24px rgba(34,211,238,.36);pointer-events:none;animation:wz146BotPulse 2s infinite ease-in-out;}}
-        .st-key-wz141_float_workobot:after{{content:"Ask Work-O-Bot\\A career questions        →";white-space:pre;position:absolute;left:82px;top:18px;color:#f8fafc;font-size:1.02rem;font-weight:950;line-height:1.15;pointer-events:none;opacity:1!important;transform:none!important;background:transparent!important;border:0!important;padding:0!important;border-radius:0!important;}}
+        .st-key-wz141_float_workobot:after{{content:"Ask Work-O-Bot\A career questions        →";white-space:pre;position:absolute;left:82px;top:18px;color:#f8fafc;font-size:1.02rem;font-weight:950;line-height:1.15;pointer-events:none;opacity:1!important;transform:none!important;background:transparent!important;border:0!important;padding:0!important;border-radius:0!important;}}
         @keyframes wz146BotPulse{{0%,100%{{transform:scale(.98);filter:brightness(.95)}}50%{{transform:scale(1.05);filter:brightness(1.15)}}}}
         .st-key-wz141_float_workobot div[data-testid="stButton"] > button{{width:280px!important;height:86px!important;min-height:86px!important;border-radius:22px!important;padding:0!important;background:transparent!important;border:0!important;color:transparent!important;font-size:0!important;box-shadow:none!important;}}
         .st-key-wz141_float_workobot div[data-testid="stButton"] > button:before{{content:""!important;}}
@@ -29395,52 +29395,193 @@ except Exception:
     pass
 
 # =========================================================
-# WorkZo v150 - ChatGPT-style Work-O-Bot + compact stable header
-# Fixes:
-# - Work-O-Bot behaves like ChatGPT: type, hit Enter, messages appear above input.
-# - Removes duplicate back buttons from the Work-O-Bot page by rendering a clean standalone view.
-# - Keeps the real interview hero stable when clicking logo/home.
-# - Compact Advanced preparation + ... menus in the top bar.
-# - Forces page starts from top via query counter + scroll helper when available.
+# WorkZo v147 - Final clean topbar + stable home hero + working Work-O-Bot
+# Requested fixes:
+# - Remove left grid/toolbox button.
+# - Top bar only has WorkZo logo/name, Advanced preparation, and ... menu.
+# - Logo/name acts as Home button and returns to main Real Interview dashboard.
+# - ... opens Founder dashboard + Exit.
+# - Work-O-Bot floating button is visible on all dashboard pages and routes correctly.
+# - Real interview hero card stays available when returning home.
 # =========================================================
 
-def _wz150_scroll_top():
+def _wz147_apply_final_topbar_css():
     try:
-        st.session_state['_wz_top_counter'] = int(st.session_state.get('_wz_top_counter', 0)) + 1
-        try:
-            st.query_params['top'] = str(st.session_state['_wz_top_counter'])
-        except Exception:
-            pass
-        if callable(globals().get('request_scroll_to_top')):
-            request_scroll_to_top()
-    except Exception:
-        pass
+        st.markdown(f"""
+        <style id="workzo-v147-final-topbar-css">
+        .block-container{{padding-top:.18rem!important;}}
 
+        /* Final top bar: no left toolbox, no extra square buttons */
+        .st-key-wz147_topbar{{
+            margin:.05rem 0 .78rem 0!important;
+            padding:.78rem .85rem!important;
+            border-bottom:1px solid rgba(148,163,184,.14)!important;
+            background:linear-gradient(180deg,rgba(2,6,23,.84),rgba(2,6,23,.48))!important;
+            backdrop-filter:blur(14px)!important;
+            position:sticky!important;
+            top:0!important;
+            z-index:90000!important;
+        }}
+        .st-key-wz147_home_brand{{position:relative!important;min-height:60px!important;}}
+        .wz147-brand-top{{display:flex;align-items:center;gap:13px;min-height:58px;}}
+        .wz147-top-logo{{width:56px;height:56px;border-radius:15px;box-shadow:0 0 26px rgba(34,211,238,.28);object-fit:cover;}}
+        .wz147-top-name{{font-size:1.12rem;font-weight:950;color:#f8fafc;line-height:1.05;letter-spacing:-.025em;}}
+        .wz147-top-sub{{font-size:.80rem;font-weight:850;color:#22d3ee;margin-top:4px;}}
+        .st-key-wz147_home_button{{position:absolute!important;inset:0!important;z-index:3!important;}}
+        .st-key-wz147_home_button button{{
+            width:260px!important;height:60px!important;min-height:60px!important;
+            opacity:0!important;background:transparent!important;border:0!important;box-shadow:none!important;
+            cursor:pointer!important;
+        }}
 
-def _wz150_go(page_key: str):
-    try:
-        page_key = str(page_key or 'real_interview').strip()
-        st.session_state['onboarding_complete'] = True
-        st.session_state['_wz_force_page'] = page_key
-        st.session_state['page'] = page_key
-        st.session_state['nav_page'] = page_key
-        try:
-            st.query_params['page'] = page_key
-        except Exception:
-            pass
-        _wz150_scroll_top()
-        st.rerun()
+        .st-key-wz147_advanced_prep div[data-testid="stPopover"] button,
+        .st-key-wz147_more_menu div[data-testid="stPopover"] button{{
+            min-height:52px!important;border-radius:999px!important;
+            border:1px solid rgba(148,163,184,.22)!important;
+            background:linear-gradient(135deg,rgba(15,23,42,.82),rgba(30,41,59,.42))!important;
+            color:#f8fafc!important;font-weight:900!important;
+            box-shadow:0 12px 30px rgba(2,6,23,.22)!important;
+        }}
+        .st-key-wz147_more_menu div[data-testid="stPopover"] button{{border-radius:17px!important;min-width:58px!important;}}
+        .st-key-wz147_advanced_prep div[data-testid="stPopover"] button:hover,
+        .st-key-wz147_more_menu div[data-testid="stPopover"] button:hover{{
+            border-color:rgba(34,211,238,.50)!important;transform:translateY(-1px)!important;
+            box-shadow:0 18px 40px rgba(14,165,233,.14)!important;
+        }}
+
+        /* Hide old duplicated header/toolbox variants if old renderers leak through */
+        .st-key-wz146_menu_anchor,.st-key-wz146_toolbox_button,.st-key-wz146_more_tools,
+        .st-key-wz141_tools_anchor,.st-key-wz104_topbar_shell_final,.st-key-wz104_topbar_shell{{display:none!important;}}
+        .st-key-wz146_topbar{{display:none!important;}}
+
+        /* Keep hero close to top and stable */
+        .wz141-call-shell{{margin:.10rem 0 .52rem 0!important;}}
+
+        /* Final Work-O-Bot floating button, same on every dashboard page */
+        .st-key-wz141_float_workobot{{
+            position:fixed!important;right:24px!important;bottom:24px!important;z-index:999999!important;
+            width:280px!important;height:86px!important;border-radius:22px!important;padding:0!important;
+            background:linear-gradient(135deg,rgba(8,47,73,.96),rgba(15,23,42,.96) 52%,rgba(30,64,175,.78))!important;
+            border:1px solid rgba(34,211,238,.72)!important;
+            box-shadow:0 0 0 1px rgba(34,211,238,.08),0 18px 50px rgba(2,6,23,.52),0 0 38px rgba(34,211,238,.28)!important;
+            overflow:hidden!important;
+        }}
+        .st-key-wz141_float_workobot:before{{
+            content:"🤖";position:absolute;left:18px;top:17px;width:52px;height:52px;border-radius:999px;
+            display:flex;align-items:center;justify-content:center;font-size:26px;
+            background:radial-gradient(circle,rgba(34,211,238,.30),rgba(15,118,110,.36));
+            border:1px solid rgba(125,211,252,.40);box-shadow:0 0 24px rgba(34,211,238,.36);
+            pointer-events:none;animation:wz147BotPulse 2s infinite ease-in-out;
+        }}
+        .st-key-wz141_float_workobot:after{{
+            content:"Ask Work-O-Bot\A career questions        →";white-space:pre;position:absolute;left:82px;top:18px;
+            color:#f8fafc;font-size:1.02rem;font-weight:950;line-height:1.15;pointer-events:none;
+        }}
+        @keyframes wz147BotPulse{{0%,100%{{transform:scale(.98);filter:brightness(.95)}}50%{{transform:scale(1.05);filter:brightness(1.15)}}}}
+        .st-key-wz141_float_workobot div[data-testid="stButton"] > button{{
+            width:280px!important;height:86px!important;min-height:86px!important;border-radius:22px!important;
+            padding:0!important;background:transparent!important;border:0!important;color:transparent!important;
+            font-size:0!important;box-shadow:none!important;
+        }}
+        .st-key-wz141_float_workobot:hover{{transform:translateY(-2px)!important;box-shadow:0 22px 60px rgba(2,6,23,.60),0 0 52px rgba(34,211,238,.38)!important;}}
+
+        @media(max-width:900px){{
+            .st-key-wz147_topbar{{padding:.52rem .55rem!important;margin-bottom:.50rem!important;}}
+            .wz147-top-logo{{width:44px;height:44px;border-radius:12px;}}
+            .wz147-top-name{{font-size:.98rem;}}
+            .wz147-top-sub{{font-size:.69rem;}}
+            .st-key-wz147_home_button button{{width:210px!important;height:52px!important;min-height:52px!important;}}
+            .st-key-wz141_float_workobot{{right:14px!important;bottom:14px!important;width:225px!important;height:74px!important;border-radius:19px!important;}}
+            .st-key-wz141_float_workobot div[data-testid="stButton"] > button{{width:225px!important;height:74px!important;min-height:74px!important;}}
+            .st-key-wz141_float_workobot:before{{left:14px;top:14px;width:46px;height:46px;font-size:23px;}}
+            .st-key-wz141_float_workobot:after{{left:70px;top:15px;font-size:.92rem;}}
+        }}
+        </style>
+        """, unsafe_allow_html=True)
     except Exception:
         pass
 
 
 def _wz147_go_home():
-    """v150 override: logo always returns to the stable main Real Interview dashboard."""
-    _wz150_go('real_interview')
+    try:
+        st.session_state['onboarding_complete'] = True
+        st.session_state['_wz_force_page'] = 'real_interview'
+        st.session_state['page'] = 'real_interview'
+        st.session_state['nav_page'] = 'real_interview'
+        st.session_state['wz104_more_open'] = False
+        st.session_state['wz146_more_open'] = False
+        try:
+            st.query_params['page'] = 'real_interview'
+            st.query_params['top'] = str(int(st.session_state.get('_wz_top_counter', 0)) + 1)
+        except Exception:
+            pass
+        try:
+            request_scroll_to_top()
+        except Exception:
+            pass
+        st.rerun()
+    except Exception:
+        pass
 
 
+def _wz104_render_topbar(page_key='real_interview'):
+    """v147: clean final top bar: logo/home, Advanced preparation, and ... menu only."""
+    try: _wz145_apply_interview_immersion_css()
+    except Exception: pass
+    try: _wz146_apply_perfect_dashboard_css()
+    except Exception: pass
+    try: _wz147_apply_final_topbar_css()
+    except Exception: pass
+    try:
+        with st.container(key='wz147_topbar'):
+            c_logo, c_spacer, c_adv, c_more = st.columns([3.2, 5.4, 2.4, .65], vertical_alignment='center')
+            with c_logo:
+                with st.container(key='wz147_home_brand'):
+                    st.markdown(f"""
+                    <div class="wz147-brand-top">
+                        <img class="wz147-top-logo" src="{_WZ146_LOGO_DATA_URI}" alt="WorkZo AI logo" />
+                        <div><div class="wz147-top-name">WorkZo AI</div><div class="wz147-top-sub">Real Interview Practice</div></div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    with st.container(key='wz147_home_button'):
+                        if st.button('Home', key='wz147_logo_home_btn', use_container_width=False, help='Back to main dashboard'):
+                            _wz147_go_home()
+            with c_spacer:
+                st.markdown('<div></div>', unsafe_allow_html=True)
+            with c_adv:
+                with st.container(key='wz147_advanced_prep'):
+                    if hasattr(st, 'popover'):
+                        with st.popover('Advanced preparation  ⌄', use_container_width=True):
+                            _wz106_render_tool_action_buttons('wz147_advanced_action')
+                    else:
+                        with st.expander('Advanced preparation', expanded=False):
+                            _wz106_render_tool_action_buttons('wz147_advanced_action')
+            with c_more:
+                with st.container(key='wz147_more_menu'):
+                    if hasattr(st, 'popover'):
+                        with st.popover('⋯', use_container_width=True):
+                            if st.button('📊  Founder dashboard', key='wz147_more_founder_dashboard', use_container_width=True):
+                                _wz104_go_to_action('founder_dashboard')
+                            if st.button('↩  Exit', key='wz147_more_exit', use_container_width=True):
+                                _wz104_exit_to_onboarding()
+                    else:
+                        if st.button('⋯', key='wz147_more_fallback_btn', use_container_width=True):
+                            st.session_state['wz147_more_open'] = not bool(st.session_state.get('wz147_more_open'))
+                            st.rerun()
+        if st.session_state.get('wz147_more_open'):
+            with st.container(key='wz147_topbar_more_fallback'):
+                if st.button('📊  Founder dashboard', key='wz147_more_founder_dashboard_fb', use_container_width=True):
+                    st.session_state['wz147_more_open'] = False
+                    _wz104_go_to_action('founder_dashboard')
+                if st.button('↩  Exit', key='wz147_more_exit_fb', use_container_width=True):
+                    st.session_state['wz147_more_open'] = False
+                    _wz104_exit_to_onboarding()
+    except Exception:
+        pass
+
+
+# Work-O-Bot must be a real page, not redirected back to interview.
 def _wz142_force_real_interview_route():
-    """v150 override: never redirect the intentional Work-O-Bot route back to interview."""
     try:
         if not _wz143_has_user_started_workzo():
             st.session_state['page'] = 'landing'
@@ -29450,659 +29591,586 @@ def _wz142_force_real_interview_route():
                 st.query_params['page'] = 'landing'
             except Exception:
                 pass
+            return
+        # Do not redirect workobot anymore. It is now an intentional floating assistant route.
         return
     except Exception:
         pass
 
 
-def _wz150_apply_css():
-    try:
-        st.markdown(f"""
-        <style id="workzo-v150-clean-chat-css">
-        .block-container{{padding-top:.15rem!important;max-width:1280px!important;}}
-
-        /* Compact stable topbar */
-        .st-key-wz150_topbar{{
-            margin:0 0 .58rem 0!important;padding:.55rem .12rem .72rem .12rem!important;
-            border-bottom:1px solid rgba(148,163,184,.13)!important;
-            background:linear-gradient(180deg,rgba(2,6,23,.88),rgba(2,6,23,.42))!important;
-            position:sticky!important;top:0!important;z-index:90000!important;backdrop-filter:blur(14px)!important;
-        }}
-        .st-key-wz150_brand_wrap{{position:relative!important;min-height:52px!important;}}
-        .wz150-brand{{display:flex;align-items:center;gap:12px;min-height:52px;}}
-        .wz150-logo{{width:52px;height:52px;border-radius:14px;object-fit:cover;box-shadow:0 0 24px rgba(34,211,238,.26);}}
-        .wz150-name{{font-size:1.12rem;font-weight:950;color:#f8fafc;line-height:1.05;letter-spacing:-.03em;}}
-        .wz150-sub{{font-size:.78rem;font-weight:850;color:#22d3ee;margin-top:4px;}}
-        .st-key-wz150_home_button{{position:absolute!important;inset:0!important;z-index:5!important;}}
-        .st-key-wz150_home_button button{{opacity:0!important;background:transparent!important;border:0!important;width:245px!important;height:54px!important;cursor:pointer!important;}}
-
-        .st-key-wz150_advanced div[data-testid="stPopover"] button,
-        .st-key-wz150_more div[data-testid="stPopover"] button{{
-            min-height:46px!important;border-radius:18px!important;padding:.52rem .92rem!important;
-            border:1px solid rgba(148,163,184,.22)!important;
-            background:rgba(15,23,42,.78)!important;color:#f8fafc!important;font-weight:850!important;
-            box-shadow:none!important;white-space:nowrap!important;
-        }}
-        .st-key-wz150_more div[data-testid="stPopover"] button{{min-width:54px!important;padding:.52rem .65rem!important;font-size:1.15rem!important;}}
-        .st-key-wz150_advanced div[data-testid="stPopover"] button:hover,
-        .st-key-wz150_more div[data-testid="stPopover"] button:hover{{border-color:rgba(34,211,238,.45)!important;background:rgba(15,23,42,.94)!important;}}
-
-        /* Popover content: compact, clean */
-        div[data-testid="stPopoverBody"]{{
-            border-radius:18px!important;background:rgba(11,18,32,.98)!important;
-            border:1px solid rgba(148,163,184,.20)!important;box-shadow:0 22px 60px rgba(2,6,23,.55)!important;
-            padding:.75rem!important;
-        }}
-        div[data-testid="stPopoverBody"] .stButton button{{
-            min-height:38px!important;border-radius:12px!important;padding:.42rem .64rem!important;
-            background:rgba(15,23,42,.76)!important;border:1px solid rgba(148,163,184,.18)!important;
-            color:#f8fafc!important;text-align:left!important;font-size:.92rem!important;
-        }}
-
-        /* Hide old leaking topbars/toolboxes/back buttons where possible */
-        .st-key-wz146_topbar,.st-key-wz147_topbar,.st-key-wz104_topbar_shell,.st-key-wz104_topbar_shell_final,
-        .st-key-wz146_menu_anchor,.st-key-wz146_toolbox_button,.st-key-wz146_more_tools{{display:none!important;}}
-        .st-key-wz150_page_back,.st-key-wz150_page_back_2{{display:none!important;}}
-
-        /* Stable hero starts closer to header */
-        .wz141-call-shell{{margin:.10rem 0 .50rem 0!important;}}
-
-        /* Work-O-Bot page */
-        .wz150-bot-hero{{text-align:center;margin:2.8rem auto 1.2rem auto;max-width:900px;}}
-        .wz150-bot-icon{{width:74px;height:74px;border-radius:24px;margin:0 auto 1.1rem auto;display:flex;align-items:center;justify-content:center;font-size:34px;background:linear-gradient(135deg,#18c7d6,#2563eb);box-shadow:0 18px 50px rgba(34,211,238,.22);}}
-        .wz150-bot-title{{font-size:clamp(2.2rem,4.8vw,4.4rem);line-height:.98;font-weight:950;color:#f8fafc;letter-spacing:-.06em;margin:0 0 .7rem 0;}}
-        .wz150-bot-sub{{font-size:1.02rem;line-height:1.55;color:#cbd5e1;max-width:840px;margin:0 auto;}}
-        .wz150-suggestion-row{{display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap;margin:1.35rem auto 1.4rem auto;}}
-        .wz150-suggestion{{border:1px solid rgba(148,163,184,.18);border-radius:999px;padding:.55rem .85rem;color:#e2e8f0;background:rgba(15,23,42,.58);font-weight:800;font-size:.88rem;}}
-        .st-key-wz150_chat_area{{max-width:940px!important;margin:0 auto 1rem auto!important;}}
-        .st-key-wz150_chat_area [data-testid="stChatMessage"]{{
-            background:rgba(15,23,42,.58)!important;border:1px solid rgba(148,163,184,.14)!important;
-            border-radius:18px!important;padding:.5rem .75rem!important;margin:.5rem 0!important;
-        }}
-        .st-key-wz150_status{{max-width:940px!important;margin:0 auto!important;color:#38bdf8!important;}}
-        div[data-testid="stChatInput"]{{max-width:940px!important;margin:0 auto!important;}}
-        div[data-testid="stChatInput"] textarea{{
-            min-height:56px!important;border-radius:20px!important;background:rgba(15,23,42,.92)!important;
-            border:1px solid rgba(34,211,238,.30)!important;color:#f8fafc!important;
-            box-shadow:0 0 0 1px rgba(34,211,238,.05),0 16px 50px rgba(2,6,23,.36)!important;
-        }}
-
-        /* Floating Work-O-Bot launcher: cleaner, less clumsy */
-        .st-key-wz141_float_workobot{{
-            position:fixed!important;right:24px!important;bottom:24px!important;z-index:999999!important;
-            width:238px!important;height:70px!important;border-radius:999px!important;padding:0!important;
-            background:linear-gradient(135deg,rgba(8,47,73,.96),rgba(15,23,42,.96) 55%,rgba(30,64,175,.78))!important;
-            border:1px solid rgba(34,211,238,.72)!important;
-            box-shadow:0 16px 45px rgba(2,6,23,.55),0 0 36px rgba(34,211,238,.22)!important;overflow:hidden!important;
-        }}
-        .st-key-wz141_float_workobot:before{{content:"🤖";position:absolute;left:12px;top:10px;width:48px;height:48px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(34,211,238,.18);border:1px solid rgba(125,211,252,.42);pointer-events:none;}}
-        .st-key-wz141_float_workobot:after{{content:"Ask Work-O-Bot\\A career questions      →";white-space:pre;position:absolute;left:72px;top:15px;color:#f8fafc;font-size:.92rem;font-weight:950;line-height:1.15;pointer-events:none;}}
-        .st-key-wz141_float_workobot div[data-testid="stButton"] > button{{width:238px!important;height:70px!important;min-height:70px!important;border-radius:999px!important;background:transparent!important;border:0!important;color:transparent!important;font-size:0!important;box-shadow:none!important;}}
-        @media(max-width:760px){{
-            .st-key-wz150_topbar{{padding:.42rem .05rem .55rem .05rem!important;}}
-            .wz150-logo{{width:44px;height:44px;border-radius:12px;}}
-            .wz150-name{{font-size:.98rem;}}.wz150-sub{{font-size:.67rem;}}
-            .st-key-wz150_advanced div[data-testid="stPopover"] button{{min-height:42px!important;font-size:.82rem!important;}}
-            .wz150-bot-hero{{margin:1.5rem auto .8rem auto;}}
-            .st-key-wz141_float_workobot{{right:12px!important;bottom:12px!important;width:210px!important;height:64px!important;}}
-            .st-key-wz141_float_workobot div[data-testid="stButton"] > button{{width:210px!important;height:64px!important;min-height:64px!important;}}
-            .st-key-wz141_float_workobot:before{{width:42px;height:42px;top:10px;left:10px;font-size:21px;}}
-            .st-key-wz141_float_workobot:after{{left:62px;top:13px;font-size:.82rem;}}
-        }}
-        </style>
-        """, unsafe_allow_html=True)
-    except Exception:
-        pass
-
-
-def _wz150_render_tool_buttons(prefix='wz150_adv'):
-    try:
-        items = [
-            ('✨ Improve CV', 'Tailor your CV for the current job.', 'cv_documents'),
-            ('📝 Cover letter', 'Generate or translate a job-specific letter.', 'cover_letter'),
-            ('🔎 Find jobs', 'Search roles that fit your CV and target market.', 'job_assist'),
-            ('🧩 Understand job', 'Check fit, gaps, and recruiter expectations.', 'job_assist'),
-            ('🎯 Prepare job', 'Build CV, cover letter, and interview prep together.', 'job_assist'),
-        ]
-        for i, (label, desc, target) in enumerate(items):
-            if st.button(f'{label} · {desc}', key=f'{prefix}_{i}', use_container_width=True):
-                _wz150_go(target)
-    except Exception:
-        pass
-
-
-def _wz150_render_topbar(page_key='real_interview'):
-    try:
-        _wz150_apply_css()
-        with st.container(key='wz150_topbar'):
-            c_logo, c_spacer, c_adv, c_more = st.columns([3.2, 5.8, 2.2, .55], vertical_alignment='center')
-            with c_logo:
-                with st.container(key='wz150_brand_wrap'):
-                    st.markdown(f"""
-                    <div class="wz150-brand">
-                      <img class="wz150-logo" src="{_WZ146_LOGO_DATA_URI}" alt="WorkZo AI logo" />
-                      <div><div class="wz150-name">WorkZo AI</div><div class="wz150-sub">Real Interview Practice</div></div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    with st.container(key='wz150_home_button'):
-                        if st.button('Home', key=f'wz150_home_{page_key}', help='Back to main dashboard'):
-                            _wz150_go('real_interview')
-            with c_spacer:
-                st.empty()
-            with c_adv:
-                with st.container(key='wz150_advanced'):
-                    if hasattr(st, 'popover'):
-                        with st.popover('Advanced preparation', use_container_width=True):
-                            _wz150_render_tool_buttons('wz150_adv_action')
-                    else:
-                        with st.expander('Advanced preparation', expanded=False):
-                            _wz150_render_tool_buttons('wz150_adv_action')
-            with c_more:
-                with st.container(key='wz150_more'):
-                    if hasattr(st, 'popover'):
-                        with st.popover('⋯', use_container_width=True):
-                            if st.button('📊  Founder dashboard', key='wz150_founder', use_container_width=True):
-                                _wz150_go('founder_dashboard')
-                            if st.button('↩  Exit', key='wz150_exit', use_container_width=True):
-                                try:
-                                    st.session_state.clear()
-                                except Exception:
-                                    pass
-                                _wz150_go('landing')
-                    else:
-                        if st.button('⋯', key='wz150_more_btn', use_container_width=True):
-                            st.session_state['wz150_more_open'] = not bool(st.session_state.get('wz150_more_open'))
-                            st.rerun()
-        if st.session_state.get('wz150_more_open'):
-            if st.button('📊 Founder dashboard', key='wz150_founder_fb'):
-                _wz150_go('founder_dashboard')
-            if st.button('↩ Exit', key='wz150_exit_fb'):
-                try: st.session_state.clear()
-                except Exception: pass
-                _wz150_go('landing')
-    except Exception:
-        pass
-
-# Use the compact topbar everywhere after this point.
-def _wz104_render_topbar(page_key='real_interview'):
-    return _wz150_render_topbar(page_key)
-
-
-def _wz150_context_for_bot() -> str:
-    try:
-        cv = str(st.session_state.get('cv_text') or st.session_state.get('workzo_live_cv_text') or st.session_state.get('clean_structured_cv_text') or '').strip()
-        role = str(st.session_state.get('target_role') or st.session_state.get('real_interview_target_role') or st.session_state.get('wz_ri_role') or '').strip()
-        company = str(st.session_state.get('target_company') or st.session_state.get('real_interview_company') or st.session_state.get('wz_ri_company') or '').strip()
-        jd = str(st.session_state.get('job_description') or st.session_state.get('real_interview_job_description') or st.session_state.get('wz_ri_job_description') or '').strip()
-        bits = []
-        if role: bits.append(f'Target role: {role}')
-        if company: bits.append(f'Target company: {company}')
-        if jd: bits.append('Job description/opening details:\n' + jd[:2500])
-        if cv: bits.append('Candidate CV/profile excerpt:\n' + cv[:3500])
-        return '\n\n'.join(bits)
-    except Exception:
-        return ''
-
-
-def _wz150_generate_bot_reply(user_text: str) -> str:
-    ctx = _wz150_context_for_bot()
-    prompt = f"""
-You are Work-O-Bot, the user's AI Career Copilot inside WorkZo AI.
-
-Your identity:
-- recruiter-aware career copilot, not a generic chatbot
-- use the user's CV, target role, company, and interview context when available
-- help with CV, cover letters, recruiter replies, job search, interview answers, salary questions, country guidance, and professional wording
-- be practical, concise, honest, and do not invent facts
-- when improving interview answers, push for STAR, measurable impact, and recruiter relevance
-
-Context available:
-{ctx if ctx else 'No CV/job context available yet. Ask the user for the missing details only if needed.'}
-
-User message:
-{user_text}
-
-Reply in a helpful, direct style. Use short paragraphs and concrete next steps.
-"""
-    try:
-        if callable(globals().get('run_ai_prompt')):
-            return run_ai_prompt(prompt, system_addition='You are Work-O-Bot, a recruiter-aware AI Career Copilot inside WorkZo AI.', temperature=0.35, max_tokens=900)
-    except Exception as e:
-        return f"I couldn't generate a reply because of this error: {e}"
-    return "I couldn't connect to the AI engine. Please check your OpenAI API key or quota."
-
-
-def _wz150_render_workobot_page():
-    try:
-        _wz150_apply_css()
-        _wz150_render_topbar('workobot')
-        try:
-            st.session_state['onboarding_complete'] = True
-            st.session_state['page'] = 'workobot'
-            st.session_state['nav_page'] = 'workobot'
-            st.session_state['_wz_force_page'] = 'workobot'
-        except Exception:
-            pass
-
-        st.markdown("""
-        <div class="wz150-bot-hero">
-          <div class="wz150-bot-icon">🤖</div>
-          <h1 class="wz150-bot-title">What can I help with?</h1>
-          <p class="wz150-bot-sub">Ask anything career-related — CV, cover letters, job search, recruiter messages, interview answers, salary questions, country guidance, or professional wording.</p>
-          <div class="wz150-suggestion-row">
-            <span class="wz150-suggestion">Improve my CV</span>
-            <span class="wz150-suggestion">Write a recruiter reply</span>
-            <span class="wz150-suggestion">Which jobs fit me?</span>
-            <span class="wz150-suggestion">Make this answer STAR</span>
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        if 'wz150_bot_messages' not in st.session_state:
-            old = st.session_state.get('workobot_messages') or st.session_state.get('wz_workobot_messages') or []
-            st.session_state['wz150_bot_messages'] = old if isinstance(old, list) else []
-
-        with st.container(key='wz150_chat_area'):
-            for msg in st.session_state.get('wz150_bot_messages', []):
-                role = msg.get('role', 'assistant') if isinstance(msg, dict) else 'assistant'
-                content = msg.get('content', '') if isinstance(msg, dict) else str(msg)
-                if not str(content).strip():
-                    continue
-                with st.chat_message('user' if role == 'user' else 'assistant'):
-                    st.markdown(content)
-
-        user_text = st.chat_input('Ask Work-O-Bot anything career-related...')
-        if user_text and str(user_text).strip():
-            user_text = str(user_text).strip()
-            st.session_state['wz150_bot_messages'].append({'role': 'user', 'content': user_text})
-            with st.container(key='wz150_status'):
-                st.caption('Work-O-Bot is thinking like your recruiter-side career copilot...')
-            reply = _wz150_generate_bot_reply(user_text)
-            st.session_state['wz150_bot_messages'].append({'role': 'assistant', 'content': reply})
-            st.session_state['workobot_messages'] = st.session_state['wz150_bot_messages']
-            st.rerun()
-
-    except Exception as e:
-        st.error(f'Work-O-Bot could not load: {e}')
-
-
 def _wz71_floating_workobot():
-    """v150: consistent floating launcher on all non-Work-O-Bot dashboard pages."""
+    """v147: consistent floating Work-O-Bot launcher on every dashboard page."""
     try:
-        current_page = str(st.session_state.get('nav_page') or st.session_state.get('page') or '').lower()
-        if current_page == 'workobot':
-            return
-        _wz150_apply_css()
+        _wz147_apply_final_topbar_css()
+        current_page = str(st.session_state.get('nav_page') or st.session_state.get('page') or 'real_interview')
         with st.container(key='wz141_float_workobot'):
-            if st.button('Ask Work-O-Bot', key='wz150_open_workobot_float', use_container_width=True, help='Ask Work-O-Bot'):
-                st.session_state['wz110_workobot_source_page'] = current_page or 'real_interview'
-                _wz150_go('workobot')
+            if st.button('Ask Work-O-Bot', key='wz141_open_workobot_float', use_container_width=True, help='Ask Work-O-Bot'):
+                if current_page != 'workobot':
+                    st.session_state['wz110_workobot_source_page'] = current_page
+                st.session_state['wz75_workobot_open'] = False
+                st.session_state['onboarding_complete'] = True
+                st.session_state['_wz_allow_workobot_route'] = True
+                st.session_state['_wz_force_page'] = 'workobot'
+                st.session_state['page'] = 'workobot'
+                st.session_state['nav_page'] = 'workobot'
+                try:
+                    st.query_params['page'] = 'workobot'
+                    st.query_params['top'] = str(int(st.session_state.get('_wz_top_counter', 0)) + 1)
+                except Exception:
+                    pass
+                try:
+                    request_scroll_to_top()
+                except Exception:
+                    pass
+                st.rerun()
     except Exception:
         pass
-
 
 try:
-    _wz150_previous_show_dashboard = show_dashboard
-    def show_dashboard():
-        try:
-            page_key = str(st.session_state.get('_wz_force_page') or st.session_state.get('nav_page') or st.session_state.get('page') or '').strip().lower()
+    _wz147_apply_final_topbar_css()
+except Exception:
+    pass
+
+
+# =========================================================
+# WorkZo v148 - Clean final dashboard controls
+# Fixes requested on 2026-05-07:
+# - Advanced preparation visible but compact, without duplicated chevron text.
+# - Clean compact dropdown content.
+# - Dot menu contains Founder dashboard + Exit.
+# - Work-O-Bot floating button is consistent on every page and navigates correctly.
+# - Logo/name behaves as home button and restores the main recruiter hero.
+# - Main recruiter hero stays stable after returning from other features.
+# - Force pages to start at the top after navigation.
+# =========================================================
+
+
+def _wz148_scroll_to_top():
+    try:
+        if callable(globals().get('request_scroll_to_top')):
+            request_scroll_to_top()
+    except Exception:
+        pass
+    try:
+        import streamlit.components.v1 as _wz148_components
+        _wz148_components.html("""
+        <script>
+        try {
+          const root = window.parent.document.querySelector('.stApp') || window.parent;
+          window.parent.scrollTo({top:0,left:0,behavior:'instant'});
+          const main = window.parent.document.querySelector('section.main');
+          if (main) main.scrollTo({top:0,left:0,behavior:'instant'});
+        } catch(e) {}
+        </script>
+        """, height=0)
+    except Exception:
+        pass
+
+
+def _wz148_restore_main_dashboard_state():
+    """Clear stale feature flags so the recruiter hero/card is visible again."""
+    try:
+        st.session_state['onboarding_complete'] = True
+        st.session_state['_wz_force_page'] = 'real_interview'
+        st.session_state['page'] = 'real_interview'
+        st.session_state['nav_page'] = 'real_interview'
+        st.session_state['current_page'] = 'real_interview'
+        st.session_state['active_page'] = 'real_interview'
+        for _k in [
+            'wz104_more_open','wz146_more_open','wz147_more_open','wz148_more_open',
+            'wz104_active_action','wz104_selected_action','dashboard_action','selected_tool',
+            'toolbox_action','active_feature','current_feature','wz_current_feature',
+            'wz75_workobot_open','workobot_mode','_wz_force_workobot','_wz_allow_workobot_route',
+            'show_cv_preview','show_cover_letter','show_find_jobs','show_understand_job',
+            'wz_show_cv_preview','wz_show_cover_letter','wz_show_find_jobs','wz_show_understand_job'
+        ]:
             try:
-                qp = st.query_params.get('page', '')
-                if isinstance(qp, (list, tuple)):
-                    qp = qp[0] if qp else ''
-                qp = str(qp or '').strip().lower()
-                if qp:
-                    page_key = qp
+                st.session_state.pop(_k, None)
             except Exception:
                 pass
-            if page_key in {'workobot', 'work-o-bot', 'work_o_bot', 'bot'}:
-                return _wz150_render_workobot_page()
-            return _wz150_previous_show_dashboard()
+        try:
+            st.query_params['page'] = 'real_interview'
+            st.query_params['top'] = str(int(st.session_state.get('_wz148_top_counter', 0)) + 1)
+            st.session_state['_wz148_top_counter'] = int(st.session_state.get('_wz148_top_counter', 0)) + 1
         except Exception:
-            return _wz150_previous_show_dashboard()
-except Exception:
-    pass
-
-try:
-    _wz150_apply_css()
-except Exception:
-    pass
-
-# =========================================================
-# WorkZo v151 - Fix Work-O-Bot launcher overlap, faster bot replies,
-# stable main hero after returning from features, compact menus.
-# =========================================================
-
-
-def _wz151_apply_final_css():
-    try:
-        st.markdown("""
-        <style id="workzo-v151-final-polish-css">
-        /* tighter page rhythm */
-        .block-container{padding-top:.05rem!important;max-width:1240px!important;}
-        [data-testid="stVerticalBlock"]{gap:.42rem!important;}
-
-        /* compact topbar buttons */
-        .st-key-wz150_advanced div[data-testid="stPopover"] button{
-            min-height:42px!important;border-radius:18px!important;padding:.46rem .82rem!important;
-            font-size:.92rem!important;line-height:1.05!important;white-space:nowrap!important;
-        }
-        .st-key-wz150_more div[data-testid="stPopover"] button{
-            min-width:46px!important;min-height:42px!important;border-radius:16px!important;
-            padding:.35rem .45rem!important;font-size:1.08rem!important;line-height:1!important;
-        }
-        div[data-testid="stPopoverBody"]{max-width:360px!important;padding:.62rem!important;border-radius:16px!important;}
-        div[data-testid="stPopoverBody"] .stButton{margin:.12rem 0!important;}
-        div[data-testid="stPopoverBody"] .stButton button{
-            min-height:34px!important;padding:.34rem .52rem!important;border-radius:11px!important;
-            font-size:.86rem!important;line-height:1.12!important;white-space:normal!important;
-        }
-
-        /* remove duplicated/old back buttons and legacy topbars */
-        .st-key-wz150_page_back,.st-key-wz150_page_back_2,
-        .st-key-wz106_back_button,.st-key-wz107_back_button,
-        .st-key-wz104_back_button,.st-key-wz122_back_button{
-            display:none!important;height:0!important;margin:0!important;padding:0!important;overflow:hidden!important;
-        }
-        .st-key-wz146_topbar,.st-key-wz147_topbar,.st-key-wz104_topbar_shell,.st-key-wz104_topbar_shell_final,
-        .st-key-wz146_menu_anchor,.st-key-wz146_toolbox_button,.st-key-wz146_more_tools{
-            display:none!important;height:0!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important;
-        }
-
-        /* make main recruiter hero stable and close to header */
-        .wz141-call-shell{margin:.08rem 0 .48rem 0!important;}
-
-        /* final floating Work-O-Bot button: no overlap, same on every page */
-        .st-key-wz141_float_workobot{
-            position:fixed!important;right:24px!important;bottom:24px!important;z-index:999999!important;
-            width:248px!important;height:66px!important;border-radius:999px!important;padding:0!important;
-            background:linear-gradient(135deg,rgba(8,47,73,.98),rgba(15,23,42,.98) 58%,rgba(30,64,175,.78))!important;
-            border:1px solid rgba(34,211,238,.72)!important;
-            box-shadow:0 16px 44px rgba(2,6,23,.58),0 0 34px rgba(34,211,238,.24)!important;
-            overflow:hidden!important;transition:transform .15s ease, box-shadow .15s ease!important;
-        }
-        .st-key-wz141_float_workobot:hover{transform:translateY(-2px)!important;box-shadow:0 22px 58px rgba(2,6,23,.62),0 0 46px rgba(34,211,238,.34)!important;}
-        .st-key-wz141_float_workobot:before{
-            content:"🤖";position:absolute;left:12px;top:10px;width:46px;height:46px;border-radius:999px;
-            display:flex;align-items:center;justify-content:center;font-size:23px;
-            background:radial-gradient(circle,rgba(34,211,238,.31),rgba(15,118,110,.32));
-            border:1px solid rgba(125,211,252,.46);box-shadow:0 0 22px rgba(34,211,238,.30);pointer-events:none;
-        }
-        .st-key-wz141_float_workobot:after{
-            content:"Ask Work-O-Bot\\A career questions        →";white-space:pre;position:absolute;left:68px;top:14px;
-            color:#f8fafc;font-size:.90rem;font-weight:950;line-height:1.16;letter-spacing:-.01em;pointer-events:none;
-        }
-        .st-key-wz141_float_workobot div[data-testid="stButton"]{height:66px!important;margin:0!important;}
-        .st-key-wz141_float_workobot div[data-testid="stButton"] > button,
-        .st-key-wz141_float_workobot button{
-            width:248px!important;height:66px!important;min-height:66px!important;border-radius:999px!important;
-            background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important;
-            color:transparent!important;font-size:0!important;line-height:0!important;text-shadow:none!important;
-        }
-        .st-key-wz141_float_workobot button *,
-        .st-key-wz141_float_workobot button p,
-        .st-key-wz141_float_workobot button span,
-        .st-key-wz141_float_workobot button div{
-            color:transparent!important;font-size:0!important;line-height:0!important;text-shadow:none!important;opacity:0!important;
-        }
-
-        /* Work-O-Bot page: ChatGPT-like, less dead space */
-        .wz150-bot-hero{margin:1.15rem auto .9rem auto!important;}
-        .wz150-bot-icon{width:64px!important;height:64px!important;border-radius:20px!important;margin-bottom:.85rem!important;}
-        .wz150-bot-title{font-size:clamp(2.1rem,4vw,3.7rem)!important;margin-bottom:.55rem!important;}
-        .wz150-suggestion-row{margin:1rem auto 1rem auto!important;}
-        div[data-testid="stChatInput"]{position:sticky!important;bottom:0!important;z-index:9999!important;padding-bottom:.4rem!important;background:linear-gradient(180deg,rgba(2,6,23,0),rgba(2,6,23,.96) 42%)!important;}
-
-        @media(max-width:760px){
-            .st-key-wz141_float_workobot{right:12px!important;bottom:12px!important;width:214px!important;height:60px!important;}
-            .st-key-wz141_float_workobot div[data-testid="stButton"] > button,.st-key-wz141_float_workobot button{width:214px!important;height:60px!important;min-height:60px!important;}
-            .st-key-wz141_float_workobot:before{left:10px;top:9px;width:42px;height:42px;font-size:21px;}
-            .st-key-wz141_float_workobot:after{left:60px;top:12px;font-size:.80rem;}
-        }
-        </style>
-        """, unsafe_allow_html=True)
+            pass
+        _wz148_scroll_to_top()
     except Exception:
         pass
 
 
-try:
-    _wz151_previous_go = _wz150_go
-except Exception:
-    _wz151_previous_go = None
-
-
-def _wz150_go(page_key: str):
-    """v151 navigation: home always restores the clean recruiter dashboard."""
+def _wz147_go_home():
     try:
-        page_key = str(page_key or 'real_interview').strip()
-        if page_key in {'dashboard', 'home', 'main'}:
-            page_key = 'real_interview'
-        st.session_state['onboarding_complete'] = True
-        st.session_state['_wz_force_page'] = page_key
-        st.session_state['page'] = page_key
-        st.session_state['nav_page'] = page_key
-        if page_key == 'real_interview':
-            # Returning home should show the main recruiter card, not stale feature/editor state.
-            for _k in [
-                'cv_editor_mode','wz91_edit_preview_open','wz75_workobot_open','workobot_mode',
-                'wz_ri_current_question','current_question','question_number'
-            ]:
-                try: st.session_state.pop(_k, None)
-                except Exception: pass
-            # If user was not actively inside a real interview, clear stale live flags that hide the hero.
-            if not st.session_state.get('wz_ri_answers'):
-                for _k in ['wz_ri_started','wz_ri_questions','wz_ri_current_index','wz_ri_live_reactions','wz_ri_closing_reached','wz_ri_final_score']:
-                    try: st.session_state.pop(_k, None)
-                    except Exception: pass
-        try:
-            st.query_params['page'] = page_key
-        except Exception:
-            pass
-        _wz150_scroll_top()
+        _wz148_restore_main_dashboard_state()
         st.rerun()
     except Exception:
-        if callable(_wz151_previous_go):
-            return _wz151_previous_go(page_key)
-
-
-# Keep Work-O-Bot route intentional. Do not let the old v142 guard redirect it back to interview.
-def _wz142_force_real_interview_route():
-    try:
-        raw_page = str(st.session_state.get('_wz_force_page') or st.session_state.get('nav_page') or st.session_state.get('page') or '').strip().lower()
-        query_page = ''
-        try:
-            query_page = st.query_params.get('page', '')
-            if isinstance(query_page, (list, tuple)):
-                query_page = query_page[0] if query_page else ''
-            query_page = str(query_page or '').strip().lower()
-        except Exception:
-            query_page = ''
-        if raw_page in {'workobot','work-o-bot','work_o_bot','bot'} or query_page in {'workobot','work-o-bot','work_o_bot','bot'}:
-            st.session_state['onboarding_complete'] = True
-            st.session_state['page'] = 'workobot'
-            st.session_state['nav_page'] = 'workobot'
-            st.session_state['_wz_force_page'] = 'workobot'
-            return
-        if raw_page in {'interview','interview_practice'} or query_page in {'interview','interview_practice'}:
-            st.session_state['page'] = 'real_interview'
-            st.session_state['nav_page'] = 'real_interview'
-            st.session_state['_wz_force_page'] = 'real_interview'
-    except Exception:
         pass
 
 
-# Faster Work-O-Bot replies: less context + shorter answer.
-def _wz150_context_for_bot() -> str:
+def _wz148_apply_final_clean_css():
     try:
-        cv = str(st.session_state.get('cv_text') or st.session_state.get('workzo_live_cv_text') or st.session_state.get('clean_structured_cv_text') or '').strip()
-        role = str(st.session_state.get('target_role') or st.session_state.get('real_interview_target_role') or st.session_state.get('wz_ri_role') or '').strip()
-        company = str(st.session_state.get('target_company') or st.session_state.get('real_interview_company') or st.session_state.get('wz_ri_company') or '').strip()
-        jd = str(st.session_state.get('job_description') or st.session_state.get('real_interview_job_description') or st.session_state.get('wz_ri_jd') or st.session_state.get('wz_ri_job_description') or '').strip()
-        bits = []
-        if role: bits.append(f'Target role: {role}')
-        if company: bits.append(f'Target company: {company}')
-        if jd: bits.append('Job description excerpt:\n' + jd[:900])
-        if cv: bits.append('CV/profile excerpt:\n' + cv[:1300])
-        return '\n\n'.join(bits)
-    except Exception:
-        return ''
+        st.markdown(r"""
+        <style id="workzo-v148-final-clean-controls">
+        .block-container{padding-top:.15rem!important;max-width:1160px!important;}
+        [data-testid="stVerticalBlock"]{gap:.34rem!important;}
 
+        /* Clean topbar */
+        .st-key-wz148_topbar{
+            margin:.04rem 0 .72rem 0!important;
+            padding:0!important;
+            border:0!important;
+            background:transparent!important;
+            position:relative!important;
+            z-index:9998!important;
+        }
+        .wz148-brand-top{display:flex;align-items:center;gap:12px;height:56px;pointer-events:none;}
+        .wz148-top-logo{width:48px;height:48px;border-radius:13px;object-fit:cover;box-shadow:0 0 24px rgba(34,211,238,.20);}
+        .wz148-top-name{font-size:1.12rem;font-weight:950;color:#f8fafc;letter-spacing:-.035em;line-height:1.04;}
+        .wz148-top-sub{font-size:.78rem;font-weight:850;color:#22d3ee;margin-top:3px;}
 
-def _wz150_generate_bot_reply(user_text: str) -> str:
-    clean_text = str(user_text or '').strip().lower()
-    simple_greetings = {'hi', 'hello', 'hey', 'hii', 'hiii', 'hai', 'hola', 'good morning', 'good afternoon', 'good evening'}
-    if clean_text in simple_greetings:
-        return 'Hi, how can I help you with your career?'
+        /* Invisible home button over brand */
+        .st-key-wz148_home_button{position:absolute!important;left:0!important;top:0!important;width:280px!important;height:62px!important;z-index:10!important;opacity:0!important;}
+        .st-key-wz148_home_button button{width:280px!important;height:62px!important;min-height:62px!important;}
 
-    ctx = _wz150_context_for_bot()
-    prompt = f"""
-You are Work-O-Bot, the user's recruiter-aware AI Career Copilot inside WorkZo AI.
-Use available CV, target role, company, and interview context. Be practical, concise, and honest.
-Do not invent experience, titles, metrics, or facts.
-For interview/CV answers, push for STAR, recruiter relevance, and measurable impact.
+        /* Advanced preparation button */
+        .st-key-wz148_advanced_prep div[data-testid="stPopover"] > button,
+        .st-key-wz148_advanced_prep button,
+        .st-key-wz148_advanced_prep summary{
+            min-height:48px!important;height:48px!important;border-radius:999px!important;
+            padding:0 18px!important;font-size:.92rem!important;font-weight:850!important;
+            background:rgba(15,23,42,.54)!important;border:1px solid rgba(148,163,184,.24)!important;
+            color:#f8fafc!important;box-shadow:0 12px 34px rgba(2,6,23,.20)!important;
+        }
+        .st-key-wz148_advanced_prep div[data-testid="stPopover"] > button:hover,
+        .st-key-wz148_advanced_prep button:hover{
+            border-color:rgba(34,211,238,.46)!important;transform:translateY(-1px)!important;
+        }
 
-Context:
-{ctx if ctx else 'No CV/job context available yet.'}
+        /* Dot menu button */
+        .st-key-wz148_more_menu div[data-testid="stPopover"] > button,
+        .st-key-wz148_more_menu button{
+            min-height:48px!important;height:48px!important;border-radius:16px!important;
+            padding:0!important;font-size:1.05rem!important;font-weight:950!important;
+            background:rgba(15,23,42,.54)!important;border:1px solid rgba(148,163,184,.22)!important;
+            color:#f8fafc!important;box-shadow:0 12px 34px rgba(2,6,23,.20)!important;
+        }
 
-User message:
-{user_text}
+        /* Clean compact dropdown content */
+        [data-testid="stPopoverBody"]{
+            background:rgba(8,13,23,.98)!important;
+            border:1px solid rgba(148,163,184,.20)!important;
+            border-radius:16px!important;
+            box-shadow:0 22px 60px rgba(2,6,23,.58)!important;
+            padding:10px!important;
+            min-width:260px!important;
+            max-width:360px!important;
+        }
+        [data-testid="stPopoverBody"] p{margin:0 0 7px 0!important;color:#cbd5e1!important;font-size:.82rem!important;line-height:1.25!important;}
+        [data-testid="stPopoverBody"] .stButton{margin:0!important;}
+        [data-testid="stPopoverBody"] div[data-testid="stButton"] > button{
+            min-height:38px!important;height:auto!important;border-radius:12px!important;
+            padding:8px 11px!important;font-size:.88rem!important;font-weight:850!important;
+            justify-content:flex-start!important;text-align:left!important;
+            background:rgba(15,23,42,.48)!important;border:1px solid rgba(148,163,184,.16)!important;
+            color:#f8fafc!important;box-shadow:none!important;margin:3px 0!important;
+        }
+        [data-testid="stPopoverBody"] div[data-testid="stButton"] > button:hover{
+            background:rgba(14,165,233,.12)!important;border-color:rgba(34,211,238,.35)!important;transform:none!important;
+        }
 
-Reply in 5-8 short lines maximum. Give the most useful answer first.
-"""
-    try:
-        if callable(globals().get('run_ai_prompt')):
-            return run_ai_prompt(prompt, system_addition='You are Work-O-Bot, a fast recruiter-aware AI Career Copilot inside WorkZo AI.', temperature=0.25, max_tokens=420)
-    except Exception as e:
-        return f"I couldn't generate a reply because of this error: {e}"
-    return "I couldn't connect to the AI engine. Please check your OpenAI API key or quota."
+        /* Keep recruiter hero stable and close to header */
+        .wz141-call-shell{margin:.02rem 0 .55rem 0!important;}
+        .wz141-title{font-size:2.35rem!important;line-height:1.04!important;}
 
+        /* Fix primary recruiter-ready CTA overflow */
+        div[data-testid="stButton"] > button[kind="primary"],
+        div[data-testid="stButton"] > button[data-testid="baseButton-primary"]{
+            min-height:58px!important;height:auto!important;border-radius:999px!important;
+            padding:14px 22px!important;white-space:normal!important;line-height:1.15!important;
+            max-width:390px!important;overflow:hidden!important;text-overflow:clip!important;
+            font-size:.98rem!important;font-weight:900!important;
+        }
 
-# ChatGPT-style Work-O-Bot page with messages immediately above the input.
-def _wz150_render_workobot_page():
-    try:
-        _wz151_apply_final_css()
-        _wz150_render_topbar('workobot')
-        st.session_state['onboarding_complete'] = True
-        st.session_state['page'] = 'workobot'
-        st.session_state['nav_page'] = 'workobot'
-        st.session_state['_wz_force_page'] = 'workobot'
+        /* Final compact floating Work-O-Bot - same on every page */
+        .st-key-wz141_float_workobot{
+            position:fixed!important;right:24px!important;bottom:24px!important;z-index:999999!important;
+            width:238px!important;height:70px!important;border-radius:22px!important;padding:0!important;
+            background:linear-gradient(135deg,rgba(8,47,73,.98),rgba(15,23,42,.98) 58%,rgba(30,64,175,.72))!important;
+            border:1px solid rgba(34,211,238,.72)!important;
+            box-shadow:0 18px 44px rgba(2,6,23,.54),0 0 34px rgba(34,211,238,.25)!important;
+            overflow:hidden!important;transition:all .18s ease!important;
+        }
+        .st-key-wz141_float_workobot:before{
+            content:"🤖";position:absolute;left:14px;top:13px;width:44px;height:44px;border-radius:999px;
+            display:flex;align-items:center;justify-content:center;font-size:22px;
+            background:radial-gradient(circle,rgba(34,211,238,.28),rgba(15,118,110,.30));
+            border:1px solid rgba(125,211,252,.36);box-shadow:0 0 22px rgba(34,211,238,.28);
+            pointer-events:none;animation:wz148BotPulse 2.2s infinite ease-in-out;
+        }
+        .st-key-wz141_float_workobot:after{
+            content:"Ask Work-O-Bot\A career questions           →";white-space:pre;position:absolute;left:70px;top:15px;
+            color:#f8fafc;font-size:.92rem;font-weight:950;line-height:1.15;pointer-events:none;
+            background:transparent!important;border:0!important;padding:0!important;margin:0!important;
+        }
+        .st-key-wz141_float_workobot div[data-testid="stButton"] > button{
+            width:238px!important;height:70px!important;min-height:70px!important;border-radius:22px!important;
+            padding:0!important;background:transparent!important;border:0!important;color:transparent!important;
+            font-size:0!important;box-shadow:none!important;outline:0!important;
+        }
+        .st-key-wz141_float_workobot div[data-testid="stButton"] > button:before,
+        .st-key-wz141_float_workobot div[data-testid="stButton"] > button:after{content:""!important;display:none!important;}
+        .st-key-wz141_float_workobot:hover{transform:translateY(-2px)!important;box-shadow:0 22px 54px rgba(2,6,23,.60),0 0 44px rgba(34,211,238,.36)!important;}
+        @keyframes wz148BotPulse{0%,100%{transform:scale(.98);filter:brightness(.96)}50%{transform:scale(1.04);filter:brightness(1.12)}}
 
-        if 'wz150_bot_messages' not in st.session_state:
-            old = st.session_state.get('workobot_messages') or st.session_state.get('wz_workobot_messages') or []
-            st.session_state['wz150_bot_messages'] = old if isinstance(old, list) else []
+        /* Hide leaked/older duplicate toolbars */
+        .st-key-wz146_menu_anchor,.st-key-wz146_toolbox_button,.st-key-wz146_more_tools,
+        .st-key-wz104_topbar_shell_final,.st-key-wz104_topbar_shell,.st-key-wz146_topbar,
+        .st-key-wz147_topbar{display:none!important;}
+        .st-key-wz148_topbar{display:block!important;}
 
-        # Always keep the Work-O-Bot intro visible, like ChatGPT's starter header.
-        # Earlier versions hid this after the first message, which made the page feel empty/confusing.
-        st.markdown("""
-        <div class="wz150-bot-hero">
-          <div class="wz150-bot-icon">🤖</div>
-          <h1 class="wz150-bot-title">What can I help with?</h1>
-          <p class="wz150-bot-sub">Ask anything career-related — CV, cover letters, job search, recruiter messages, interview answers, salary questions, country guidance, or professional wording.</p>
-          <div class="wz150-suggestion-row">
-            <span class="wz150-suggestion">Improve my CV</span>
-            <span class="wz150-suggestion">Write a recruiter reply</span>
-            <span class="wz150-suggestion">Which jobs fit me?</span>
-            <span class="wz150-suggestion">Make this answer STAR</span>
-          </div>
-        </div>
+        @media(max-width:900px){
+            .st-key-wz148_topbar{margin-bottom:.55rem!important;}
+            .wz148-top-logo{width:42px;height:42px;border-radius:12px;}
+            .wz148-top-name{font-size:.96rem;}.wz148-top-sub{font-size:.68rem;}
+            .st-key-wz148_home_button{width:210px!important;height:58px!important;}
+            .st-key-wz148_home_button button{width:210px!important;height:58px!important;}
+            .st-key-wz148_advanced_prep div[data-testid="stPopover"] > button,
+            .st-key-wz148_advanced_prep button{min-height:44px!important;height:44px!important;font-size:.82rem!important;padding:0 12px!important;}
+            .st-key-wz148_more_menu div[data-testid="stPopover"] > button,.st-key-wz148_more_menu button{min-height:44px!important;height:44px!important;}
+            .st-key-wz141_float_workobot{right:12px!important;bottom:12px!important;width:205px!important;height:64px!important;border-radius:19px!important;}
+            .st-key-wz141_float_workobot div[data-testid="stButton"] > button{width:205px!important;height:64px!important;min-height:64px!important;}
+            .st-key-wz141_float_workobot:before{left:12px;top:12px;width:40px;height:40px;font-size:20px;}
+            .st-key-wz141_float_workobot:after{left:62px;top:13px;font-size:.82rem;}
+        }
+        </style>
         """, unsafe_allow_html=True)
-
-        with st.container(key='wz150_chat_area'):
-            for msg in st.session_state.get('wz150_bot_messages', []):
-                role = msg.get('role', 'assistant') if isinstance(msg, dict) else 'assistant'
-                content = msg.get('content', '') if isinstance(msg, dict) else str(msg)
-                if str(content).strip():
-                    with st.chat_message('user' if role == 'user' else 'assistant'):
-                        st.markdown(content)
-
-        user_text = st.chat_input('Message Work-O-Bot...')
-        if user_text and str(user_text).strip():
-            user_text = str(user_text).strip()
-            st.session_state['wz150_bot_messages'].append({'role': 'user', 'content': user_text})
-            # Show user message immediately on next rerun, then answer.
-            with st.chat_message('user'):
-                st.markdown(user_text)
-            with st.chat_message('assistant'):
-                with st.spinner('Thinking...'):
-                    reply = _wz150_generate_bot_reply(user_text)
-                    st.markdown(reply)
-            st.session_state['wz150_bot_messages'].append({'role': 'assistant', 'content': reply})
-            st.session_state['workobot_messages'] = st.session_state['wz150_bot_messages']
-            st.rerun()
-    except Exception as e:
-        st.error(f'Work-O-Bot could not load: {e}')
-
-
-# Final floating button renderer.
-def _wz71_floating_workobot():
-    try:
-        current_page = str(st.session_state.get('nav_page') or st.session_state.get('page') or '').lower()
-        if current_page == 'workobot':
-            return
-        _wz151_apply_final_css()
-        with st.container(key='wz141_float_workobot'):
-            if st.button('Ask Work-O-Bot', key='wz151_open_workobot_float', use_container_width=True, help='Ask Work-O-Bot'):
-                st.session_state['wz110_workobot_source_page'] = current_page or 'real_interview'
-                _wz150_go('workobot')
     except Exception:
         pass
 
 
-# Final dashboard wrapper: Work-O-Bot works, main dashboard returns to stable recruiter card.
-try:
-    _wz151_previous_show_dashboard = show_dashboard
-    def show_dashboard():
-        try:
-            _wz151_apply_final_css()
-            page_key = str(st.session_state.get('_wz_force_page') or st.session_state.get('nav_page') or st.session_state.get('page') or '').strip().lower()
+def _wz148_tool_button(label, action, key):
+    try:
+        if st.button(label, key=key, use_container_width=True):
             try:
-                qp = st.query_params.get('page', '')
-                if isinstance(qp, (list, tuple)):
-                    qp = qp[0] if qp else ''
-                qp = str(qp or '').strip().lower()
-                if qp:
-                    page_key = qp
+                st.session_state['onboarding_complete'] = True
+                st.session_state['wz104_active_action'] = action
+                st.session_state['_wz_force_page'] = action if action in {'workobot','founder_dashboard'} else 'real_interview'
+                st.session_state['page'] = action if action in {'workobot','founder_dashboard'} else 'real_interview'
+                st.session_state['nav_page'] = action if action in {'workobot','founder_dashboard'} else 'real_interview'
+                st.query_params['page'] = st.session_state['page']
             except Exception:
                 pass
-            if page_key in {'workobot','work-o-bot','work_o_bot','bot'}:
-                return _wz150_render_workobot_page()
-            if page_key in {'dashboard','home','main',''}:
-                st.session_state['page'] = 'real_interview'
-                st.session_state['nav_page'] = 'real_interview'
-                st.session_state['_wz_force_page'] = 'real_interview'
-            return _wz151_previous_show_dashboard()
-        except Exception:
-            return _wz151_previous_show_dashboard()
-except Exception:
-    pass
+            try:
+                _wz104_go_to_action(action)
+            except Exception:
+                pass
+            _wz148_scroll_to_top()
+            st.rerun()
+    except Exception:
+        pass
+
+
+def _wz148_render_advanced_prep_menu():
+    st.markdown("<p><b>Choose what you want to do next</b></p>", unsafe_allow_html=True)
+    _wz148_tool_button('✨ Improve CV', 'improve_cv', 'wz148_adv_improve_cv')
+    _wz148_tool_button('📝 Cover letter', 'cover_letter', 'wz148_adv_cover_letter')
+    _wz148_tool_button('🔎 Find jobs', 'find_jobs', 'wz148_adv_find_jobs')
+    _wz148_tool_button('🧩 Understand job', 'understand_job', 'wz148_adv_understand_job')
+    _wz148_tool_button('🎯 Prepare job', 'prepare_job', 'wz148_adv_prepare_job')
+
+
+def _wz104_render_topbar(page_key='real_interview'):
+    """v148: clean topbar with logo/home, Advanced preparation, and dot menu."""
+    try:
+        _wz148_apply_final_clean_css()
+    except Exception:
+        pass
+    try:
+        with st.container(key='wz148_topbar'):
+            c_logo, c_spacer, c_adv, c_more = st.columns([3.2, 5.3, 2.25, .62], vertical_alignment='center')
+            with c_logo:
+                st.markdown(f"""
+                <div class="wz148-brand-top">
+                  <img class="wz148-top-logo" src="{_WZ146_LOGO_DATA_URI}" alt="WorkZo AI logo" />
+                  <div><div class="wz148-top-name">WorkZo AI</div><div class="wz148-top-sub">Real Interview Practice</div></div>
+                </div>
+                """, unsafe_allow_html=True)
+                with st.container(key='wz148_home_button'):
+                    if st.button('Home', key='wz148_logo_home_btn', use_container_width=False):
+                        _wz147_go_home()
+            with c_spacer:
+                st.markdown('<div></div>', unsafe_allow_html=True)
+            with c_adv:
+                with st.container(key='wz148_advanced_prep'):
+                    if hasattr(st, 'popover'):
+                        with st.popover('Advanced preparation', use_container_width=True):
+                            _wz148_render_advanced_prep_menu()
+                    else:
+                        with st.expander('Advanced preparation', expanded=False):
+                            _wz148_render_advanced_prep_menu()
+            with c_more:
+                with st.container(key='wz148_more_menu'):
+                    if hasattr(st, 'popover'):
+                        with st.popover('⋯', use_container_width=True):
+                            if st.button('📊  Founder dashboard', key='wz148_more_founder_dashboard', use_container_width=True):
+                                try:
+                                    _wz104_go_to_action('founder_dashboard')
+                                except Exception:
+                                    st.session_state['page'] = 'founder_dashboard'
+                                    st.session_state['nav_page'] = 'founder_dashboard'
+                                _wz148_scroll_to_top()
+                                st.rerun()
+                            if st.button('↩  Exit', key='wz148_more_exit', use_container_width=True):
+                                try:
+                                    _wz104_exit_to_onboarding()
+                                except Exception:
+                                    st.session_state['onboarding_complete'] = False
+                                    st.session_state['page'] = 'landing'
+                                    st.session_state['nav_page'] = 'landing'
+                                _wz148_scroll_to_top()
+                                st.rerun()
+                    else:
+                        if st.button('⋯', key='wz148_more_fallback_btn', use_container_width=True):
+                            st.session_state['wz148_more_open'] = not bool(st.session_state.get('wz148_more_open'))
+                            st.rerun()
+        if st.session_state.get('wz148_more_open'):
+            with st.container(key='wz148_more_fallback_panel'):
+                if st.button('📊  Founder dashboard', key='wz148_more_founder_dashboard_fb', use_container_width=True):
+                    st.session_state['wz148_more_open'] = False
+                    try: _wz104_go_to_action('founder_dashboard')
+                    except Exception: pass
+                if st.button('↩  Exit', key='wz148_more_exit_fb', use_container_width=True):
+                    st.session_state['wz148_more_open'] = False
+                    try: _wz104_exit_to_onboarding()
+                    except Exception: pass
+    except Exception:
+        pass
+
+
+# Work-O-Bot must remain a real route and must not be forced back to real_interview.
+def _wz142_force_real_interview_route():
+    try:
+        if not _wz143_has_user_started_workzo():
+            st.session_state['page'] = 'landing'
+            st.session_state['nav_page'] = 'landing'
+            st.session_state.pop('_wz_force_page', None)
+            try:
+                st.query_params['page'] = 'landing'
+            except Exception:
+                pass
+            return
+        return
+    except Exception:
+        pass
+
+
+def _wz71_floating_workobot():
+    """v148: consistent floating Work-O-Bot launcher on every dashboard page."""
+    try:
+        _wz148_apply_final_clean_css()
+        current_page = str(st.session_state.get('nav_page') or st.session_state.get('page') or 'real_interview')
+        with st.container(key='wz141_float_workobot'):
+            if st.button('Ask Work-O-Bot', key='wz148_open_workobot_float', use_container_width=True):
+                if current_page != 'workobot':
+                    st.session_state['wz110_workobot_source_page'] = current_page
+                st.session_state['onboarding_complete'] = True
+                st.session_state['_wz_allow_workobot_route'] = True
+                st.session_state['_wz_force_page'] = 'workobot'
+                st.session_state['page'] = 'workobot'
+                st.session_state['nav_page'] = 'workobot'
+                try:
+                    st.query_params['page'] = 'workobot'
+                    st.query_params['top'] = str(int(st.session_state.get('_wz148_top_counter', 0)) + 1)
+                except Exception:
+                    pass
+                _wz148_scroll_to_top()
+                st.rerun()
+    except Exception:
+        pass
+
 
 try:
-    _wz151_apply_final_css()
+    _wz148_apply_final_clean_css()
 except Exception:
     pass
 
 
 # =========================================================
-# WorkZo v153 - Work-O-Bot greeting + persistent starter header
+# WorkZo v180 - Pixel-style custom HTML/CSS dashboard shell
+# Purpose: render the main dashboard as one HTML/CSS component
+# while keeping existing Python feature and AI logic intact.
 # =========================================================
-try:
-    st.markdown(r"""
-    <style id="workzo-v153-workobot-clean-css">
-    .wz150-bot-hero{margin-top:1.1rem!important;margin-bottom:1rem!important;padding:1.1rem 1rem .9rem!important;}
-    .wz150-bot-icon{width:54px!important;height:54px!important;font-size:1.35rem!important;margin-bottom:.55rem!important;}
-    .wz150-bot-title{font-size:clamp(2rem,4vw,3.3rem)!important;line-height:1.05!important;margin:.2rem 0 .55rem!important;}
-    .wz150-bot-sub{max-width:860px!important;margin:.15rem auto .75rem!important;}
-    .wz150-suggestion-row{gap:.55rem!important;margin-top:.65rem!important;}
-    .wz150-suggestion{padding:.52rem .86rem!important;font-size:.9rem!important;}
-    @media(max-width:700px){
-      .wz150-bot-hero{padding:.85rem .75rem .75rem!important;margin-top:.65rem!important;}
-      .wz150-bot-icon{width:44px!important;height:44px!important;font-size:1.15rem!important;}
-      .wz150-bot-title{font-size:1.85rem!important;}
-      .wz150-bot-sub{font-size:.9rem!important;line-height:1.45!important;}
-      .wz150-suggestion-row{display:grid!important;grid-template-columns:1fr 1fr!important;gap:.45rem!important;}
-      .wz150-suggestion{font-size:.78rem!important;padding:.45rem .5rem!important;text-align:center!important;}
+import html as _wz180_html
+import urllib.parse as _wz180_urlparse
+
+
+def _wz180_qp_page():
+    try:
+        qp = st.query_params.get("page", "")
+        if isinstance(qp, (list, tuple)):
+            qp = qp[0] if qp else ""
+        return str(qp or "").strip().lower()
+    except Exception:
+        return ""
+
+
+def _wz180_set_page(page: str):
+    page = str(page or "real_interview").strip().lower()
+    aliases = {
+        "home": "real_interview", "dashboard": "real_interview", "main": "real_interview",
+        "interview": "real_interview", "interview_practice": "real_interview",
+        "start_interview": "real_interview_started", "real_interview_started": "real_interview_started",
+        "bot": "workobot", "work-o-bot": "workobot", "work_o_bot": "workobot",
+        "cover": "cover_letter", "coverletter": "cover_letter",
+        "find_job": "find_jobs", "prepare_this_job": "prepare_job",
     }
+    page = aliases.get(page, page)
+    for key in ["page", "nav_page", "current_page", "active_page", "selected_page", "workzo_active_page", "_wz_force_page"]:
+        try:
+            st.session_state[key] = page
+        except Exception:
+            pass
+    if page == "find_jobs":
+        st.session_state["job_assist_mode_key"] = "find"
+        st.session_state["wz108_direct_job_mode"] = "find"
+    elif page == "understand_job":
+        st.session_state["job_assist_mode_key"] = "understand"
+        st.session_state["wz108_direct_job_mode"] = "understand"
+    elif page == "prepare_job":
+        st.session_state["job_assist_mode_key"] = "prepare"
+        st.session_state["wz108_direct_job_mode"] = "prepare"
+    elif page == "cover_letter":
+        st.session_state["document_tools_mode"] = "cover_letter"
+        st.session_state["wz_doc_mode"] = "cover_letter"
+    return page
+
+
+def _wz180_url(page: str) -> str:
+    return "?page=" + _wz180_urlparse.quote(str(page or "real_interview"))
+
+
+def _wz180_escape(x) -> str:
+    return _wz180_html.escape(str(x or ""))
+
+
+def _wz180_context():
+    role = str(st.session_state.get("target_role") or st.session_state.get("interview_target_role") or st.session_state.get("wz_ri_role") or "Junior Data Analyst").strip() or "Junior Data Analyst"
+    company = str(st.session_state.get("target_company") or st.session_state.get("interview_target_company") or st.session_state.get("wz_ri_company") or "Demo Company").strip() or "Demo Company"
+    country = str(st.session_state.get("target_country") or st.session_state.get("migration_country") or st.session_state.get("country") or "Germany").strip() or "Germany"
+    recruiter = str(st.session_state.get("wz_recruiter_personality") or st.session_state.get("recruiter_personality") or "Sarah — Friendly HR").strip() or "Sarah — Friendly HR"
+    return role, company, country, recruiter
+
+
+def _wz180_parent_css():
+    st.markdown(r'''
+    <style>
+      html, body, [data-testid="stAppViewContainer"] { background:#08111f !important; }
+      [data-testid="stHeader"], header { background:transparent !important; }
+      .block-container{max-width:100%!important;padding:0!important;margin:0!important;}
+      [data-testid="stSidebar"]{display:none!important;}
+      #MainMenu, footer{visibility:hidden!important;}
+      .wz180-floatbot{position:fixed;right:22px;bottom:22px;width:74px;height:74px;border-radius:999px;z-index:999999;text-decoration:none!important;display:grid;place-items:center;background:radial-gradient(circle at 35% 25%,#67e8f9,#2563eb 58%,#7c3aed);border:2px solid rgba(34,211,238,.85);box-shadow:0 0 0 8px rgba(34,211,238,.08),0 0 35px rgba(34,211,238,.45),0 18px 50px rgba(0,0,0,.45);transition:transform .18s ease, box-shadow .18s ease;}
+      .wz180-floatbot:hover{transform:translateY(-3px) scale(1.04);box-shadow:0 0 0 10px rgba(34,211,238,.10),0 0 45px rgba(139,92,246,.62),0 20px 60px rgba(0,0,0,.50);}
+      .wz180-floatbot span{font-size:36px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.35));}
+      .wz180-floattip{position:fixed;right:104px;bottom:36px;z-index:999998;padding:10px 14px;border-radius:14px;background:rgba(15,23,42,.88);border:1px solid rgba(148,163,184,.24);color:#fff;font-weight:800;font-size:13px;box-shadow:0 12px 32px rgba(0,0,0,.35);pointer-events:none;}
+      @media(max-width:760px){.wz180-floatbot{width:58px;height:58px;right:14px;bottom:14px}.wz180-floatbot span{font-size:28px}.wz180-floattip{display:none}}
     </style>
-    """, unsafe_allow_html=True)
+    ''', unsafe_allow_html=True)
+
+
+def _wz180_float_bot():
+    st.markdown(f'<a class="wz180-floatbot" href="{_wz180_url("workobot")}" target="_self" title="Ask Work-O-Bot"><span>🤖</span></a><div class="wz180-floattip">Need career help?<br>Click me</div>', unsafe_allow_html=True)
+
+
+def _wz180_dashboard_html() -> str:
+    role, company, country, recruiter = [_wz180_escape(v) for v in _wz180_context()]
+    return f'''
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style>
+:root{{--bg:#07101e;--line:rgba(148,163,184,.18);--text:#f8fafc;--muted:#9fb0c7;--cyan:#22d3ee;--blue:#2563eb;--purple:#8b5cf6;}}
+*{{box-sizing:border-box}}html,body{{margin:0;background:radial-gradient(circle at 20% 0%,rgba(14,165,233,.12),transparent 33%),radial-gradient(circle at 88% 8%,rgba(124,58,237,.16),transparent 38%),#08111f;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}}a{{color:inherit;text-decoration:none}}
+.shell{{max-width:1540px;margin:0 auto;padding:14px 24px 30px}}.topbar{{height:78px;border:1px solid var(--line);background:rgba(6,13,26,.88);backdrop-filter:blur(18px);border-radius:0 0 20px 20px;display:grid;grid-template-columns:290px 1fr auto;align-items:center;gap:20px;padding:12px 18px;position:sticky;top:0;z-index:40;box-shadow:0 18px 50px rgba(0,0,0,.18)}}
+.brand{{display:flex;align-items:center;gap:12px}}.logo{{width:50px;height:50px;border-radius:13px;background:linear-gradient(135deg,#23d3e9,#2563eb 60%,#8b5cf6);display:grid;place-items:center;font-weight:1000;font-size:21px;box-shadow:0 0 24px rgba(34,211,238,.18)}}.brand h2{{font-size:22px;margin:0 0 2px;font-weight:950;letter-spacing:-.03em}}.brand p{{margin:0;color:#7dd3fc;font-weight:800;font-size:13px}}
+.nav{{display:flex;justify-content:center;align-items:center;gap:24px}}.nav a,.dropbtn{{padding:11px 18px;border-radius:13px;border:1px solid transparent;color:#cbd5e1;font-weight:850;display:inline-flex;gap:8px;align-items:center}}.nav a.active{{background:rgba(14,165,233,.12);border-color:rgba(34,211,238,.22);color:#38bdf8;box-shadow:inset 0 -2px 0 rgba(34,211,238,.55)}}.rightnav{{display:flex;align-items:center;gap:12px}}.dropdown{{position:relative}}.dropbtn{{background:rgba(15,23,42,.7);border-color:rgba(148,163,184,.20);min-width:126px;justify-content:center}}.menu{{display:none;position:absolute;right:0;top:50px;width:245px;background:rgba(12,18,33,.98);border:1px solid rgba(148,163,184,.18);border-radius:15px;padding:8px;box-shadow:0 24px 80px rgba(0,0,0,.45);z-index:80}}.dropdown:hover .menu{{display:block}}.menu a{{display:flex;gap:10px;align-items:flex-start;padding:11px;border-radius:11px;color:#e5e7eb;font-weight:850}}.menu a:hover{{background:rgba(14,165,233,.10)}}.menu small{{display:block;color:#8da2bf;font-weight:650;margin-top:1px}}.iconbtn{{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:rgba(15,23,42,.68);border:1px solid rgba(148,163,184,.18)}}
+.main{{padding-top:22px}}.hero{{display:grid;grid-template-columns:minmax(0,.92fr) minmax(560px,1.08fr);gap:16px;align-items:stretch}}.heroLeft,.heroRight,.setup,.strip{{border:1px solid rgba(148,163,184,.18);background:linear-gradient(135deg,rgba(8,47,73,.68),rgba(10,18,35,.92) 42%,rgba(36,21,76,.58));border-radius:22px;box-shadow:0 24px 80px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.04)}}.heroLeft{{padding:30px;min-height:470px;display:flex;flex-direction:column;justify-content:center;overflow:hidden;position:relative}}.heroLeft:after{{content:"";position:absolute;left:-20%;right:-20%;bottom:36px;height:110px;background:radial-gradient(ellipse at center,rgba(34,211,238,.18),transparent 66%);filter:blur(16px);opacity:.85}}.online{{position:relative;z-index:1;display:inline-flex;align-items:center;gap:11px;width:max-content;padding:11px 15px;border:1px solid rgba(34,211,238,.28);border-radius:15px;background:rgba(8,47,73,.43);font-weight:900;margin-bottom:28px}}.dot{{width:11px;height:11px;border-radius:50%;background:#22c55e;box-shadow:0 0 16px #22c55e;animation:pulse 1.8s infinite}}.wave{{display:inline-block;width:165px;height:20px;background:repeating-linear-gradient(90deg,#22d3ee 0 4px,transparent 4px 11px);clip-path:polygon(0 55%,5% 30%,10% 75%,15% 25%,20% 80%,25% 35%,30% 68%,35% 12%,40% 95%,45% 48%,50% 58%,55% 35%,60% 80%,65% 46%,70% 55%,75% 28%,80% 70%,85% 48%,90% 60%,100% 52%);opacity:.8;animation:wave 2.2s linear infinite}}.title{{position:relative;z-index:1;font-size:clamp(50px,5.8vw,78px);line-height:.95;margin:0 0 20px;font-weight:1000;letter-spacing:-.055em}}.title .grad{{background:linear-gradient(90deg,#22d3ee,#3b82f6,#8b5cf6,#f472b6);-webkit-background-clip:text;background-clip:text;color:transparent}}.sub{{position:relative;z-index:1;color:#d6e4f5;font-size:18px;line-height:1.48;margin:0 0 24px;max-width:670px}}.chips{{position:relative;z-index:1;display:flex;gap:12px;flex-wrap:wrap;margin-bottom:26px}}.chip{{display:inline-flex;align-items:center;gap:9px;padding:11px 14px;border-radius:999px;background:rgba(15,23,42,.62);border:1px solid rgba(148,163,184,.18);font-weight:900}}.avatar{{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#fde68a,#fb7185);font-size:23px}}.cta{{position:relative;z-index:1;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:13px;width:min(560px,100%);min-height:72px;border-radius:26px;background:linear-gradient(100deg,#19c7e8,#2563eb 55%,#a855f7);border:1px solid rgba(255,255,255,.20);font-size:27px;font-weight:1000;color:white;box-shadow:0 0 34px rgba(34,211,238,.28),0 0 44px rgba(168,85,247,.20);transition:.18s ease}}.cta:hover{{transform:translateY(-2px);filter:saturate(1.15)}}.micro{{position:relative;z-index:1;text-align:center;color:#a7d9ff;font-weight:800;font-size:13px;margin-top:13px}}
+.aiMemory{{position:relative;z-index:1;margin-top:20px;border:1px solid rgba(148,163,184,.16);background:rgba(15,23,42,.36);border-radius:15px;padding:14px}}.memTitle{{display:flex;align-items:center;gap:8px;color:#dffcff;font-weight:950;margin-bottom:11px}}.liveBadge{{font-size:10px;padding:3px 7px;border-radius:999px;background:rgba(34,197,94,.15);color:#86efac;border:1px solid rgba(34,197,94,.28)}}.memGrid{{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}}.mem{{padding:10px;border-radius:12px;border:1px solid rgba(34,197,94,.22);background:rgba(34,197,94,.07);font-size:13px;font-weight:800;color:#d7fff0}}.mem.warn{{border-color:rgba(251,191,36,.25);background:rgba(251,191,36,.07);color:#fff7cf}}
+.heroRight{{padding:26px;display:grid;grid-template-columns:.88fr 1.12fr;gap:24px}}.label{{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#9fb0c7;font-weight:1000}}.count{{font-size:42px;font-weight:1000;margin:10px 0;color:#fff}}.bar{{height:10px;background:rgba(148,163,184,.18);border-radius:99px;overflow:hidden;margin:6px 0 22px}}.bar span{{display:block;height:100%;width:64%;background:linear-gradient(90deg,#22d3ee,#fbbf24,#fb3f5d);border-radius:99px}}.reactions{{margin-top:18px}}.reaction{{display:flex;gap:10px;align-items:center;padding:11px 12px;background:rgba(15,23,42,.48);border:1px solid rgba(148,163,184,.12);border-radius:12px;margin:10px 0;font-weight:850}}.rDot{{width:10px;height:10px;border-radius:50%;background:#22c55e}}.rDot.y{{background:#facc15}}.rDot.o{{background:#fb923c}}.rDot.red{{background:#ef4444}}.moodGrid{{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:13px 0 21px}}.mood{{min-height:76px;border-radius:16px;border:1px solid rgba(148,163,184,.16);display:grid;place-items:center;text-align:center;font-weight:950;background:rgba(15,23,42,.44)}}.mood.active{{border-color:rgba(34,197,94,.58);background:rgba(34,197,94,.11);color:#86efac}}.state{{border-top:1px solid var(--line);padding-top:20px}}.stateLine{{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:15px 0;font-weight:850;color:#dbeafe}}.check{{color:#a7f3d0}}.spin{{width:14px;height:14px;border-radius:50%;border:2px solid rgba(148,163,184,.35);border-top-color:#60a5fa;animation:spin 1s linear infinite}}.dots{{letter-spacing:3px;color:#93c5fd}}.miniWave{{height:26px;width:170px;margin-top:20px;background:repeating-linear-gradient(90deg,#0ea5e9 0 5px,transparent 5px 12px);clip-path:polygon(0 60%,5% 30%,10% 80%,15% 25%,20% 70%,25% 35%,30% 95%,35% 45%,40% 78%,45% 20%,50% 90%,55% 45%,60% 60%,65% 30%,70% 76%,75% 45%,80% 65%,85% 33%,90% 55%,100% 55%);opacity:.8;animation:wave 2s linear infinite}}
+.setup{{margin-top:14px;padding:22px 24px;background:rgba(8,14,29,.70)}}.setupTitle{{font-size:16px;text-transform:uppercase;letter-spacing:.15em;font-weight:1000;margin-bottom:18px;color:#dbeafe}}.formGrid{{display:grid;grid-template-columns:1fr 1fr 1.45fr;gap:16px;margin-bottom:18px}}.fieldLabel{{font-size:13px;color:#cbd5e1;font-weight:850;margin-bottom:7px}}.field{{min-height:46px;border-radius:10px;border:1px solid rgba(148,163,184,.12);background:rgba(30,41,59,.72);display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-weight:850}}.setupMid{{display:grid;grid-template-columns:1fr .72fr 1fr;gap:18px;align-items:end}}.focus{{display:flex;gap:9px;flex-wrap:wrap}}.focus .tag{{padding:10px 13px;border-radius:12px;background:rgba(14,165,233,.12);border:1px solid rgba(34,211,238,.22);font-weight:850}}.seg{{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid rgba(148,163,184,.14);border-radius:13px;overflow:hidden;background:rgba(15,23,42,.35)}}.seg span{{padding:12px 9px;text-align:center;font-weight:900;border-right:1px solid rgba(148,163,184,.10)}}.seg span:last-child{{border-right:0}}.seg .active{{background:linear-gradient(100deg,rgba(14,165,233,.22),rgba(139,92,246,.20));color:#dffcff;box-shadow:inset 0 0 0 1px rgba(34,211,238,.50)}}.persona small{{display:block;color:#8fa3bd;margin-top:4px;font-size:12px}}.advanced{{margin-top:18px;border:1px solid rgba(148,163,184,.13);background:rgba(15,23,42,.38);border-radius:13px;overflow:hidden}}.advanced summary{{cursor:pointer;padding:14px 16px;font-weight:950}}.advGrid{{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:0 16px 16px}}.advItem{{padding:12px;border-radius:12px;background:rgba(15,23,42,.45);border:1px solid rgba(148,163,184,.10);font-size:13px;font-weight:850;color:#dbeafe}}.bottomGrid{{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px}}.strip{{padding:18px 20px;background:rgba(8,14,29,.62)}}.stripTitle{{font-size:14px;letter-spacing:.12em;text-transform:uppercase;font-weight:1000;color:#dbeafe;margin-bottom:13px}}.whyGrid{{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}}.why{{padding:12px;border-radius:13px;background:rgba(15,23,42,.45);border:1px solid rgba(148,163,184,.12)}}.why b{{display:block;margin-bottom:4px}}.why small{{color:#93a4bd}}.memoryGrid{{display:grid;grid-template-columns:repeat(6,1fr);gap:9px}}.metric{{padding:12px;border-radius:13px;background:rgba(15,23,42,.45);border:1px solid rgba(148,163,184,.12)}}.metric small{{display:block;color:#9fb0c7}}.metric b{{font-size:22px}}.prep{{margin-top:14px;padding:15px 18px;border-radius:15px;background:rgba(30,41,59,.44);border:1px solid rgba(99,102,241,.20);display:flex;align-items:center;justify-content:space-between;gap:12px;color:#dbeafe;font-weight:850}}.prep span{{margin-right:18px}}.ready{{padding:12px 18px;border-radius:999px;border:1px solid rgba(139,92,246,.55);color:#ddd6fe;background:rgba(139,92,246,.10)}}
+@keyframes pulse{{50%{{opacity:.55;transform:scale(1.35)}}}}@keyframes wave{{50%{{opacity:1;transform:translateX(7px)}}}}@keyframes spin{{to{{transform:rotate(360deg)}}}}
+@media(max-width:1100px){{.topbar{{grid-template-columns:1fr;gap:12px;height:auto;position:relative}}.nav,.rightnav{{justify-content:flex-start;flex-wrap:wrap}}.hero,.heroRight,.setupMid,.formGrid,.bottomGrid{{grid-template-columns:1fr}}.memGrid,.whyGrid,.memoryGrid,.advGrid{{grid-template-columns:1fr 1fr}}.title{{font-size:46px}}.shell{{padding:8px 12px 22px}}}}
+@media(max-width:650px){{.nav a:not(.active){{display:none}}.dropbtn{{min-width:auto}}.heroLeft,.heroRight,.setup{{padding:18px}}.title{{font-size:38px}}.cta{{font-size:20px;min-height:60px}}.memGrid,.whyGrid,.memoryGrid,.advGrid{{grid-template-columns:1fr}}.heroRight{{grid-template-columns:1fr}}}}
+</style></head><body><div class="shell">
+  <div class="topbar"><a class="brand" href="{_wz180_url('real_interview')}" target="_top"><div class="logo">WZ</div><div><h2>WorkZo AI</h2><p>AI Interview Simulator</p></div></a><div class="nav"><a class="active" href="{_wz180_url('real_interview')}" target="_top">▦ Dashboard</a><a href="#">▣ Sessions</a><a href="#">▰ Progress</a><div class="dropdown"><div class="dropbtn">▧ Toolbox⌄</div><div class="menu"><a href="{_wz180_url('real_interview')}" target="_top">🛡️ <div>Interview Lab<small>Practice by role & skill</small></div></a><a href="{_wz180_url('understand_job')}" target="_top">🧩 <div>Understand Job<small>Check fit and gaps</small></div></a><a href="{_wz180_url('find_jobs')}" target="_top">🔎 <div>Find Jobs<small>Find roles, then prepare</small></div></a><a href="{_wz180_url('prepare_job')}" target="_top">🎯 <div>Prepare Job<small>Application + interview plan</small></div></a><a href="{_wz180_url('cover_letter')}" target="_top">📝 <div>Cover Letter<small>Generate job-specific letters</small></div></a></div></div></div><div class="rightnav"><div class="dropdown"><div class="dropbtn">🤖 Work-O-Bot⌄</div><div class="menu"><a href="{_wz180_url('workobot')}" target="_top">🤖 <div>Chat with Work-O-Bot<small>Get career help instantly</small></div></a><a href="{_wz180_url('improve_cv')}" target="_top">📄 <div>Resume Review<small>AI-powered feedback</small></div></a><a href="{_wz180_url('real_interview')}" target="_top">🎙️ <div>Interview Coach<small>Personalized guidance</small></div></a></div></div><div class="iconbtn">🔔</div><div class="iconbtn">👤</div></div></div>
+  <main class="main"><section class="hero"><div class="heroLeft"><div class="online"><span class="dot"></span> Recruiter is online <span class="wave"></span></div><h1 class="title">Step into a <span class="grad">real</span><br>interview simulation</h1><p class="sub">Your recruiter already analyzed your CV and job description.<br>Get ready for the interview that actually matters.</p><div class="chips"><span class="avatar">👩</span><span class="chip">Sarah — Friendly HR</span><span class="chip">💼 {role}</span><span class="chip">⏱ 30:00</span></div><a class="cta" href="{_wz180_url('real_interview_started')}" target="_top">🎙️ Start Real Interview <span>›</span></a><div class="micro">CV-aware • Adaptive follow-ups • Country-specific expectations</div><div class="aiMemory"><div class="memTitle">🧠 AI Memory <span class="liveBadge">Live</span></div><div class="memGrid"><div class="mem">✓ Strong stakeholder communication</div><div class="mem warn">⚠ Needs more measurable impact</div><div class="mem">✓ Good analytical framing</div></div></div></div><div class="heroRight"><div><div class="label">Interview countdown</div><div class="count">30:00</div><div class="bar"><span></span></div><div class="label">Live reactions <span style="color:#ef4444">• LIVE</span></div><div class="reactions"><div class="reaction"><span class="rDot"></span>“That’s a good example.”</div><div class="reaction"><span class="rDot y"></span>“Can you walk me through the challenge?”</div><div class="reaction"><span class="rDot o"></span>“What was the impact on the business?”</div><div class="reaction"><span class="rDot red"></span>“Can you quantify that?”</div></div><div class="miniWave"></div></div><div><div class="label">Interview atmosphere</div><div class="moodGrid"><div class="mood active">🙂<br>Calm</div><div class="mood">😐<br>Neutral</div><div class="mood">😤<br>Pressure</div></div><div class="state"><div class="label">Interviewer state</div><div class="stateLine"><span>Reviewing your CV...</span><span class="check">✓</span></div><div class="stateLine"><span>Comparing with job description...</span><span class="spin"></span></div><div class="stateLine"><span>Preparing follow-up questions...</span><span class="dots">•••</span></div><div class="stateLine"><span>Analyzing answer quality...</span><span class="dots">•••</span></div></div></div></div></section><section class="setup"><div class="setupTitle">⚙ Simulation Setup</div><div class="formGrid"><div><div class="fieldLabel">Target role</div><div class="field">💼 {role}<span>⌄</span></div></div><div><div class="fieldLabel">Target company</div><div class="field">🏢 {company}</div></div><div><div class="fieldLabel">Country / location</div><div class="field">🇩🇪 {country} — Structured & detail-focused interviews<span>⌄</span></div></div></div><div class="setupMid"><div><div class="fieldLabel">Interview Focus (AI identified)</div><div class="focus"><span class="tag">&lt;/&gt; SQL</span><span class="tag">📊 Dashboarding</span><span class="tag">👥 Stakeholder communication</span><span class="tag">📈 Reporting</span></div></div><div class="persona"><div class="fieldLabel">Who are you interviewing with?</div><div class="field">👩 Sarah — Friendly HR<span>⌄</span></div><small>Supportive and communication-focused</small></div><div><div class="fieldLabel">How tough should this recruiter be?</div><div class="seg"><span>🙂 Supportive</span><span class="active">😐 Realistic</span><span>😤 Challenging</span><span>🔥 Brutal</span></div></div></div><details class="advanced"><summary>⌄ ⚙ Advanced Interview Setup</summary><div class="advGrid"><div class="advItem">✓ Interrupt vague answers</div><div class="advItem">✓ Adapt to local hiring style</div><div class="advItem">✓ Track weak areas</div><div class="advItem">✓ Ask for measurable impact</div><div class="advItem">✓ Real-time coaching</div></div></details></section><div class="bottomGrid"><section class="strip"><div class="stripTitle">✨ Why this feels real</div><div class="whyGrid"><div class="why">⚡<b>Interruptions</b><small>Just like real calls</small></div><div class="why">🎯<b>Follow-up pressure</b><small>When answers are weak</small></div><div class="why">🧠<b>Adaptive intelligence</b><small>Remembers your answers</small></div><div class="why">📈<b>Actionable insights</b><small>Improve faster</small></div></div></section><section class="strip"><div class="stripTitle">〽 Session Memory</div><div class="memoryGrid"><div class="metric"><small>Previous</small><b>0</b></div><div class="metric"><small>Confidence</small><b>78%</b></div><div class="metric"><small>Weak areas</small><b>3</b></div><div class="metric"><small>Filler</small><b>Med</b></div><div class="metric"><small>STAR</small><b>Good</b></div><div class="metric"><small>Trend</small><b>↗</b></div></div></section></div><div class="prep"><div><span>🎙️ Recruiter reviewing your CV...</span><span>📄 Extracting measurable achievements...</span><span>🧠 Generating follow-up questions...</span><span>⚡ Preparing pressure moments...</span></div><div class="ready">Almost ready...</div></div></main></div></body></html>
+'''
+
+
+def _wz180_render_dashboard():
+    _wz180_parent_css()
+    try:
+        import streamlit.components.v1 as components
+        components.html(_wz180_dashboard_html(), height=1040, scrolling=False)
+    except Exception:
+        st.markdown(_wz180_dashboard_html(), unsafe_allow_html=True)
+    _wz180_float_bot()
+
+
+def _wz180_render_feature_page(page: str):
+    _wz180_parent_css()
+    st.markdown(f'''<div style="max-width:1280px;margin:14px auto 20px;padding:14px 18px;border:1px solid rgba(148,163,184,.18);border-radius:18px;background:rgba(6,13,26,.88);display:flex;align-items:center;justify-content:space-between;gap:16px;"><a href="{_wz180_url('real_interview')}" target="_self" style="display:flex;align-items:center;gap:12px;text-decoration:none;color:white;"><span style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,#22d3ee,#2563eb,#8b5cf6);display:grid;place-items:center;font-weight:1000;">WZ</span><span><b style="font-size:20px;">WorkZo AI</b><br><small style="color:#7dd3fc;font-weight:800;">AI Interview Simulator</small></span></a><a href="{_wz180_url('real_interview')}" target="_self" style="padding:10px 14px;border-radius:12px;border:1px solid rgba(148,163,184,.22);color:#e5e7eb;text-decoration:none;font-weight:800;">← Back to dashboard</a></div>''', unsafe_allow_html=True)
+    try:
+        if page == "workobot":
+            if callable(globals().get("_wz150_render_workobot_page")):
+                _wz150_render_workobot_page(); return
+            if callable(globals().get("_wz110_render_workobot_chat")):
+                _wz110_render_workobot_chat(); return
+        if page == "cover_letter":
+            if callable(globals().get("_wz52_render_cover_letter_tool")):
+                _wz52_render_cover_letter_tool(); _wz180_float_bot(); return
+        if page in {"find_jobs", "understand_job", "prepare_job"}:
+            if page == "find_jobs" and callable(globals().get("_wz51_render_find_jobs")):
+                _wz51_render_find_jobs(); _wz180_float_bot(); return
+            if page == "understand_job" and callable(globals().get("_wz51_render_understand_job")):
+                _wz51_render_understand_job(); _wz180_float_bot(); return
+            if page == "prepare_job" and callable(globals().get("_wz51_render_prepare_job")):
+                _wz51_render_prepare_job(); _wz180_float_bot(); return
+            if callable(globals().get("_wz84_render_job_assist_page")):
+                _wz84_render_job_assist_page(); _wz180_float_bot(); return
+        if page == "improve_cv":
+            for fn in ["_wz92_render_cv_documents_page", "_wz84_render_cv_documents_page", "_wz95_render_cv_documents_page"]:
+                if callable(globals().get(fn)):
+                    globals()[fn](); _wz180_float_bot(); return
+        if page == "real_interview_started":
+            for fn in ["_wz176_render_started_interview", "render_interview_assistant", "show_interview_assistant"]:
+                if callable(globals().get(fn)):
+                    globals()[fn](); _wz180_float_bot(); return
+    except Exception as e:
+        st.warning(f"Feature page fallback loaded after a routing issue: {e}")
+    st.markdown(f"### {page.replace('_',' ').title()}")
+    st.info("This feature is connected, but its renderer was not found in the loaded modules.")
+    _wz180_float_bot()
+
+
+def show_dashboard():
+    try:
+        if st is None:
+            return
+        st.session_state["onboarding_complete"] = True
+        qp = _wz180_qp_page()
+        if qp:
+            page = _wz180_set_page(qp)
+        else:
+            page = str(st.session_state.get("_wz_force_page") or st.session_state.get("nav_page") or st.session_state.get("page") or "real_interview").strip().lower()
+            page = _wz180_set_page(page)
+        if page in {"real_interview", ""}:
+            _wz180_render_dashboard()
+            return
+        _wz180_render_feature_page(page)
+    except Exception as e:
+        st.error(f"WorkZo dashboard could not load: {e}")
+
+try:
+    _wz180_parent_css()
 except Exception:
     pass
