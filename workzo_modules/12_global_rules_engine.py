@@ -430,3 +430,49 @@ def filter_jobs_by_cv(jobs: List[Any], cv_text: str = "", country: str = "", lim
 def auto_select_template(country: str = "", career_stage: str = "") -> str:
     """Compatibility alias requested by UI modules."""
     return get_recommended_cv_template(country, career_stage)
+
+
+# =========================================================
+# WorkZo vNext Global Recruiter Rules Engine
+# Structured behavior rules for global recruiter simulation.
+# =========================================================
+WORKZO_INTERVIEW_LANGUAGES = ["Auto","English","German","French","Spanish","Dutch","Italian","Portuguese","Hindi","Tamil","Malayalam","Telugu","Kannada","Arabic","Turkish","Polish","Swedish","Danish","Norwegian","Finnish","Chinese","Japanese","Korean","Indonesian","Thai","Vietnamese","Mixed / bilingual"]
+_GLOBAL_RECRUITER_RULES = {
+ "Global": dict(tone="balanced, realistic, evidence-seeking", expects=["clear role fit","truthful examples","measurable proof"], risks=["generic answers","unsupported claims"], languages=["English","Mixed / bilingual"], interruption_style="Ask for clarity when answers become vague.", resume_norms=["ATS-friendly","role-specific","no invented metrics"]),
+ "Germany": dict(tone="structured, precise, evidence-heavy", expects=["clear structure","specific examples","truthful language levels","practical proof"], risks=["overclaiming","vague impact","unstructured storytelling"], languages=["German","English","Mixed / bilingual"], interruption_style="Polite but direct; asks for structure and evidence.", resume_norms=["structured Lebenslauf","clear dates","language levels","no exaggerated claims"]),
+ "USA": dict(tone="confident, impact-focused, direct", expects=["ownership","measurable business impact","concise STAR stories"], risks=["weak ownership","low energy","missing numbers"], languages=["English","Spanish"], interruption_style="Fast clarification; pushes for business outcome and ownership.", resume_norms=["ATS resume","no photo/age","impact bullets","action verbs"]),
+ "UK": dict(tone="professional, competency-based, balanced", expects=["competency examples","collaboration","clear judgement"], risks=["over-selling","unclear contribution","too much background"], languages=["English"], interruption_style="Calm, asks for a sharper competency example.", resume_norms=["concise CV","role evidence","no unnecessary personal details"]),
+ "Canada": dict(tone="collaborative, practical, evidence-based", expects=["team fit","clear impact","communication clarity"], risks=["generic examples","no measurable result"], languages=["English","French"], interruption_style="Supportive but asks for concrete proof.", resume_norms=["ATS resume","no photo","impact-focused","clear location/remote fit"]),
+ "India": dict(tone="technical-depth seeking, structured, detail-friendly", expects=["technical depth","clear ownership","communication fluency","project explanation"], risks=["too much theory","weak practical impact","unclear personal contribution"], languages=["English","Hindi","Tamil","Telugu","Malayalam","Kannada","Mixed / bilingual"], interruption_style="Pushes for exact contribution and technical clarity.", resume_norms=["skills clarity","project proof","education clarity","ATS keywords"]),
+ "UAE": dict(tone="professional, multicultural, adaptability-focused", expects=["professional presence","adaptability","cross-cultural communication","business value"], risks=["unclear relocation/availability","weak professionalism","generic motivation"], languages=["English","Arabic","Hindi","Mixed / bilingual"], interruption_style="Asks for concise business relevance and adaptability.", resume_norms=["professional CV","availability clarity","international experience","role relevance"]),
+ "Netherlands": dict(tone="direct, practical, low-fluff", expects=["clear contribution","practical problem-solving","honest self-assessment"], risks=["over-polished answers","vague ownership"], languages=["Dutch","English"], interruption_style="Directly asks for shorter, clearer answers.", resume_norms=["concise CV","skills evidence","straightforward wording"]),
+ "Australia": dict(tone="practical, friendly, evidence-led", expects=["clear examples","team fit","practical outcomes"], risks=["generic claims","poor role alignment"], languages=["English"], interruption_style="Friendly but probes for exact result.", resume_norms=["ATS-friendly resume","clear achievements","no unnecessary personal data"]),
+ "France": dict(tone="formal, analytical, structured", expects=["structured explanation","education/qualification clarity","professional tone"], risks=["too casual","unsupported claims"], languages=["French","English"], interruption_style="Formal probe for structure and reasoning.", resume_norms=["structured CV","education clarity","French/English language fit"]),
+ "Spain": dict(tone="warm but role-focused", expects=["motivation","teamwork","practical examples"], risks=["weak specificity","unclear motivation"], languages=["Spanish","English"], interruption_style="Asks for a concrete example.", resume_norms=["clear CV","skills and experience","language levels"]),
+ "Switzerland": dict(tone="precise, formal, quality-focused", expects=["precision","reliability","language clarity","proof"], risks=["casual tone","unclear language level","unsupported claims"], languages=["German","French","Italian","English"], interruption_style="Precise, asks for evidence and fit.", resume_norms=["structured CV","language levels","clear dates"]),
+ "Austria": dict(tone="formal, structured, evidence-based", expects=["clear examples","formal communication","reliable proof"], risks=["vagueness","overclaiming"], languages=["German","English"], interruption_style="Structured follow-up for details.", resume_norms=["DACH-style CV","clear dates","language levels"]),
+ "Singapore": dict(tone="efficient, high-standard, business-focused", expects=["clarity","business impact","adaptability","professionalism"], risks=["generic answers","weak impact"], languages=["English","Chinese","Malay","Tamil"], interruption_style="Efficient probe for outcome and fit.", resume_norms=["ATS resume","achievement bullets","language clarity"]),
+ "Japan": dict(tone="formal, precise, reliability-focused", expects=["respectful communication","process discipline","team orientation"], risks=["too casual","unclear reliability","overclaiming"], languages=["Japanese","English"], interruption_style="Formal clarification; asks for process and team fit.", resume_norms=["structured resume","education/work history clarity","formal tone"]),
+ "Brazil": dict(tone="warm, practical, communication-aware", expects=["collaboration","motivation","practical results"], risks=["vague results","unclear ownership"], languages=["Portuguese","English"], interruption_style="Warm but asks for a clear result.", resume_norms=["clear CV","achievements","skills"]),
+}
+for _country in ["Ireland","New Zealand","Italy","Portugal","Sweden","Denmark","Norway","Finland","Poland","Malaysia","South Korea","Mexico","South Africa","Belgium","Luxembourg","Czech Republic","Hungary","Romania","Greece","Turkey","Saudi Arabia","Qatar","Kuwait","Oman","Bahrain","Israel","China","Hong Kong","Taiwan","Thailand","Vietnam","Indonesia","Philippines","Argentina","Chile","Colombia","Nigeria","Kenya","Egypt"]:
+    _GLOBAL_RECRUITER_RULES.setdefault(_country, dict(tone="professional, market-aware, evidence-seeking", expects=["role fit","clear examples","truthful proof"], risks=["generic answers","unsupported claims","missing impact"], languages=["English","Local language","Mixed / bilingual"], interruption_style="Ask for concrete evidence and local market fit.", resume_norms=["ATS-friendly","role-specific","clear language levels"]))
+WORKZO_SUPPORTED_COUNTRIES = sorted(_GLOBAL_RECRUITER_RULES.keys())
+def get_workzo_supported_countries(): return WORKZO_SUPPORTED_COUNTRIES[:]
+def get_workzo_interview_languages(country="Global"):
+    rules=get_workzo_global_recruiter_rules(country); langs=["Auto"]+[x for x in rules.get("languages",[]) if x!="Auto"]+[x for x in WORKZO_INTERVIEW_LANGUAGES if x not in rules.get("languages",[]) and x!="Auto"]
+    return list(dict.fromkeys(langs))
+def get_workzo_global_recruiter_rules(country="Global"):
+    country=_wz_rules_norm_country(country or "Global"); rules=dict(_GLOBAL_RECRUITER_RULES.get(country) or _GLOBAL_RECRUITER_RULES.get("Global")); rules["country"]=country if country in _GLOBAL_RECRUITER_RULES else "Global"
+    rules.setdefault("honesty_rules", ["Do not invent metrics, job titles, certifications, company names, or achievements.","If proof is missing, say clearly that proof is missing.","Reward truthful, specific examples more than confident but unsupported claims.","Adapt tone, questions, and rejection reasoning to the selected market and language."])
+    rules.setdefault("scoring_weights", {"relevance":18,"clarity":14,"star":16,"metrics":18,"ownership":16,"confidence":8,"country_fit":10})
+    rules.setdefault("rejection_reasons", ["insufficient proof","unclear ownership","weak role alignment","missing measurable impact"])
+    return rules
+def build_workzo_recruiter_system_prompt(country="Global", language="English"):
+    r=get_workzo_global_recruiter_rules(country)
+    return ("You are WorkZo's AI recruiter simulation engine.\n"
+            f"Market/country: {r.get('country')}\nInterview language: {language}\nRecruiter tone: {r.get('tone')}\n"
+            f"Expected behavior: {', '.join(r.get('expects', []))}\nRisk flags: {', '.join(r.get('risks', []))}\n"
+            f"Interruption style: {r.get('interruption_style')}\nResume norms: {', '.join(r.get('resume_norms', []))}\n"
+            f"Honesty rules: {', '.join(r.get('honesty_rules', []))}\n"
+            "Evaluate every answer for relevance, clarity, STAR structure, measurable proof, ownership, confidence, and country fit. Never fake praise.")

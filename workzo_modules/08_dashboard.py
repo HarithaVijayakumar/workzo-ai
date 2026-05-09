@@ -5407,27 +5407,22 @@ Return concise sections: application focus, CV tailoring points, cover letter an
 
 
 def _wz51_render_job_assist_page():
+    """Render the selected Job Assist feature directly.
+
+    The visible Job Assist header + Find/Understand/Prepare radio row was removed
+    because the main WorkZo header/toolbox already handles navigation.
+    """
     try:
         _wz35_css()
     except Exception:
         pass
-    st.subheader(_wz51_safe_label("job_assist", "Job Assist"))
-    mode_labels = {
-        "find": _wz51_safe_label("find_jobs", "Find Jobs"),
-        "understand": _wz51_safe_label("understand_job", "Understand Job"),
-        "prepare": _wz51_safe_label("prepare_this_job", "Prepare for this Job"),
-    }
-    if st.session_state.get("job_assist_mode_key") not in mode_labels:
-        st.session_state["job_assist_mode_key"] = "find"
-    mode = st.radio(
-        "Job Assist mode",
-        ["find", "understand", "prepare"],
-        horizontal=True,
-        format_func=lambda x: mode_labels.get(x, x),
-        key="job_assist_mode_key",
-        label_visibility="collapsed",
-    )
-    st.divider()
+
+    valid_modes = {"find", "understand", "prepare"}
+    mode = st.session_state.get("job_assist_mode_key", "find")
+    if mode not in valid_modes:
+        mode = "find"
+        st.session_state["job_assist_mode_key"] = mode
+
     if mode == "find":
         _wz51_render_find_jobs()
     elif mode == "understand":
@@ -10806,27 +10801,22 @@ Return concise sections: application focus, CV tailoring points, cover letter an
 
 
 def _wz51_render_job_assist_page():
+    """Render the selected Job Assist feature directly.
+
+    The visible Job Assist header + Find/Understand/Prepare radio row was removed
+    because the main WorkZo header/toolbox already handles navigation.
+    """
     try:
         _wz35_css()
     except Exception:
         pass
-    st.subheader(_wz51_safe_label("job_assist", "Job Assist"))
-    mode_labels = {
-        "find": _wz51_safe_label("find_jobs", "Find Jobs"),
-        "understand": _wz51_safe_label("understand_job", "Understand Job"),
-        "prepare": _wz51_safe_label("prepare_this_job", "Prepare for this Job"),
-    }
-    if st.session_state.get("job_assist_mode_key") not in mode_labels:
-        st.session_state["job_assist_mode_key"] = "find"
-    mode = st.radio(
-        "Job Assist mode",
-        ["find", "understand", "prepare"],
-        horizontal=True,
-        format_func=lambda x: mode_labels.get(x, x),
-        key="job_assist_mode_key",
-        label_visibility="collapsed",
-    )
-    st.divider()
+
+    valid_modes = {"find", "understand", "prepare"}
+    mode = st.session_state.get("job_assist_mode_key", "find")
+    if mode not in valid_modes:
+        mode = "find"
+        st.session_state["job_assist_mode_key"] = mode
+
     if mode == "find":
         _wz51_render_find_jobs()
     elif mode == "understand":
@@ -16212,27 +16202,22 @@ Return concise sections: application focus, CV tailoring points, cover letter an
 
 
 def _wz51_render_job_assist_page():
+    """Render the selected Job Assist feature directly.
+
+    The visible Job Assist header + Find/Understand/Prepare radio row was removed
+    because the main WorkZo header/toolbox already handles navigation.
+    """
     try:
         _wz35_css()
     except Exception:
         pass
-    st.subheader(_wz51_safe_label("job_assist", "Job Assist"))
-    mode_labels = {
-        "find": _wz51_safe_label("find_jobs", "Find Jobs"),
-        "understand": _wz51_safe_label("understand_job", "Understand Job"),
-        "prepare": _wz51_safe_label("prepare_this_job", "Prepare for this Job"),
-    }
-    if st.session_state.get("job_assist_mode_key") not in mode_labels:
-        st.session_state["job_assist_mode_key"] = "find"
-    mode = st.radio(
-        "Job Assist mode",
-        ["find", "understand", "prepare"],
-        horizontal=True,
-        format_func=lambda x: mode_labels.get(x, x),
-        key="job_assist_mode_key",
-        label_visibility="collapsed",
-    )
-    st.divider()
+
+    valid_modes = {"find", "understand", "prepare"}
+    mode = st.session_state.get("job_assist_mode_key", "find")
+    if mode not in valid_modes:
+        mode = "find"
+        st.session_state["job_assist_mode_key"] = mode
+
     if mode == "find":
         _wz51_render_find_jobs()
     elif mode == "understand":
@@ -29719,7 +29704,7 @@ def _wz181_css():
     .wz181-hero-grid{max-width:1520px;margin:0 auto 14px auto;display:grid;grid-template-columns:1fr .95fr;gap:16px}.wz181-card{border:1px solid rgba(148,163,184,.18);background:linear-gradient(135deg,rgba(7,36,58,.88),rgba(10,14,37,.92));border-radius:24px;box-shadow:0 24px 70px rgba(0,0,0,.26);overflow:hidden}.wz181-hero{padding:28px 30px;min-height:390px;position:relative}.wz181-online{display:inline-flex;align-items:center;gap:10px;padding:10px 16px;border-radius:14px;border:1px solid rgba(34,211,238,.22);background:rgba(8,47,73,.5);font-weight:900;color:#e0f2fe}.wz181-online:before{content:"";width:12px;height:12px;border-radius:50%;background:#22c55e;box-shadow:0 0 16px rgba(34,197,94,.8)}.wz181-wave{display:inline-block;margin-left:12px;width:130px;height:14px;background:repeating-linear-gradient(90deg,#22d3ee 0 3px,transparent 3px 11px);opacity:.8;clip-path:polygon(0 45%,5% 35%,10% 55%,15% 25%,20% 65%,25% 38%,30% 54%,35% 20%,40% 68%,45% 36%,50% 50%,55% 30%,60% 60%,65% 28%,70% 62%,75% 40%,80% 55%,85% 35%,90% 48%,100% 45%);animation:wz181Pulse 1.6s infinite ease-in-out}@keyframes wz181Pulse{0%,100%{opacity:.45;transform:scaleX(.95)}50%{opacity:1;transform:scaleX(1)}}
     .wz181-title{font-size:clamp(3.2rem,5.1vw,5.8rem);line-height:.93;letter-spacing:-.075em;margin:34px 0 18px;font-weight:1000}.wz181-grad{background:linear-gradient(110deg,#22d3ee,#3b82f6,#a855f7,#f472b6);-webkit-background-clip:text;color:transparent}.wz181-sub{font-size:1.13rem;line-height:1.55;color:#cbd5e1;margin:0 0 24px;max-width:720px}.wz181-meta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.wz181-avatar{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#fb7185,#fde68a);font-size:1.7rem}.wz181-chip{padding:12px 17px;border-radius:999px;border:1px solid rgba(148,163,184,.20);background:rgba(15,23,42,.52);font-weight:900;color:#e5e7eb}.wz181-cta{margin-top:26px;width:min(620px,92%);padding:20px 30px;border-radius:20px;background:linear-gradient(100deg,#18c6e8,#3168ff,#b23df2);font-size:1.55rem;font-weight:1000;text-align:center;box-shadow:0 20px 55px rgba(37,99,235,.36),0 0 34px rgba(168,85,247,.22);border:1px solid rgba(255,255,255,.17)}.wz181-micro{margin:12px 0 0 62px;color:#b6d7ff;font-weight:800;font-size:.92rem}.wz181-memory{margin-top:20px;border:1px solid rgba(148,163,184,.16);background:rgba(15,23,42,.35);border-radius:17px;padding:13px 15px;max-width:650px}.wz181-memory-title{font-size:.8rem;text-transform:uppercase;letter-spacing:.12em;color:#bae6fd;font-weight:1000}.wz181-memory-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}.wz181-memory-item{border:1px solid rgba(34,197,94,.22);background:rgba(6,78,59,.2);border-radius:12px;padding:10px;color:#dcfce7;font-weight:800;font-size:.83rem}.wz181-memory-item.warn{border-color:rgba(245,158,11,.28);background:rgba(120,53,15,.18);color:#fde68a}
     .wz181-live{padding:28px 30px;background:linear-gradient(135deg,rgba(7,20,42,.92),rgba(25,14,55,.9))}.wz181-live-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}.wz181-kicker{font-size:.78rem;letter-spacing:.17em;text-transform:uppercase;color:#93c5fd;font-weight:1000;margin-bottom:10px}.wz181-time{font-size:3.2rem;font-weight:1000;letter-spacing:-.04em}.wz181-meter{height:12px;background:rgba(148,163,184,.15);border-radius:999px;overflow:hidden;margin:14px 0 24px}.wz181-meter span{display:block;width:54%;height:100%;background:linear-gradient(90deg,#22d3ee,#fde047,#fb7185);border-radius:999px}.wz181-atmo{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px}.wz181-atmo div{border:1px solid rgba(148,163,184,.20);border-radius:15px;padding:18px 10px;text-align:center;font-weight:900}.wz181-atmo .active{border-color:#22c55e;background:rgba(34,197,94,.13);color:#86efac}.wz181-list{display:grid;gap:10px}.wz181-react{padding:12px 14px;border:1px solid rgba(148,163,184,.14);border-radius:12px;background:rgba(15,23,42,.38);font-weight:800}.wz181-react b{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:10px}.wz181-state p{margin:0 0 16px;font-weight:900;color:#e5e7eb}.wz181-state span{float:right;color:#93c5fd}.wz181-setup{max-width:1520px;margin:0 auto 14px;padding:24px 26px}.wz181-setup h3{margin:0 0 18px;letter-spacing:.16em;text-transform:uppercase;font-size:.95rem}.wz181-form-grid{display:grid;grid-template-columns:1fr 1fr 1.35fr;gap:16px;margin-bottom:18px}.wz181-input{border:1px solid rgba(148,163,184,.16);background:rgba(15,23,42,.62);border-radius:13px;padding:14px 16px}.wz181-input label{display:block;color:#cbd5e1;font-size:.78rem;font-weight:900;margin-bottom:7px}.wz181-input div{font-weight:900}.wz181-focus{display:flex;gap:10px;flex-wrap:wrap}.wz181-focus span{padding:10px 14px;border:1px solid rgba(34,211,238,.22);background:rgba(14,165,233,.12);border-radius:12px;font-weight:900}.wz181-setup-row{display:grid;grid-template-columns:1.2fr 1.35fr;gap:16px;margin-top:16px}.wz181-select-like{border:1px solid rgba(148,163,184,.16);background:rgba(15,23,42,.62);border-radius:13px;padding:13px 15px}.wz181-select-like small{display:block;color:#94a3b8;margin-top:4px}.wz181-segment{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid rgba(148,163,184,.16);border-radius:13px;overflow:hidden;background:rgba(15,23,42,.45)}.wz181-segment div{padding:14px 10px;text-align:center;font-weight:900;border-right:1px solid rgba(148,163,184,.12)}.wz181-segment div:last-child{border-right:0}.wz181-segment .active{background:linear-gradient(135deg,rgba(14,165,233,.18),rgba(79,70,229,.24));box-shadow:inset 0 0 0 1px rgba(34,211,238,.6);color:#bae6fd}.wz181-adv{margin-top:18px;border:1px solid rgba(148,163,184,.16);border-radius:15px;padding:14px 16px;color:#dbeafe;font-weight:900;background:rgba(15,23,42,.32)}.wz181-footer-strip{max-width:1520px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.wz181-footer-strip>div{border:1px solid rgba(148,163,184,.14);border-radius:16px;padding:18px;background:rgba(15,23,42,.36)}.wz181-footer-strip b{display:block;margin-bottom:5px}.wz181-footer-strip p{margin:0;color:#94a3b8;font-size:.9rem}
-    .st-key-wz181_float_bot{position:fixed!important;right:22px!important;bottom:22px!important;width:70px!important;height:70px!important;z-index:1000!important}.st-key-wz181_float_bot button{width:70px!important;height:70px!important;border-radius:50%!important;padding:0!important;font-size:2rem!important;background:radial-gradient(circle at 35% 25%,#38bdf8,#2563eb 65%,#5b21b6)!important;border:2px solid rgba(125,211,252,.85)!important;box-shadow:0 0 0 6px rgba(34,211,238,.10),0 16px 46px rgba(37,99,235,.55)!important;color:white!important}.st-key-wz181_float_bot:before{content:"Need career help?\A Click me";white-space:pre;position:absolute;right:76px;bottom:8px;width:160px;padding:12px 14px;border-radius:14px;background:rgba(15,23,42,.86);border:1px solid rgba(148,163,184,.18);color:#f8fafc;font-weight:900;line-height:1.3;box-shadow:0 14px 40px rgba(0,0,0,.25)}
+    .st-key-wz181_float_bot{position:fixed!important;right:22px!important;bottom:22px!important;width:70px!important;height:70px!important;z-index:1000!important}.st-key-wz181_float_bot button{width:70px!important;height:70px!important;border-radius:50%!important;padding:0!important;font-size:2rem!important;background:radial-gradient(circle at 35% 25%,#38bdf8,#2563eb 65%,#5b21b6)!important;border:2px solid rgba(125,211,252,.85)!important;box-shadow:0 0 0 6px rgba(34,211,238,.10),0 16px 46px rgba(37,99,235,.55)!important;color:white!important}.st-key-wz181_float_bot:before{content:"Need help answering?\A Click me";white-space:pre;position:absolute;right:76px;bottom:8px;width:160px;padding:12px 14px;border-radius:14px;background:rgba(15,23,42,.86);border:1px solid rgba(148,163,184,.18);color:#f8fafc;font-weight:900;line-height:1.3;box-shadow:0 14px 40px rgba(0,0,0,.25)}
     @media(max-width:980px){.wz181-topbar{grid-template-columns:1fr;gap:12px}.wz181-nav,.wz181-right{justify-content:flex-start;overflow:auto}.wz181-hero-grid,.wz181-live-grid,.wz181-form-grid,.wz181-setup-row,.wz181-footer-strip{grid-template-columns:1fr}.wz181-title{font-size:3rem}.wz181-memory-row{grid-template-columns:1fr}.st-key-wz181_float_bot:before{display:none}}
     </style>
     ''', unsafe_allow_html=True)
@@ -29738,10 +29723,10 @@ def _wz181_topbar():
         if hasattr(st, "popover"):
             with st.popover("▧ Toolbox", use_container_width=True):
                 if st.button("🛠 Interview Lab", key="wz181_tool_lab", use_container_width=True): _wz181_route("interview_lab")
-                if st.button("✨ Improve CV", key="wz181_tool_improve_cv", use_container_width=True): _wz181_route("improve_cv")
-                if st.button("🧩 Understand Job", key="wz181_tool_understand", use_container_width=True): _wz181_route("understand_job")
+                if st.button("✨ Improve Resume for This Role", key="wz181_tool_improve_cv", use_container_width=True): _wz181_route("improve_cv")
+                if st.button("🧠 Decode Recruiter Expectations", key="wz181_tool_understand", use_container_width=True): _wz181_route("understand_job")
                 if st.button("🔎 Find Jobs", key="wz181_tool_find", use_container_width=True): _wz181_route("find_jobs")
-                if st.button("🎯 Prepare Job", key="wz181_tool_prepare", use_container_width=True): _wz181_route("prepare_job")
+                if st.button("🎯 Prepare for This Interview", key="wz181_tool_prepare", use_container_width=True): _wz181_route("prepare_job")
                 if st.button("📝 Cover Letter", key="wz181_tool_cover", use_container_width=True): _wz181_route("cover_letter")
         else:
             if st.button("▧ Toolbox", key="wz181_open_toolbox", use_container_width=True): st.session_state["wz181_toolbox_open"] = not st.session_state.get("wz181_toolbox_open")
@@ -29762,6 +29747,8 @@ def _wz181_dashboard_html():
     role = _wz181_safe(st.session_state.get("target_role") or st.session_state.get("real_interview_target_role"), "Junior Data Analyst")
     company = _wz181_safe(st.session_state.get("target_company") or st.session_state.get("real_interview_company"), "Demo Company")
     country = _wz181_safe(st.session_state.get("selected_country") or st.session_state.get("target_country") or st.session_state.get("country"), "Germany")
+    company = _wz181_safe(st.session_state.get("target_company") or st.session_state.get("real_interview_company"), "Demo Company")
+    atmosphere = _wz181_safe(st.session_state.get("wz_ri_difficulty_v181") or "🙂 Calm", "🙂 Calm")
     recruiter = _wz181_safe(st.session_state.get("wz_ri_recruiter_personality"), "Sarah — Friendly HR")
     st.markdown(f'''
     <div class="wz181-wrap">
@@ -29803,7 +29790,7 @@ def _wz181_floating_workobot():
         if current_page == "workobot":
             return
         with st.container(key="wz181_float_bot"):
-            if st.button("🤖", key="wz181_float_bot_button", help="Need career help? Click me"):
+            if st.button("🤖", key="wz181_float_bot_button", help="Need help answering?"):
                 _wz181_route("workobot")
     except Exception:
         pass
@@ -30015,11 +30002,11 @@ def _wz182_css():
       /* Floating Work-O-Bot: one small robot icon, consistent on every page. */
       .st-key-wz182_float_bot{
         position:fixed!important;
-        right:22px!important;
-        bottom:22px!important;
+        right:10px!important;
+        bottom:10px!important;
         z-index:999999!important;
-        width:70px!important;
-        height:70px!important;
+        width:64px!important;
+        height:64px!important;
         padding:0!important;
         display:flex!important;
         align-items:center!important;
@@ -30030,10 +30017,10 @@ def _wz182_css():
         box-shadow:0 0 0 7px rgba(34,211,238,.08),0 0 34px rgba(34,211,238,.36),0 18px 45px rgba(0,0,0,.38)!important;
       }
       .st-key-wz182_float_bot:before{
-        content:"Need career help?";
+        content:"Need help answering?";
         position:absolute;
-        right:78px;
-        top:11px;
+        right:70px;
+        top:14px;
         white-space:nowrap;
         font-size:.78rem;
         font-weight:900;
@@ -30045,8 +30032,8 @@ def _wz182_css():
         box-shadow:0 10px 26px rgba(0,0,0,.22);
       }
       .st-key-wz182_float_bot button{
-        width:70px!important;
-        height:70px!important;
+        width:64px!important;
+        height:64px!important;
         border-radius:50%!important;
         padding:0!important;
         margin:0!important;
@@ -30057,7 +30044,7 @@ def _wz182_css():
       }
       .st-key-wz182_float_bot button:after{
         content:"🤖";
-        font-size:34px;
+        font-size:30px;
         line-height:1;
       }
       @media(max-width:760px){
@@ -30104,10 +30091,10 @@ def _wz182_topbar():
             if hasattr(st, "popover"):
                 with st.popover("▧ Toolbox", use_container_width=True):
                     # Interview Lab is intentionally hidden until it exists.
-                    if st.button("✨ Improve CV", key="wz182_tool_improve_cv", use_container_width=True): _wz182_route("improve_cv")
-                    if st.button("🧩 Understand Job", key="wz182_tool_understand", use_container_width=True): _wz182_route("understand_job")
+                    if st.button("✨ Improve Resume for This Role", key="wz182_tool_improve_cv", use_container_width=True): _wz182_route("improve_cv")
+                    if st.button("🧠 Decode Recruiter Expectations", key="wz182_tool_understand", use_container_width=True): _wz182_route("understand_job")
                     if st.button("🔎 Find Jobs", key="wz182_tool_find", use_container_width=True): _wz182_route("find_jobs")
-                    if st.button("🎯 Prepare Job", key="wz182_tool_prepare", use_container_width=True): _wz182_route("prepare_job")
+                    if st.button("🎯 Prepare for This Interview", key="wz182_tool_prepare", use_container_width=True): _wz182_route("prepare_job")
                     if st.button("📝 Cover Letter", key="wz182_tool_cover", use_container_width=True): _wz182_route("cover_letter")
                     if st.button("🤖 Ask Work-O-Bot", key="wz182_tool_workobot", use_container_width=True): _wz182_route("workobot")
             else:
@@ -30124,13 +30111,13 @@ def _wz182_topbar():
         if st.session_state.get("wz182_toolbox_open"):
             c1, c2, c3, c4, c5 = st.columns(5)
             with c1:
-                if st.button("✨ Improve CV", key="wz182_fb_improve"): _wz182_route("improve_cv")
+                if st.button("✨ Improve Resume for This Role", key="wz182_fb_improve"): _wz182_route("improve_cv")
             with c2:
-                if st.button("🧩 Understand Job", key="wz182_fb_understand"): _wz182_route("understand_job")
+                if st.button("🧠 Decode Recruiter Expectations", key="wz182_fb_understand"): _wz182_route("understand_job")
             with c3:
                 if st.button("🔎 Find Jobs", key="wz182_fb_find"): _wz182_route("find_jobs")
             with c4:
-                if st.button("🎯 Prepare Job", key="wz182_fb_prepare"): _wz182_route("prepare_job")
+                if st.button("🎯 Prepare for This Interview", key="wz182_fb_prepare"): _wz182_route("prepare_job")
             with c5:
                 if st.button("📝 Cover Letter", key="wz182_fb_cover"): _wz182_route("cover_letter")
         if st.session_state.get("wz182_settings_open"):
@@ -30147,7 +30134,7 @@ def _wz182_floating_workobot():
         if current_page in {"workobot", "work-o-bot", "work_o_bot"}:
             return
         with st.container(key="wz182_float_bot"):
-            if st.button("🤖", key="wz182_float_bot_button", help="Need career help? Click me"):
+            if st.button("🤖", key="wz182_float_bot_button", help="Need help answering?"):
                 _wz182_route("workobot")
     except Exception:
         pass
@@ -30234,7 +30221,7 @@ def show_dashboard():
             _wz182_floating_workobot()
             return result
 
-        # Main dashboard: keep the HTML dashboard and do not render old dashboard variants.
+        # Main dashboard: HERO FIRST. Setup sections render only after hero/CTA; do not render old dashboard variants.
         st.session_state["page"] = "real_interview"
         st.session_state["nav_page"] = "real_interview"
         st.session_state["current_page"] = "real_interview"
@@ -30282,51 +30269,66 @@ def _wz183_apply_density_css():
     try:
         st.markdown(r'''
         <style id="wz183-density-dashboard-css">
-          .block-container{padding-top:.65rem!important;max-width:1500px!important;}
-          .wz183-wrap{max-width:1480px;margin:12px auto 0;padding:0 10px;color:#f8fafc;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;}
-          .wz183-main{display:grid;grid-template-columns:1fr .95fr;gap:16px;align-items:stretch;margin-top:12px;}
-          .wz183-card{background:linear-gradient(135deg,rgba(8,30,54,.92),rgba(13,17,43,.94));border:1px solid rgba(56,189,248,.22);border-radius:24px;box-shadow:0 22px 70px rgba(0,0,0,.28);}
-          .wz183-hero{padding:26px 30px;position:relative;overflow:hidden;min-height:390px;}
+          .block-container{padding-top:0!important;max-width:1500px!important;}
+          section.main > div.block-container{padding-top:0!important;}
+          [data-testid="stAppViewContainer"] .main .block-container{padding-top:0!important;}
+          header[data-testid="stHeader"]{height:0!important;background:transparent!important;}
+          .wz183-wrap{max-width:1480px;margin:0 auto 0;padding:0 10px;color:#f8fafc;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;}
+          .wz183-main{display:grid;grid-template-columns:1fr .95fr;gap:12px;align-items:stretch;margin-top:0;margin-bottom:0;}
+          .wz183-card{background:linear-gradient(135deg,rgba(8,30,54,.92),rgba(13,17,43,.94));border:1px solid rgba(56,189,248,.22);border-radius:22px;box-shadow:0 18px 56px rgba(0,0,0,.24);}
+          .wz183-hero{padding:10px 18px 8px;position:relative;overflow:hidden;min-height:198px;}
           .wz183-hero:after{content:"";position:absolute;right:-120px;bottom:-100px;width:360px;height:260px;background:radial-gradient(circle,rgba(147,51,234,.26),transparent 66%);pointer-events:none;}
-          .wz183-live{padding:24px 28px;display:grid;grid-template-columns:.86fr 1fr;gap:26px;min-height:390px;background:linear-gradient(135deg,rgba(11,25,49,.95),rgba(24,18,64,.94));}
-          .wz183-online{display:inline-flex;align-items:center;gap:10px;padding:10px 15px;border-radius:16px;background:rgba(2,6,23,.36);border:1px solid rgba(34,211,238,.20);font-weight:900;color:#e5f6ff;margin-bottom:20px;}
+          .wz183-live{padding:10px 15px 8px;display:grid;grid-template-columns:minmax(222px,.92fr) 1.08fr;gap:10px;min-height:198px;background:linear-gradient(135deg,rgba(11,25,49,.95),rgba(24,18,64,.94));}
+          .wz183-online{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:14px;background:rgba(2,6,23,.36);border:1px solid rgba(34,211,238,.20);font-weight:900;color:#e5f6ff;margin-bottom:10px;}
           .wz183-dot{width:10px;height:10px;border-radius:99px;background:#22c55e;box-shadow:0 0 18px rgba(34,197,94,.9);}
           .wz183-wave{display:inline-block;width:115px;height:18px;background:repeating-linear-gradient(90deg,rgba(34,211,238,.9) 0 3px,transparent 3px 10px);clip-path:polygon(0 55%,8% 30%,14% 62%,21% 20%,28% 74%,34% 38%,42% 60%,50% 25%,57% 75%,64% 42%,70% 65%,78% 28%,86% 55%,100% 48%);opacity:.9;animation:wz183pulse 1.9s infinite ease-in-out;}
           @keyframes wz183pulse{0%,100%{opacity:.45;transform:scaleX(.94)}50%{opacity:1;transform:scaleX(1.04)}}
-          .wz183-title{font-size:clamp(3.2rem,6vw,6.1rem);line-height:.94;letter-spacing:-.07em;margin:0 0 16px;font-weight:1000;}
+          .wz183-title{font-size:clamp(1.9rem,3.35vw,3.45rem);line-height:.84;letter-spacing:-.066em;margin:0 0 4px;font-weight:1000;}
           .wz183-grad{background:linear-gradient(90deg,#38bdf8,#6366f1,#e879f9);-webkit-background-clip:text;background-clip:text;color:transparent;}
-          .wz183-sub{font-size:1.1rem;line-height:1.45;color:#cbd5e1;margin:0 0 22px;max-width:720px;}
-          .wz183-meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px;}
-          .wz183-avatar{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-size:1.7rem;background:linear-gradient(135deg,#fecaca,#f97316);box-shadow:0 0 0 1px rgba(255,255,255,.25);}
-          .wz183-chip{padding:12px 17px;border-radius:18px;background:rgba(15,23,42,.62);border:1px solid rgba(148,163,184,.18);font-weight:900;color:#f8fafc;}
-          .wz183-intel{margin-top:16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:720px;}
-          .wz183-intel div{padding:12px 13px;border-radius:14px;border:1px solid rgba(56,189,248,.18);background:rgba(15,23,42,.42);font-weight:850;color:#c7d2fe;font-size:.93rem;}
-          .wz183-kicker{font-size:.78rem;text-transform:uppercase;letter-spacing:.18em;color:#93c5fd;font-weight:1000;margin-bottom:11px;}
-          .wz183-time{font-size:3rem;font-weight:1000;letter-spacing:-.04em;margin-bottom:11px;}
-          .wz183-starts{font-size:.9rem;color:#93c5fd;margin-top:-6px;margin-bottom:13px;font-weight:800;}
-          .wz183-meter{height:10px;background:rgba(148,163,184,.18);border-radius:99px;overflow:hidden;margin:8px 0 24px;}
+          .wz183-sub{font-size:.88rem;line-height:1.16;color:#cbd5e1;margin:0 0 5px;max-width:570px;}
+          .wz183-meta{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:5px;}
+          .wz183-avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:1.12rem;background:linear-gradient(135deg,#fecaca,#f97316);box-shadow:0 0 0 1px rgba(255,255,255,.22);}
+          .wz183-chip{padding:6px 10px;border-radius:12px;background:rgba(15,23,42,.58);border:1px solid rgba(148,163,184,.16);font-weight:900;color:#f8fafc;font-size:.86rem;}
+          .wz183-intel{margin-top:4px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;max-width:680px;}
+          .wz183-intel div{padding:5px 8px;border-radius:10px;border:1px solid rgba(56,189,248,.14);background:rgba(15,23,42,.34);font-weight:850;color:#c7d2fe;font-size:.76rem;min-height:30px;display:flex;align-items:center;}
+          .wz183-kicker{font-size:.7rem;text-transform:uppercase;letter-spacing:.16em;color:#93c5fd;font-weight:1000;margin-bottom:6px;}
+          .wz183-time{font-size:2.28rem;font-weight:1000;letter-spacing:-.04em;margin-bottom:6px;}
+          .wz183-starts{font-size:.82rem;color:#93c5fd;margin-top:-5px;margin-bottom:9px;font-weight:800;}
+          .wz183-meter{height:7px;background:rgba(148,163,184,.18);border-radius:99px;overflow:hidden;margin:5px 0 11px;}
           .wz183-meter span{display:block;width:58%;height:100%;border-radius:99px;background:linear-gradient(90deg,#22d3ee,#facc15,#ef4444);}
-          .wz183-reactions{display:grid;gap:10px;}
-          .wz183-react{display:flex;gap:10px;align-items:center;padding:11px 13px;border-radius:13px;background:rgba(15,23,42,.46);border:1px solid rgba(148,163,184,.14);font-weight:850;color:#f8fafc;}
+          .wz183-reactions{display:grid;gap:7px;}
+          .wz183-react{display:flex;gap:7px;align-items:center;padding:6px 9px;border-radius:11px;background:rgba(15,23,42,.42);border:1px solid rgba(148,163,184,.12);font-weight:850;color:#f8fafc;font-size:.76rem;line-height:1.08;min-width:220px;}
           .wz183-react b{width:10px;height:10px;border-radius:99px;display:inline-block;flex:0 0 10px;}
-          .wz183-atmo{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
-          .wz183-atmo div{padding:15px 12px;border-radius:15px;border:1px solid rgba(148,163,184,.16);background:rgba(15,23,42,.38);text-align:center;font-weight:950;color:#e2e8f0;}
+          .wz183-atmo{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+          .wz183-atmo div{padding:6px 8px;border-radius:13px;border:1px solid rgba(148,163,184,.16);background:rgba(15,23,42,.38);text-align:center;font-weight:950;color:#e2e8f0;font-size:.82rem;line-height:1.1;}
           .wz183-atmo .active{border-color:rgba(34,197,94,.55);background:rgba(16,185,129,.13);box-shadow:0 0 26px rgba(34,197,94,.13);color:#86efac;}
-          .wz183-state{display:grid;gap:13px;margin-top:6px;}
-          .wz183-state p{display:flex;justify-content:space-between;gap:12px;margin:0;color:#e2e8f0;font-weight:850;}
+          .wz183-state{display:grid;gap:6px;margin-top:2px;}
+          .wz183-state p{display:flex;justify-content:space-between;gap:10px;margin:0;color:#e2e8f0;font-weight:850;font-size:.9rem;line-height:1.2;}
           .wz183-state span{color:#7dd3fc;}
-          .wz183-activity{margin-top:14px;padding:13px 15px;border-radius:16px;border:1px solid rgba(56,189,248,.18);background:rgba(8,47,73,.22);font-weight:900;color:#67e8f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-          .st-key-wz183_start_real_interview button{max-width:560px!important;margin:14px auto 4px!important;display:block!important;height:64px!important;border-radius:20px!important;background:linear-gradient(100deg,#22d3ee,#2563eb,#a855f7)!important;border:1px solid rgba(125,211,252,.65)!important;box-shadow:0 20px 60px rgba(37,99,235,.38),0 0 30px rgba(168,85,247,.25)!important;color:#fff!important;font-size:1.28rem!important;font-weight:1000!important;}
-          .wz183-after-cta{text-align:center;color:#93c5fd;font-weight:850;margin:8px 0 14px;font-size:.95rem;}
-          .st-key-wz183_setup_expander, .st-key-wz183_memory_expander, .st-key-wz183_advanced_expander{max-width:1480px;margin:10px auto!important;}
-          div[data-testid="stExpander"]{border-radius:18px!important;background:rgba(15,23,42,.48)!important;border:1px solid rgba(148,163,184,.16)!important;}
-          div[data-testid="stExpander"] summary{font-weight:950!important;color:#f8fafc!important;}
-          .wz183-mini-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:8px 0 12px;}
-          .wz183-mini-box{padding:14px;border-radius:14px;background:rgba(15,23,42,.55);border:1px solid rgba(148,163,184,.14);}
+          .wz183-activity{margin-top:8px;padding:8px 10px;border-radius:13px;border:1px solid rgba(56,189,248,.18);background:rgba(8,47,73,.22);font-weight:900;color:#67e8f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.84rem;}
+          .wz183-recruiter-pulse{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px;}
+          .wz183-pulse-card{padding:7px 9px;border-radius:12px;background:rgba(15,23,42,.48);border:1px solid rgba(125,211,252,.16);}
+          .wz183-pulse-card label{display:block;color:#93c5fd;text-transform:uppercase;letter-spacing:.12em;font-size:.66rem;font-weight:1000;margin-bottom:3px;}
+          .wz183-pulse-card b{display:block;color:#f8fafc;font-size:.86rem;line-height:1.15;}
+          .wz183-mood-path{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:8px;padding:6px 8px;border-radius:13px;background:rgba(15,23,42,.36);border:1px solid rgba(148,163,184,.12);font-weight:900;color:#e2e8f0;font-size:.82rem;}
+          .wz183-mood-path span{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;background:rgba(15,23,42,.58);border:1px solid rgba(148,163,184,.16);white-space:nowrap;}
+          .wz183-mood-path .wz183-mood-arrow{padding:0 1px;background:transparent;border:0;color:#93c5fd;font-weight:1000;}
+          .wz183-current-concern{margin-top:5px;padding:8px 12px;border-radius:12px;background:rgba(15,23,42,.18);border:1px solid rgba(148,163,184,.08);color:rgba(203,213,225,.86);font-size:.72rem;font-weight:700;line-height:1.18;}
+          .st-key-wz183_start_real_interview button{max-width:360px!important;margin:-4px auto 0!important;display:block!important;height:44px!important;border-radius:16px!important;background:linear-gradient(100deg,#22d3ee,#2563eb,#a855f7)!important;border:1px solid rgba(125,211,252,.60)!important;box-shadow:0 10px 30px rgba(37,99,235,.26),0 0 16px rgba(168,85,247,.15)!important;color:#fff!important;font-size:.96rem!important;font-weight:1000!important;}
+          .wz183-after-cta{text-align:center;color:#93c5fd;font-weight:850;margin:0 0 2px;font-size:.80rem;}
+          .st-key-wz183_setup_expander, .st-key-wz183_memory_expander, .st-key-wz183_advanced_expander{max-width:1480px;margin:5px auto!important;}
+          div[data-testid="stExpander"]{border-radius:15px!important;background:rgba(15,23,42,.34)!important;border:1px solid rgba(148,163,184,.105)!important;}
+          div[data-testid="stExpander"] summary{font-weight:850!important;color:rgba(248,250,252,.88)!important;min-height:36px!important;padding-top:6px!important;padding-bottom:6px!important;font-size:.92rem!important;}
+
+          div[data-testid="stExpander"] details{padding-bottom:0!important;}
+          div[data-testid="stExpander"] div[data-testid="stVerticalBlock"]{gap:.35rem!important;}
+          .st-key-wz182_topbar_native{margin-top:-28px!important;margin-bottom:6px!important;}
+          .wz183-mini-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:2px 0 4px;}
+          .wz183-mini-box{padding:8px 10px;border-radius:12px;background:rgba(15,23,42,.55);border:1px solid rgba(148,163,184,.14);}
           .wz183-mini-box label{display:block;color:#93c5fd;font-size:.78rem;text-transform:uppercase;font-weight:1000;letter-spacing:.12em;margin-bottom:6px;}
           .wz183-mini-box b{color:#f8fafc;font-size:1.05rem;}
           .wz183-focus-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
-          .wz183-focus-row span{padding:8px 12px;border-radius:999px;background:rgba(14,116,144,.25);border:1px solid rgba(34,211,238,.22);font-weight:850;color:#bfdbfe;}
+          .wz183-focus-row span{padding:6px 10px;border-radius:999px;background:rgba(14,116,144,.25);border:1px solid rgba(34,211,238,.22);font-weight:850;color:#bfdbfe;font-size:.86rem;}
           @media(max-width:900px){.wz183-main{grid-template-columns:1fr}.wz183-live{grid-template-columns:1fr}.wz183-intel,.wz183-mini-grid{grid-template-columns:1fr}.wz183-hero{min-height:auto;padding:22px}.wz183-title{font-size:3.2rem}.wz183-wrap{padding:0 4px}.wz183-atmo{grid-template-columns:1fr 1fr 1fr}}
         </style>
         ''', unsafe_allow_html=True)
@@ -30338,6 +30340,8 @@ def _wz181_dashboard_html():
     _wz183_apply_density_css()
     role = _wz181_safe(st.session_state.get("target_role") or st.session_state.get("real_interview_target_role"), "Junior Data Analyst")
     country = _wz181_safe(st.session_state.get("selected_country") or st.session_state.get("target_country") or st.session_state.get("country"), "Germany")
+    company = _wz181_safe(st.session_state.get("target_company") or st.session_state.get("real_interview_company"), "Demo Company")
+    atmosphere = _wz181_safe(st.session_state.get("wz_ri_difficulty_v181") or "🙂 Calm", "🙂 Calm")
     recruiter = _wz181_safe(st.session_state.get("wz_ri_recruiter_personality_v181") or st.session_state.get("wz_ri_recruiter_personality"), "👩 Sarah — Friendly HR")
     recruiter_clean = recruiter.replace("👩 ", "").replace("👨 ", "")
     reactions = ["That’s a good example.", "Can you walk me through the challenge?", "What was the business impact?", "Can you quantify that?"]
@@ -30353,8 +30357,8 @@ def _wz181_dashboard_html():
         <section class="wz183-card wz183-hero">
           <div class="wz183-online"><span class="wz183-dot"></span> Recruiter is online <span class="wz183-wave"></span></div>
           <h1 class="wz183-title">Step into a <span class="wz183-grad">real</span><br>interview simulation</h1>
-          <p class="wz183-sub">Your recruiter already analyzed your CV and job description.<br>Get ready for the interview that actually matters.</p>
-          <div class="wz183-meta"><div class="wz183-avatar">👩</div><span class="wz183-chip">{html.escape(recruiter_clean)}</span><span class="wz183-chip">💼 {html.escape(role)}</span><span class="wz183-chip">⏱ Ready when you are</span></div>
+          <p class="wz183-sub">Your recruiter analyzed your CV and expects role-specific answers.</p>
+          <div class="wz183-meta"><div class="wz183-avatar">👩</div><span class="wz183-chip">{html.escape(recruiter_clean)}</span><span class="wz183-chip">💼 {html.escape(role)}</span><span class="wz183-chip">🏢 {html.escape(company)}</span><span class="wz183-chip">{html.escape(atmosphere)}</span></div>
           <div class="wz183-intel"><div>CV-aware</div><div>Adaptive follow-ups</div><div>Country-specific expectations</div></div>
         </section>
         <section class="wz183-card wz183-live">
@@ -30367,6 +30371,9 @@ def _wz181_dashboard_html():
             <div class="wz183-kicker">Interview atmosphere</div><div class="wz183-atmo"><div class="active">🙂<br>Calm</div><div>😐<br>Neutral</div><div>😤<br>Pressure</div></div>
             <div class="wz183-kicker">Interviewer state</div><div class="wz183-state"><p>Reviewing your CV... <span>✓</span></p><p>Comparing with job description... <span>○</span></p><p>Preparing follow-up questions... <span>•••</span></p><p>Analyzing answer quality... <span>•••</span></p></div>
             <div class="wz183-activity">Analyzing recruiter expectations… identified {html.escape(_wz183_country_caption(country))}.</div>
+            <div class="wz183-recruiter-pulse"><div class="wz183-pulse-card"><label>Confidence</label><b>72% attentive</b></div><div class="wz183-pulse-card"><label>Hiring signal</label><b>Needs proof</b></div><div class="wz183-pulse-card"><label>Attention</label><b>High</b></div></div>
+            <div class="wz183-mood-path"><span>🟢 Calm</span><span class="wz183-mood-arrow">→</span><span>🟡 Skeptical</span><span class="wz183-mood-arrow">→</span><span>🔴 Losing confidence</span></div>
+            <div class="wz183-current-concern">Current concern: answers may be too broad without measurable impact.</div>
           </div>
         </section>
       </div>
@@ -30395,12 +30402,7 @@ def _wz181_interactive_controls():
 
     with st.container(key="wz183_setup_expander"):
         with st.expander("⚙ Simulation Setup", expanded=False):
-            st.markdown(f'''
-            <div class="wz183-mini-grid">
-              <div class="wz183-mini-box"><label>Target role</label><b>{html.escape(role)}</b></div>
-              <div class="wz183-mini-box"><label>Target company</label><b>{html.escape(company)}</b></div>
-              <div class="wz183-mini-box"><label>Country / location</label><b>{html.escape(country)} — {_wz183_country_caption(country)}</b></div>
-            </div>
+            st.markdown('''
             <div class="wz183-mini-box"><label>AI identified interview focus</label><div class="wz183-focus-row"><span>SQL</span><span>Dashboarding</span><span>Stakeholder communication</span></div></div>
             ''', unsafe_allow_html=True)
             c1, c2, c3 = st.columns(3)
@@ -30446,3 +30448,3696 @@ try:
     _wz183_apply_density_css()
 except Exception:
     pass
+
+
+# =========================================================
+# WorkZo v184 - Final ultra-compact polish overrides
+# =========================================================
+def _wz184_final_compact_css():
+    try:
+        st.markdown(r"""
+        <style id="wz184-final-compact-css">
+          .block-container{padding-top:0!important;}
+          .st-key-wz182_topbar_native{margin-top:-32px!important;margin-bottom:6px!important;}
+          .wz183-wrap{margin-top:0!important;padding-top:0!important;}
+          .wz183-main{gap:10px!important;}
+          .wz183-card{border-radius:20px!important;box-shadow:0 12px 38px rgba(0,0,0,.20)!important;}
+          .wz183-hero{min-height:190px!important;padding:9px 17px 7px!important;}
+          .wz183-live{min-height:190px!important;padding:9px 14px 7px!important;gap:9px!important;}
+          .wz183-title{font-size:clamp(1.82rem,3.15vw,3.25rem)!important;line-height:.84!important;margin-bottom:3px!important;}
+          .wz183-sub{font-size:.85rem!important;margin-bottom:4px!important;line-height:1.15!important;}
+          .wz183-chip{padding:5px 9px!important;font-size:.82rem!important;border-radius:11px!important;}
+          .wz183-avatar{width:34px!important;height:34px!important;font-size:1.04rem!important;}
+          .wz183-intel{gap:6px!important;margin-top:3px!important;}
+          .wz183-intel div{min-height:26px!important;padding:4px 7px!important;font-size:.72rem!important;border-color:rgba(56,189,248,.12)!important;background:rgba(15,23,42,.30)!important;}
+          .wz183-atmo div{padding:4px 7px!important;font-size:.72rem!important;}
+          .wz183-react{min-width:230px!important;padding:5px 9px!important;font-size:.73rem!important;line-height:1.05!important;}
+          .wz183-current-concern{font-size:.70rem!important;color:rgba(203,213,225,.78)!important;background:rgba(15,23,42,.14)!important;border-color:rgba(148,163,184,.07)!important;padding:8px 12px!important;}
+          .st-key-wz183_start_real_interview button{margin-top:-6px!important;height:42px!important;max-width:340px!important;font-size:.92rem!important;}
+          .wz183-after-cta{font-size:.70rem!important;margin-top:-4px!important;margin-bottom:0!important;}
+          .st-key-wz183_setup_expander, .st-key-wz183_memory_expander, .st-key-wz183_advanced_expander{margin:3px auto!important;opacity:.88!important;}
+          div[data-testid="stExpander"]{background:rgba(15,23,42,.28)!important;border-color:rgba(148,163,184,.085)!important;border-radius:14px!important;}
+          div[data-testid="stExpander"] summary{min-height:34px!important;padding-top:5px!important;padding-bottom:5px!important;font-size:.88rem!important;font-weight:820!important;color:rgba(248,250,252,.82)!important;}
+          .st-key-wz182_float_bot{right:2px!important;bottom:2px!important;width:56px!important;height:56px!important;}
+          .st-key-wz182_float_bot button{width:56px!important;height:56px!important;}
+          .st-key-wz182_float_bot button:after{font-size:26px!important;}
+          .st-key-wz182_float_bot:before{right:62px!important;top:11px!important;font-size:.70rem!important;padding:7px 8px!important;opacity:.88!important;}
+          @media(max-width:900px){.st-key-wz182_topbar_native{margin-top:0!important}.wz183-hero,.wz183-live{min-height:auto!important}.wz183-title{font-size:2.55rem!important}.wz183-react{min-width:auto!important}.st-key-wz182_float_bot:before{display:none!important}}
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+try:
+    _wz183_previous_apply_density_css = _wz183_apply_density_css
+    def _wz183_apply_density_css():
+        try:
+            _wz183_previous_apply_density_css()
+        except Exception:
+            pass
+        _wz184_final_compact_css()
+except Exception:
+    pass
+
+# =========================================================
+# WorkZo v185 - Hero-first order + final spacing fix
+# =========================================================
+def _wz185_final_order_spacing_css():
+    """Final compact layer: hero first, less top dead space, smaller capability cards, safer bot."""
+    try:
+        st.markdown(r'''
+        <style id="wz185-final-order-spacing-css">
+          /* Remove remaining dead area above the SaaS navbar */
+          .block-container,
+          section.main > div.block-container,
+          [data-testid="stAppViewContainer"] .main .block-container{
+            padding-top:0!important;
+            margin-top:0!important;
+          }
+          header[data-testid="stHeader"]{
+            height:0!important;
+            min-height:0!important;
+            background:transparent!important;
+          }
+          .st-key-wz182_topbar_native{
+            margin-top:-54px!important;
+            margin-bottom:5px!important;
+            padding:8px 13px!important;
+          }
+          .st-key-wz182_topbar_native .wz182-brand-inline{min-height:50px!important;}
+          .st-key-wz182_topbar_native .wz182-logo{width:48px!important;height:48px!important;border-radius:13px!important;}
+          .st-key-wz182_topbar_native button{min-height:42px!important;border-radius:13px!important;}
+
+          /* Hero should feel tight and intense, not like a landing page */
+          .wz183-wrap{margin-top:0!important;padding-top:0!important;}
+          .wz183-main{gap:9px!important;margin-top:0!important;margin-bottom:0!important;}
+          .wz183-card{border-radius:18px!important;}
+          .wz183-hero{
+            min-height:168px!important;
+            padding:8px 15px 6px!important;
+          }
+          .wz183-live{
+            min-height:168px!important;
+            padding:8px 13px 6px!important;
+            gap:8px!important;
+          }
+          .wz183-online{padding:5px 10px!important;margin-bottom:7px!important;font-size:.84rem!important;border-radius:12px!important;}
+          .wz183-wave{height:14px!important;width:95px!important;}
+          .wz183-title{
+            font-size:clamp(1.68rem,2.9vw,2.95rem)!important;
+            line-height:.82!important;
+            letter-spacing:-.072em!important;
+            margin-bottom:4px!important;
+          }
+          .wz183-sub{font-size:.80rem!important;line-height:1.12!important;margin-bottom:4px!important;}
+          .wz183-meta{gap:6px!important;margin-bottom:4px!important;}
+          .wz183-avatar{width:31px!important;height:31px!important;font-size:.98rem!important;}
+          .wz183-chip{padding:4px 8px!important;font-size:.76rem!important;border-radius:10px!important;}
+
+          /* Micro-capabilities: small indicators, not cards */
+          .wz183-intel{
+            gap:5px!important;
+            margin-top:2px!important;
+            max-width:620px!important;
+          }
+          .wz183-intel div{
+            min-height:22px!important;
+            padding:3px 7px!important;
+            font-size:.66rem!important;
+            border-radius:9px!important;
+            background:rgba(15,23,42,.22)!important;
+            border-color:rgba(56,189,248,.10)!important;
+            color:rgba(199,210,254,.88)!important;
+          }
+
+          /* Right panel final polish */
+          .wz183-kicker{font-size:.64rem!important;margin-bottom:4px!important;letter-spacing:.14em!important;}
+          .wz183-time{font-size:2.02rem!important;margin-bottom:4px!important;}
+          .wz183-starts{font-size:.74rem!important;margin-bottom:6px!important;}
+          .wz183-meter{height:6px!important;margin:3px 0 8px!important;}
+          .wz183-atmo{gap:6px!important;margin-bottom:7px!important;}
+          .wz183-atmo div{padding:3px 6px!important;font-size:.68rem!important;border-radius:11px!important;}
+          .wz183-state{gap:4px!important;}
+          .wz183-state p{font-size:.78rem!important;line-height:1.1!important;}
+          .wz183-activity{padding:6px 9px!important;font-size:.74rem!important;border-radius:11px!important;margin-top:6px!important;}
+          .wz183-recruiter-pulse{gap:6px!important;margin-top:6px!important;}
+          .wz183-pulse-card{padding:6px 9px!important;border-radius:11px!important;}
+          .wz183-pulse-card label{font-size:.62rem!important;letter-spacing:.13em!important;}
+          .wz183-pulse-card b{font-size:.78rem!important;}
+          .wz183-mood-path{padding:6px 8px!important;border-radius:11px!important;gap:5px!important;margin-top:6px!important;}
+          .wz183-mood-path span:not(.wz183-mood-arrow){padding:3px 7px!important;font-size:.70rem!important;border-radius:9px!important;}
+          .wz183-current-concern{
+            margin-top:5px!important;
+            padding:7px 11px!important;
+            font-size:.66rem!important;
+            line-height:1.18!important;
+            color:rgba(203,213,225,.68)!important;
+            background:rgba(15,23,42,.10)!important;
+            border-color:rgba(148,163,184,.055)!important;
+            border-radius:11px!important;
+          }
+          .wz183-reactions{gap:5px!important;}
+          .wz183-react{
+            min-width:245px!important;
+            padding:4px 8px!important;
+            font-size:.68rem!important;
+            line-height:1.03!important;
+            border-radius:10px!important;
+          }
+
+          /* Bring CTA closer to hero and reduce dead space below it */
+          .st-key-wz183_start_real_interview{margin-top:-8px!important;margin-bottom:0!important;}
+          .st-key-wz183_start_real_interview button{
+            height:39px!important;
+            max-width:310px!important;
+            font-size:.86rem!important;
+            border-radius:999px!important;
+          }
+          .wz183-after-cta{
+            margin-top:-8px!important;
+            margin-bottom:2px!important;
+            font-size:.66rem!important;
+            opacity:.82!important;
+          }
+
+          /* Setup panels are secondary: visually quieter and compact */
+          .st-key-wz183_setup_expander,
+          .st-key-wz183_advanced_expander,
+          .st-key-wz183_memory_expander{
+            margin:2px auto!important;
+            opacity:.78!important;
+          }
+          div[data-testid="stExpander"]{
+            background:rgba(15,23,42,.20)!important;
+            border-color:rgba(148,163,184,.065)!important;
+            border-radius:13px!important;
+          }
+          div[data-testid="stExpander"] summary{
+            min-height:30px!important;
+            padding-top:4px!important;
+            padding-bottom:4px!important;
+            font-size:.82rem!important;
+            font-weight:760!important;
+            color:rgba(248,250,252,.74)!important;
+          }
+          div[data-testid="stExpander"] [data-testid="stExpanderDetails"]{
+            padding-top:6px!important;
+            padding-bottom:6px!important;
+          }
+          .wz183-mini-grid{gap:7px!important;}
+          .wz183-mini-box{padding:8px 10px!important;border-radius:11px!important;}
+          .wz183-mini-box label{font-size:.64rem!important;letter-spacing:.13em!important;}
+          .wz183-mini-box b{font-size:.82rem!important;}
+
+          /* Floating assistant: move out of the content lane */
+          .st-key-wz182_float_bot{
+            right:-4px!important;
+            bottom:-4px!important;
+            width:52px!important;
+            height:52px!important;
+            opacity:.94!important;
+          }
+          .st-key-wz182_float_bot button{width:52px!important;height:52px!important;}
+          .st-key-wz182_float_bot button:after{font-size:24px!important;}
+          .st-key-wz182_float_bot:before{
+            right:58px!important;
+            top:10px!important;
+            font-size:.66rem!important;
+            padding:6px 7px!important;
+            opacity:.78!important;
+          }
+
+          @media(max-width:900px){
+            .st-key-wz182_topbar_native{margin-top:0!important;}
+            .wz183-main{grid-template-columns:1fr!important;}
+            .wz183-hero,.wz183-live{min-height:auto!important;}
+            .wz183-title{font-size:2.22rem!important;}
+            .wz183-intel{grid-template-columns:1fr!important;}
+            .wz183-react{min-width:auto!important;}
+            .st-key-wz182_float_bot{right:10px!important;bottom:10px!important;}
+            .st-key-wz182_float_bot:before{display:none!important;}
+          }
+        </style>
+        ''', unsafe_allow_html=True)
+    except Exception:
+        pass
+
+try:
+    _wz185_previous_density_css = _wz183_apply_density_css
+    def _wz183_apply_density_css():
+        try:
+            _wz185_previous_density_css()
+        except Exception:
+            pass
+        _wz185_final_order_spacing_css()
+except Exception:
+    pass
+
+# Keep the main dashboard hero-first. This override intentionally renders only:
+# topbar -> simulation hero -> CTA -> secondary setup panels.
+try:
+    _wz185_previous_show_dashboard = show_dashboard
+    def show_dashboard():
+        try:
+            _wz182_apply_direct_mode_from_query()
+            page_key = _wz182_get_page_key()
+            st.session_state["onboarding_complete"] = True
+
+            if page_key in {"workobot", "work-o-bot", "work_o_bot", "bot"}:
+                _wz182_css(); _wz182_topbar()
+                if callable(globals().get("_wz150_render_workobot_page")):
+                    return _wz150_render_workobot_page()
+                if callable(globals().get("show_workobot")):
+                    return show_workobot()
+                st.warning("Work-O-Bot is not available in this build.")
+                return
+
+            if page_key not in {"", "dashboard", "home", "main", "real_interview", "interview", "interview_practice"}:
+                _wz182_css(); _wz185_final_order_spacing_css(); _wz182_topbar()
+                result = _wz182_legacy_dashboard_renderer() if callable(_wz182_legacy_dashboard_renderer) else None
+                _wz182_floating_workobot()
+                return result
+
+            st.session_state["page"] = "real_interview"
+            st.session_state["nav_page"] = "real_interview"
+            st.session_state["current_page"] = "real_interview"
+            st.session_state["_wz_force_page"] = "real_interview"
+            _wz182_css()
+            _wz185_final_order_spacing_css()
+            _wz182_topbar()
+            _wz181_dashboard_html()
+            _wz181_interactive_controls()
+            _wz182_floating_workobot()
+        except Exception as exc:
+            st.error(f"WorkZo dashboard could not load safely: {exc}")
+            try:
+                return _wz185_previous_show_dashboard()
+            except Exception:
+                pass
+except Exception:
+    pass
+
+# =========================================================
+# WorkZo v186 - Single approved header + single Work-O-Bot
+# =========================================================
+# Purpose:
+# Other feature pages were showing two WorkZo logo/name cards and two Work-O-Bot buttons:
+#   1) the approved v182 main dashboard header/bot
+#   2) older legacy feature-page header/bot from v104/v141/v147/v181 renderers
+# This patch keeps only the approved main-dashboard style header and bot everywhere.
+
+def _wz186_hide_legacy_header_and_bot_css():
+    try:
+        st.markdown(r'''
+        <style id="wz186-single-header-bot-fix">
+          /* Hide older header/name-card variants that can leak from feature pages. */
+          .st-key-wz147_topbar,
+          .st-key-wz147_topbar_more_fallback,
+          .st-key-wz146_topbar,
+          .st-key-wz146_hero_brand,
+          .st-key-wz144_topbar,
+          .st-key-wz122_topbar,
+          .st-key-wz109_brand,
+          .st-key-wz108_brand,
+          .st-key-wz104_topbar_shell,
+          .st-key-wz104_topbar_shell_final,
+          .wz147-brand-top,
+          .wz146-brand-top,
+          .wz146-hero-brand,
+          .wz144-brand,
+          .wz122-brand,
+          .wz109-brand,
+          .wz108-brand,
+          .wz94-brand-card,
+          .wz72-brand,
+          .workzo-header:not(.wz182-allowed-header){
+            display:none!important;
+            visibility:hidden!important;
+            height:0!important;
+            min-height:0!important;
+            max-height:0!important;
+            padding:0!important;
+            margin:0!important;
+            overflow:hidden!important;
+            pointer-events:none!important;
+          }
+
+          /* Hide older large Work-O-Bot floating cards/buttons. Keep only wz182_float_bot. */
+          .st-key-wz141_float_workobot,
+          .st-key-wz75_float_workobot,
+          .wz75-bot-hint,
+          .wz-floating-chat,
+          .wz-floating-feedback,
+          [class*="floating"][class*="bot"]:not(.st-key-wz182_float_bot),
+          [class*="floating"][class*="feedback"]{
+            display:none!important;
+            visibility:hidden!important;
+            width:0!important;
+            height:0!important;
+            min-width:0!important;
+            min-height:0!important;
+            padding:0!important;
+            margin:0!important;
+            overflow:hidden!important;
+            pointer-events:none!important;
+          }
+
+          /* Approved header stays visible and stable. */
+          .st-key-wz182_topbar_native{
+            display:block!important;
+            visibility:visible!important;
+            height:auto!important;
+            min-height:0!important;
+            max-height:none!important;
+            pointer-events:auto!important;
+          }
+
+          /* Approved compact Work-O-Bot icon only. */
+          .st-key-wz182_float_bot{
+            display:block!important;
+            visibility:visible!important;
+            pointer-events:auto!important;
+            z-index:999999!important;
+          }
+        </style>
+        ''', unsafe_allow_html=True)
+    except Exception:
+        pass
+
+# Replace legacy header/bot renderers with no-ops so feature pages cannot draw them again.
+try:
+    _wz186_legacy_topbar_renderer = globals().get('_wz104_render_topbar')
+    def _wz104_render_topbar(*args, **kwargs):
+        _wz186_hide_legacy_header_and_bot_css()
+        return None
+except Exception:
+    pass
+
+try:
+    _wz186_legacy_wz71_bot = globals().get('_wz71_floating_workobot')
+    def _wz71_floating_workobot(*args, **kwargs):
+        _wz186_hide_legacy_header_and_bot_css()
+        return None
+except Exception:
+    pass
+
+try:
+    _wz186_legacy_wz181_bot = globals().get('_wz181_floating_workobot')
+    def _wz181_floating_workobot(*args, **kwargs):
+        _wz186_hide_legacy_header_and_bot_css()
+        return None
+except Exception:
+    pass
+
+try:
+    _wz186_previous_wz182_css = _wz182_css
+    def _wz182_css():
+        try:
+            _wz186_previous_wz182_css()
+        except Exception:
+            pass
+        _wz186_hide_legacy_header_and_bot_css()
+except Exception:
+    pass
+
+try:
+    _wz186_previous_wz185_css = _wz185_final_order_spacing_css
+    def _wz185_final_order_spacing_css():
+        try:
+            _wz186_previous_wz185_css()
+        except Exception:
+            pass
+        _wz186_hide_legacy_header_and_bot_css()
+except Exception:
+    pass
+
+# Final router wrapper: on feature pages, render approved header once, run legacy content,
+# then re-apply hiding CSS so any old header/bot emitted by legacy content disappears.
+try:
+    _wz186_previous_show_dashboard = show_dashboard
+    def show_dashboard():
+        try:
+            _wz182_apply_direct_mode_from_query()
+            page_key = _wz182_get_page_key()
+            st.session_state["onboarding_complete"] = True
+
+            if page_key in {"workobot", "work-o-bot", "work_o_bot", "bot"}:
+                _wz182_css()
+                _wz186_hide_legacy_header_and_bot_css()
+                _wz182_topbar()
+                _wz186_hide_legacy_header_and_bot_css()
+                if callable(globals().get("_wz150_render_workobot_page")):
+                    result = _wz150_render_workobot_page()
+                elif callable(globals().get("show_workobot")):
+                    result = show_workobot()
+                else:
+                    st.warning("Work-O-Bot is not available in this build.")
+                    result = None
+                _wz186_hide_legacy_header_and_bot_css()
+                return result
+
+            if page_key not in {"", "dashboard", "home", "main", "real_interview", "interview", "interview_practice"}:
+                _wz182_css()
+                _wz185_final_order_spacing_css()
+                _wz186_hide_legacy_header_and_bot_css()
+                _wz182_topbar()
+                _wz186_hide_legacy_header_and_bot_css()
+                result = _wz182_legacy_dashboard_renderer() if callable(_wz182_legacy_dashboard_renderer) else None
+                _wz186_hide_legacy_header_and_bot_css()
+                _wz182_floating_workobot()
+                _wz186_hide_legacy_header_and_bot_css()
+                return result
+
+            # Main dashboard remains the approved hero-first version.
+            st.session_state["page"] = "real_interview"
+            st.session_state["nav_page"] = "real_interview"
+            st.session_state["current_page"] = "real_interview"
+            st.session_state["_wz_force_page"] = "real_interview"
+            _wz182_css()
+            _wz185_final_order_spacing_css()
+            _wz186_hide_legacy_header_and_bot_css()
+            _wz182_topbar()
+            _wz181_dashboard_html()
+            _wz181_interactive_controls()
+            _wz182_floating_workobot()
+            _wz186_hide_legacy_header_and_bot_css()
+        except Exception as exc:
+            st.error(f"WorkZo dashboard could not load safely: {exc}")
+            try:
+                return _wz186_previous_show_dashboard()
+            except Exception:
+                pass
+except Exception:
+    pass
+
+# =========================================================
+# WorkZo v187 - Dynamic recruiter state + interruption loops
+# =========================================================
+# Adds a lightweight behavioural simulation layer without changing the existing app structure.
+# Main effects:
+# - Recruiter confidence / attention / patience evolve after each answer.
+# - Hiring signal and mood recover or decline based on answer quality.
+# - Interruption moments appear for vague, long, or unstructured answers.
+# - Start Interview CTA is visually pulled into the hero experience.
+
+import re as _wz187_re
+
+
+def _wz187_default_recruiter_state():
+    return {
+        "confidence": 72,
+        "attention": 82,
+        "patience": 68,
+        "hiring_signal": "Needs proof",
+        "mood": "Calm",
+        "concern": "answers may be too broad without measurable impact",
+        "last_reaction": "That’s a good example.",
+        "last_interrupt": "",
+        "answer_count": 0,
+        "trend": "steady",
+    }
+
+
+def _wz187_get_recruiter_state():
+    state = st.session_state.get("wz187_recruiter_state")
+    if not isinstance(state, dict):
+        state = _wz187_default_recruiter_state()
+        st.session_state["wz187_recruiter_state"] = state
+    for k, v in _wz187_default_recruiter_state().items():
+        state.setdefault(k, v)
+    return state
+
+
+def _wz187_clamp(value, low=0, high=100):
+    try:
+        return max(low, min(high, int(value)))
+    except Exception:
+        return low
+
+
+def _wz187_evaluate_answer(answer: str):
+    text = str(answer or "").strip()
+    low = text.lower()
+    words = _wz187_re.findall(r"\b\w+\b", low)
+    word_count = len(words)
+    has_metric = bool(_wz187_re.search(r"\d|%|percent|reduced|increased|saved|improved|faster|revenue|cost|time", low))
+    has_star = any(x in low for x in ["situation", "task", "action", "result", "outcome", "impact", "because", "therefore"])
+    has_ownership = any(x in low for x in ["i led", "i owned", "i handled", "i built", "i analyzed", "i resolved", "my role", "i worked"])
+    vague_hits = sum(1 for x in ["etc", "things", "stuff", "many", "some", "basically", "kind of", "maybe", "i think", "good", "nice"] if x in low)
+
+    score = 50
+    score += 16 if has_metric else -14
+    score += 12 if has_star else -8
+    score += 10 if has_ownership else -5
+    if 45 <= word_count <= 115:
+        score += 8
+    elif word_count < 25:
+        score -= 13
+    elif word_count > 145:
+        score -= 16
+    score -= min(18, vague_hits * 5)
+    score = _wz187_clamp(score)
+
+    if word_count > 145:
+        interrupt = "Let me stop you there — can you answer that more directly?"
+        concern = "answer is too long and risks losing recruiter attention"
+    elif not has_metric:
+        interrupt = "Can you quantify that with a result or business impact?"
+        concern = "answer lacks measurable impact"
+    elif not has_ownership:
+        interrupt = "What exactly was YOUR contribution?"
+        concern = "ownership is not clear enough"
+    elif not has_star:
+        interrupt = "Structure it more clearly: situation, action, result."
+        concern = "answer needs a clearer STAR structure"
+    elif vague_hits >= 2:
+        interrupt = "That still sounds broad — give me one specific example."
+        concern = "answer sounds vague despite useful content"
+    else:
+        interrupt = ""
+        concern = "recruiter is looking for consistent proof across answers"
+
+    return {
+        "score": score,
+        "word_count": word_count,
+        "has_metric": has_metric,
+        "has_star": has_star,
+        "has_ownership": has_ownership,
+        "interrupt": interrupt,
+        "concern": concern,
+    }
+
+
+def _wz187_apply_answer(answer: str):
+    state = _wz187_get_recruiter_state()
+    result = _wz187_evaluate_answer(answer)
+    score = result["score"]
+
+    if score >= 76:
+        state["confidence"] = _wz187_clamp(state["confidence"] + 10)
+        state["attention"] = _wz187_clamp(state["attention"] + 8)
+        state["patience"] = _wz187_clamp(state["patience"] + 4)
+        state["mood"] = "Engaged again"
+        state["hiring_signal"] = "Strengthening"
+        state["trend"] = "recovering"
+        state["last_reaction"] = "Good recovery — now I can see the impact."
+        state["last_interrupt"] = ""
+    elif score >= 58:
+        state["confidence"] = _wz187_clamp(state["confidence"] + 2)
+        state["attention"] = _wz187_clamp(state["attention"] - 1)
+        state["patience"] = _wz187_clamp(state["patience"] - 1)
+        state["mood"] = "Curious"
+        state["hiring_signal"] = "Needs proof"
+        state["trend"] = "steady"
+        state["last_reaction"] = "There is something useful here — make it sharper."
+        state["last_interrupt"] = result["interrupt"]
+    else:
+        state["confidence"] = _wz187_clamp(state["confidence"] - 14)
+        state["attention"] = _wz187_clamp(state["attention"] - 10)
+        state["patience"] = _wz187_clamp(state["patience"] - 8)
+        state["mood"] = "Skeptical" if state["confidence"] >= 45 else "Losing confidence"
+        state["hiring_signal"] = "Weakening"
+        state["trend"] = "dropping"
+        state["last_reaction"] = result["interrupt"] or "I’m not convinced yet — give me stronger evidence."
+        state["last_interrupt"] = result["interrupt"] or "Can you be more specific?"
+
+    state["concern"] = result["concern"]
+    state["answer_count"] = int(state.get("answer_count", 0)) + 1
+    st.session_state["wz187_last_answer_eval"] = result
+    st.session_state["wz187_recruiter_state"] = state
+    return state
+
+
+def _wz187_state_labels(state):
+    confidence = _wz187_clamp(state.get("confidence", 72))
+    attention = _wz187_clamp(state.get("attention", 82))
+    patience = _wz187_clamp(state.get("patience", 68))
+    if attention >= 74:
+        attention_label = "High"
+    elif attention >= 48:
+        attention_label = "Watching closely"
+    else:
+        attention_label = "Dropping"
+    if confidence >= 78:
+        confidence_label = f"{confidence}% confident"
+    elif confidence >= 55:
+        confidence_label = f"{confidence}% attentive"
+    else:
+        confidence_label = f"{confidence}% doubtful"
+    return confidence_label, attention_label, patience
+
+
+def _wz187_mood_path(state):
+    trend = str(state.get("trend", "steady"))
+    mood = str(state.get("mood", "Calm"))
+    if trend == "recovering":
+        return "<span>🟡 Skeptical</span><span class='wz183-mood-arrow'>→</span><span>🟢 Re-engaged</span><span class='wz183-mood-arrow'>→</span><span>✅ Confidence recovering</span>"
+    if trend == "dropping" or mood == "Losing confidence":
+        return "<span>🟢 Calm</span><span class='wz183-mood-arrow'>→</span><span>🟡 Skeptical</span><span class='wz183-mood-arrow'>→</span><span>🔴 Losing confidence</span>"
+    return "<span>🟢 Calm</span><span class='wz183-mood-arrow'>→</span><span>🟡 Testing proof</span><span class='wz183-mood-arrow'>→</span><span>🟢 Can recover</span>"
+
+
+def _wz187_dynamic_css():
+    try:
+        st.markdown(r'''
+        <style id="wz187-dynamic-recruiter-css">
+          .wz187-interrupt{
+            margin:6px 0 0;padding:8px 10px;border-radius:12px;
+            background:linear-gradient(135deg,rgba(239,68,68,.16),rgba(251,146,60,.08));
+            border:1px solid rgba(248,113,113,.22);color:#fee2e2;font-weight:850;font-size:.78rem;
+          }
+          .wz187-live-answer{
+            max-width:820px;margin:6px auto 4px;padding:10px 12px;border-radius:16px;
+            background:rgba(15,23,42,.30);border:1px solid rgba(56,189,248,.12);
+          }
+          .wz187-live-answer-title{font-weight:900;color:#67e8f9;margin-bottom:4px;font-size:.84rem;}
+          .wz187-live-answer-copy{color:rgba(226,232,240,.78);font-size:.75rem;margin-bottom:7px;}
+          .wz187-eval-row{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:7px;}
+          .wz187-eval-card{padding:7px 8px;border-radius:12px;background:rgba(2,6,23,.34);border:1px solid rgba(148,163,184,.10);}
+          .wz187-eval-card label{display:block;color:#93c5fd;font-size:.58rem;text-transform:uppercase;letter-spacing:.12em;font-weight:900;}
+          .wz187-eval-card b{font-size:.74rem;color:#f8fafc;}
+          .st-key-wz183_start_real_interview{max-width:680px!important;margin-left:auto!important;margin-right:auto!important;transform:translateY(-4px)!important;}
+          .st-key-wz183_start_real_interview button{box-shadow:0 18px 42px rgba(37,99,235,.34)!important;}
+          @media(max-width:900px){.wz187-eval-row{grid-template-columns:1fr 1fr}.wz187-live-answer{margin-left:4px;margin-right:4px}}
+        </style>
+        ''', unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+# Override dashboard HTML to make recruiter intelligence state-driven.
+def _wz181_dashboard_html():
+    _wz183_apply_density_css()
+    _wz187_dynamic_css()
+    state = _wz187_get_recruiter_state()
+    confidence_label, attention_label, patience = _wz187_state_labels(state)
+    role = _wz181_safe(st.session_state.get("target_role") or st.session_state.get("real_interview_target_role"), "Junior Data Analyst")
+    country = _wz181_safe(st.session_state.get("selected_country") or st.session_state.get("target_country") or st.session_state.get("country"), "Germany")
+    company = _wz181_safe(st.session_state.get("target_company") or st.session_state.get("real_interview_company"), "Demo Company")
+    atmosphere = _wz181_safe(st.session_state.get("wz_ri_difficulty_v181") or "🙂 Calm", "🙂 Calm")
+    recruiter = _wz181_safe(st.session_state.get("wz_ri_recruiter_personality_v181") or st.session_state.get("wz_ri_recruiter_personality"), "👩 Sarah — Friendly HR")
+    recruiter_clean = recruiter.replace("👩 ", "").replace("👨 ", "")
+
+    last = _wz181_safe(state.get("last_reaction"), "That’s a good example.")
+    interrupt = _wz181_safe(state.get("last_interrupt"), "")
+    concern = _wz181_safe(state.get("concern"), "answers may be too broad without measurable impact")
+    hiring = _wz181_safe(state.get("hiring_signal"), "Needs proof")
+    mood = _wz181_safe(state.get("mood"), "Calm")
+    mood_path = _wz187_mood_path(state)
+    reactions = [last, "Can you walk me through the challenge?", "What was the business impact?", "Can you quantify that?"]
+    if interrupt:
+        reactions = [interrupt, last, "What exactly was your contribution?", "Give me the result first."]
+
+    st.markdown(f'''
+    <div class="wz183-wrap">
+      <div class="wz183-main">
+        <section class="wz183-card wz183-hero">
+          <div class="wz183-online"><span class="wz183-dot"></span> Recruiter is online <span class="wz183-wave"></span></div>
+          <h1 class="wz183-title">Step into a <span class="wz183-grad">real</span><br>interview simulation</h1>
+          <p class="wz183-sub">Your recruiter analyzed your CV and expects role-specific answers.</p>
+          <div class="wz183-meta"><div class="wz183-avatar">👩</div><span class="wz183-chip">{html.escape(recruiter_clean)}</span><span class="wz183-chip">💼 {html.escape(role)}</span><span class="wz183-chip">🏢 {html.escape(company)}</span><span class="wz183-chip">{html.escape(atmosphere)}</span></div>
+          <div class="wz183-intel"><div>CV-aware</div><div>Adaptive follow-ups</div><div>Interruptions</div></div>
+          {('<div class="wz187-interrupt">⚠ Recruiter interruption: ' + html.escape(interrupt) + '</div>') if interrupt else ''}
+        </section>
+        <section class="wz183-card wz183-live">
+          <div>
+            <div class="wz183-kicker">Interview countdown</div><div class="wz183-time">30:00</div><div class="wz183-starts">Starts when you press Start Interview</div><div class="wz183-meter"><span></span></div>
+            <div class="wz183-kicker">Live reactions <span style="color:#ef4444">● LIVE</span></div>
+            <div class="wz183-reactions"><div class="wz183-react"><b style="background:#22c55e"></b>“{html.escape(reactions[0])}”</div><div class="wz183-react"><b style="background:#facc15"></b>“{html.escape(reactions[1])}”</div><div class="wz183-react"><b style="background:#fb923c"></b>“{html.escape(reactions[2])}”</div><div class="wz183-react"><b style="background:#ef4444"></b>“{html.escape(reactions[3])}”</div></div>
+          </div>
+          <div>
+            <div class="wz183-kicker">Interview atmosphere</div><div class="wz183-atmo"><div class="active">🙂<br>{html.escape(mood)}</div><div>😐<br>Neutral</div><div>😤<br>Pressure</div></div>
+            <div class="wz183-kicker">Interviewer state</div><div class="wz183-state"><p>Reviewing your CV... <span>✓</span></p><p>Comparing with job description... <span>○</span></p><p>Tracking answer quality... <span>•••</span></p><p>Updating recruiter confidence... <span>•••</span></p></div>
+            <div class="wz183-activity">Analyzing recruiter expectations… identified {html.escape(_wz183_country_caption(country))}.</div>
+            <div class="wz183-recruiter-pulse"><div class="wz183-pulse-card"><label>Confidence</label><b>{html.escape(confidence_label)}</b></div><div class="wz183-pulse-card"><label>Hiring signal</label><b>{html.escape(hiring)}</b></div><div class="wz183-pulse-card"><label>Attention</label><b>{html.escape(attention_label)}</b></div></div>
+            <div class="wz183-mood-path">{mood_path}</div>
+            <div class="wz183-current-concern">Current concern: {html.escape(concern)}.</div>
+          </div>
+        </section>
+      </div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+
+def _wz187_render_live_answer_panel():
+    if not st.session_state.get("wz_ri_started"):
+        return
+    state = _wz187_get_recruiter_state()
+    question = st.session_state.get("wz187_current_question") or "Tell me about a project where you created measurable impact."
+    st.markdown(f'''
+    <div class="wz187-live-answer">
+      <div class="wz187-live-answer-title">🎙 Live recruiter question</div>
+      <div class="wz187-live-answer-copy">{html.escape(question)}</div>
+    </div>
+    ''', unsafe_allow_html=True)
+    answer = st.text_area("Your answer", key="wz187_candidate_answer", height=105, placeholder="Answer naturally. WorkZo will update recruiter confidence, attention, and interruptions.")
+    c1, c2, c3 = st.columns([1.15, 1.15, 4])
+    with c1:
+        submit = st.button("Submit answer", key="wz187_submit_answer", type="primary", use_container_width=True)
+    with c2:
+        reset = st.button("Reset recruiter", key="wz187_reset_state", use_container_width=True)
+    if reset:
+        st.session_state["wz187_recruiter_state"] = _wz187_default_recruiter_state()
+        st.session_state["wz187_candidate_answer"] = ""
+        st.rerun()
+    if submit and str(answer or "").strip():
+        _wz187_apply_answer(answer)
+        st.session_state["wz187_candidate_answer"] = ""
+        st.rerun()
+
+    last_eval = st.session_state.get("wz187_last_answer_eval") or {}
+    if isinstance(last_eval, dict) and last_eval:
+        st.markdown(f'''
+        <div class="wz187-eval-row">
+          <div class="wz187-eval-card"><label>Answer score</label><b>{int(last_eval.get('score', 0))}/100</b></div>
+          <div class="wz187-eval-card"><label>Metrics</label><b>{'Found' if last_eval.get('has_metric') else 'Missing'}</b></div>
+          <div class="wz187-eval-card"><label>Structure</label><b>{'Clear' if last_eval.get('has_star') else 'Needs STAR'}</b></div>
+          <div class="wz187-eval-card"><label>Ownership</label><b>{'Visible' if last_eval.get('has_ownership') else 'Unclear'}</b></div>
+        </div>
+        ''', unsafe_allow_html=True)
+
+
+# Override controls: start button + dynamic answer simulation + secondary setup panels.
+def _wz181_interactive_controls():
+    _wz183_apply_density_css()
+    _wz187_dynamic_css()
+    with st.container(key="wz183_start_real_interview"):
+        if st.button("🎙 Start Real Interview", key="wz183_start_real_interview_btn", type="primary", use_container_width=True):
+            st.session_state["wz_ri_started"] = True
+            st.session_state["page"] = "real_interview"
+            st.session_state["nav_page"] = "real_interview"
+            _wz187_get_recruiter_state()
+            st.rerun()
+    st.markdown('<div class="wz183-after-cta">CV + JD analyzed · Interview adapts to your answers, recruiter mood, and pressure level</div>', unsafe_allow_html=True)
+    _wz187_render_live_answer_panel()
+
+    role = _wz181_safe(st.session_state.get("target_role") or st.session_state.get("real_interview_target_role"), "Junior Data Analyst")
+    company = _wz181_safe(st.session_state.get("target_company") or st.session_state.get("real_interview_company"), "Demo Company")
+    country = _wz181_safe(st.session_state.get("selected_country") or st.session_state.get("target_country") or st.session_state.get("country"), "Germany")
+
+    with st.container(key="wz183_setup_expander"):
+        with st.expander("⚙ Simulation Setup", expanded=False):
+            st.markdown('''
+            <div class="wz183-mini-box"><label>AI identified interview focus</label><div class="wz183-focus-row"><span>SQL</span><span>Dashboarding</span><span>Stakeholder communication</span></div></div>
+            ''', unsafe_allow_html=True)
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.text_input("Target role", value=role, key="wz183_target_role")
+            with c2:
+                st.text_input("Target company", value=company, key="wz183_target_company")
+            with c3:
+                st.text_input("Country / location", value=country, key="wz183_target_country")
+
+    with st.container(key="wz183_advanced_expander"):
+        with st.expander("🧠 Recruiter Behavior & Difficulty", expanded=False):
+            c1, c2 = st.columns(2)
+            with c1:
+                recruiter = st.selectbox("Who are you interviewing with?", ["👩 Sarah — Friendly HR", "👨 Daniel — Technical Hiring Manager", "👩 Priya — Fast-paced Startup Recruiter", "👨 Markus — German Corporate Interviewer"], key="wz_ri_recruiter_personality_v181")
+                st.caption(_wz183_personality_caption(recruiter))
+                st.selectbox("Recruiter style", ["Balanced", "Behavioral-heavy", "Technical-heavy", "Fast-paced", "Leadership-focused"], key="wz_ri_recruiter_style_v181")
+            with c2:
+                st.radio("How tough should this recruiter be?", ["🙂 Supportive", "😐 Realistic", "😤 Challenging", "🔥 Brutal recruiter"], horizontal=True, key="wz_ri_difficulty_v181")
+                st.selectbox("Country adaptation", ["Auto-detect from role/company", "Germany", "USA", "UK", "India"], key="wz_ri_country_adaptation_v181")
+
+    with st.container(key="wz183_memory_expander"):
+        with st.expander("📈 AI Memory & Smart Coaching", expanded=False):
+            st.markdown('''
+            <div class="wz183-mini-grid">
+              <div class="wz183-mini-box"><label>AI Memory</label><b>Strong stakeholder communication</b></div>
+              <div class="wz183-mini-box"><label>Needs improvement</label><b>More measurable impact</b></div>
+              <div class="wz183-mini-box"><label>Current coaching focus</label><b>STAR structure + ownership</b></div>
+            </div>
+            ''', unsafe_allow_html=True)
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.checkbox("Interrupt vague answers", value=True, key="wz_ri_interrupt_v181")
+                st.checkbox("Ask for measurable impact", value=True, key="wz_ri_metrics_v181")
+            with c2:
+                st.checkbox("Pressure escalation", value=True, key="wz_ri_pressure_v183")
+                st.checkbox("Adaptive follow-ups", value=True, key="wz_ri_adaptive_followups_v183")
+            with c3:
+                st.checkbox("Real-time coaching", value=True, key="wz_ri_realtime_coaching_v183")
+                st.checkbox("Track weak areas", value=True, key="wz_ri_memory_v181")
+
+
+# =========================================================
+# WorkZo v188 - HTML render safety fix
+# Fixes raw HTML showing inside the hero by rendering the dashboard
+# as flat div-based HTML with no markdown-indented section blocks.
+# =========================================================
+
+def _wz188_render_dashboard_html_safe(html_body: str):
+    """Render raw HTML safely without Markdown turning indented HTML into code."""
+    try:
+        st.markdown(str(html_body).strip(), unsafe_allow_html=True)
+    except Exception:
+        try:
+            st.components.v1.html(str(html_body), height=560, scrolling=False)
+        except Exception:
+            pass
+
+
+def _wz181_dashboard_html():
+    _wz183_apply_density_css()
+    try:
+        _wz187_dynamic_css()
+    except Exception:
+        pass
+
+    state = _wz187_get_recruiter_state() if callable(globals().get("_wz187_get_recruiter_state")) else {}
+    confidence_label, attention_label, patience = _wz187_state_labels(state) if callable(globals().get("_wz187_state_labels")) else ("72% attentive", "High", 64)
+
+    role = _wz181_safe(st.session_state.get("target_role") or st.session_state.get("real_interview_target_role"), "Junior Data Analyst")
+    country = _wz181_safe(st.session_state.get("selected_country") or st.session_state.get("target_country") or st.session_state.get("country"), "Germany")
+    company = _wz181_safe(st.session_state.get("target_company") or st.session_state.get("real_interview_company"), "Demo Company")
+    atmosphere = _wz181_safe(st.session_state.get("wz_ri_difficulty_v181") or "🙂 Calm", "🙂 Calm")
+    recruiter = _wz181_safe(st.session_state.get("wz_ri_recruiter_personality_v181") or st.session_state.get("wz_ri_recruiter_personality"), "👩 Sarah — Friendly HR")
+    recruiter_clean = recruiter.replace("👩 ", "").replace("👨 ", "")
+
+    last = _wz181_safe(state.get("last_reaction"), "That’s a good example.")
+    interrupt = _wz181_safe(state.get("last_interrupt"), "")
+    concern = _wz181_safe(state.get("concern"), "answers may be too broad without measurable impact")
+    hiring = _wz181_safe(state.get("hiring_signal"), "Needs proof")
+    mood = _wz181_safe(state.get("mood"), "Calm")
+    mood_path = _wz187_mood_path(state) if callable(globals().get("_wz187_mood_path")) else "<span>🟢 Calm</span><span class='wz183-mood-arrow'>→</span><span>🟡 Skeptical</span><span class='wz183-mood-arrow'>→</span><span>🔴 Losing confidence</span>"
+
+    reactions = [last, "Can you walk me through the challenge?", "What was the business impact?", "Can you quantify that?"]
+    if interrupt:
+        reactions = [interrupt, last, "What exactly was your contribution?", "Give me the result first."]
+
+    interrupt_html = ""
+    if interrupt:
+        interrupt_html = f'<div class="wz187-interrupt">⚠ Recruiter interruption: {html.escape(interrupt)}</div>'
+
+    safe_role = html.escape(role)
+    safe_company = html.escape(company)
+    safe_country_caption = html.escape(_wz183_country_caption(country))
+    safe_recruiter = html.escape(recruiter_clean)
+    safe_atmosphere = html.escape(atmosphere)
+    safe_mood = html.escape(mood)
+    safe_conf = html.escape(confidence_label)
+    safe_hiring = html.escape(hiring)
+    safe_attention = html.escape(attention_label)
+    safe_concern = html.escape(concern)
+    safe_reactions = [html.escape(str(r)) for r in reactions]
+
+    html_body = (
+        '<div class="wz183-wrap">'
+        '<div class="wz183-main">'
+        '<div class="wz183-card wz183-hero">'
+        '<div class="wz183-online"><span class="wz183-dot"></span> Recruiter is online <span class="wz183-wave"></span></div>'
+        '<h1 class="wz183-title">Step into a <span class="wz183-grad">real</span><br>interview simulation</h1>'
+        '<p class="wz183-sub">Your recruiter analyzed your CV and expects role-specific answers.</p>'
+        f'<div class="wz183-meta"><div class="wz183-avatar">👩</div><span class="wz183-chip">{safe_recruiter}</span><span class="wz183-chip">💼 {safe_role}</span><span class="wz183-chip">🏢 {safe_company}</span><span class="wz183-chip">{safe_atmosphere}</span></div>'
+        '<div class="wz183-intel"><div>CV-aware</div><div>Adaptive follow-ups</div><div>Interruptions</div></div>'
+        f'{interrupt_html}'
+        '</div>'
+        '<div class="wz183-card wz183-live">'
+        '<div>'
+        '<div class="wz183-kicker">Interview countdown</div><div class="wz183-time">30:00</div><div class="wz183-starts">Starts when you press Start Interview</div><div class="wz183-meter"><span></span></div>'
+        '<div class="wz183-kicker">Live reactions <span style="color:#ef4444">● LIVE</span></div>'
+        '<div class="wz183-reactions">'
+        f'<div class="wz183-react"><b style="background:#22c55e"></b>“{safe_reactions[0]}”</div>'
+        f'<div class="wz183-react"><b style="background:#facc15"></b>“{safe_reactions[1]}”</div>'
+        f'<div class="wz183-react"><b style="background:#fb923c"></b>“{safe_reactions[2]}”</div>'
+        f'<div class="wz183-react"><b style="background:#ef4444"></b>“{safe_reactions[3]}”</div>'
+        '</div>'
+        '</div>'
+        '<div>'
+        f'<div class="wz183-kicker">Interview atmosphere</div><div class="wz183-atmo"><div class="active">🙂<br>{safe_mood}</div><div>😐<br>Neutral</div><div>😤<br>Pressure</div></div>'
+        '<div class="wz183-kicker">Interviewer state</div><div class="wz183-state"><p>Reviewing your CV... <span>✓</span></p><p>Comparing with job description... <span>○</span></p><p>Tracking answer quality... <span>•••</span></p><p>Updating recruiter confidence... <span>•••</span></p></div>'
+        f'<div class="wz183-activity">Analyzing recruiter expectations… identified {safe_country_caption}.</div>'
+        f'<div class="wz183-recruiter-pulse"><div class="wz183-pulse-card"><label>Confidence</label><b>{safe_conf}</b></div><div class="wz183-pulse-card"><label>Hiring signal</label><b>{safe_hiring}</b></div><div class="wz183-pulse-card"><label>Attention</label><b>{safe_attention}</b></div></div>'
+        f'<div class="wz183-mood-path">{mood_path}</div>'
+        f'<div class="wz183-current-concern">Current concern: {safe_concern}.</div>'
+        '</div>'
+        '</div>'
+        '</div>'
+        '</div>'
+    )
+    _wz188_render_dashboard_html_safe(html_body)
+
+# =========================================================
+# WorkZo v189 - Recruiter Memory Engine + Retry Loop polish
+# Purpose:
+# - Make the product feel like a recruiter memory engine, not a report page.
+# - Add patterns across sessions, recruiter emotional timeline, and immediate retry loop.
+# - Convert weak areas / trust risks into visual chips.
+# - Shrink the floating Work-O-Bot button so it stops covering result content.
+# =========================================================
+
+import re as _wz189_re
+
+
+def _wz189_apply_memory_engine_css():
+    try:
+        st.markdown('''
+        <style>
+        .wz189-memory-wrap{
+            margin:18px auto 10px auto;
+            max-width:1480px;
+            border:1px solid rgba(56,189,248,.18);
+            background:linear-gradient(135deg,rgba(15,23,42,.88),rgba(17,24,39,.72));
+            border-radius:24px;
+            padding:18px;
+            box-shadow:0 18px 50px rgba(2,6,23,.28);
+        }
+        .wz189-topline{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px;}
+        .wz189-kicker{font-size:.74rem;letter-spacing:.16em;text-transform:uppercase;color:#93c5fd;font-weight:950;margin-bottom:5px;}
+        .wz189-title{font-size:1.45rem;line-height:1.08;color:#f8fafc;font-weight:950;}
+        .wz189-sub{color:#9ca3af;font-size:.92rem;line-height:1.35;margin-top:6px;max-width:760px;}
+        .wz189-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:14px;align-items:stretch;}
+        .wz189-panel{border:1px solid rgba(148,163,184,.15);border-radius:18px;background:rgba(15,23,42,.52);padding:14px;}
+        .wz189-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+        .wz189-pattern{border:1px solid rgba(34,211,238,.16);background:rgba(8,47,73,.28);border-radius:15px;padding:12px;min-height:74px;}
+        .wz189-pattern b{display:block;color:#e0f2fe;font-size:.96rem;line-height:1.18;margin-bottom:4px;}
+        .wz189-pattern span{color:#94a3b8;font-size:.82rem;line-height:1.24;}
+        .wz189-timeline{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;}
+        .wz189-step{border:1px solid rgba(148,163,184,.18);background:rgba(15,23,42,.72);border-radius:999px;padding:8px 10px;font-size:.82rem;color:#e5e7eb;font-weight:850;}
+        .wz189-arrow{color:#60a5fa;font-weight:950;}
+        .wz189-chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+        .wz189-risk-chip{border:1px solid rgba(251,113,133,.22);background:rgba(127,29,29,.28);color:#fecdd3;border-radius:999px;padding:8px 10px;font-weight:850;font-size:.82rem;}
+        .wz189-good-chip{border:1px solid rgba(34,197,94,.22);background:rgba(20,83,45,.22);color:#bbf7d0;border-radius:999px;padding:8px 10px;font-weight:850;font-size:.82rem;}
+        .wz189-retry-box{border:1px solid rgba(99,102,241,.22);background:linear-gradient(135deg,rgba(30,41,59,.72),rgba(49,46,129,.26));border-radius:18px;padding:14px;margin-top:12px;}
+        .wz189-old-answer{border-left:3px solid rgba(248,113,113,.75);padding-left:12px;color:#cbd5e1;font-size:.9rem;line-height:1.45;max-height:138px;overflow:auto;}
+        .wz189-compare{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px;}
+        .wz189-score-card{border:1px solid rgba(148,163,184,.15);border-radius:14px;background:rgba(2,6,23,.38);padding:10px;}
+        .wz189-score-card label{display:block;color:#93c5fd;text-transform:uppercase;letter-spacing:.11em;font-size:.68rem;font-weight:950;margin-bottom:4px;}
+        .wz189-score-card b{color:#f8fafc;font-size:1rem;}
+        .wz189-result-good{margin-top:10px;border:1px solid rgba(34,197,94,.20);background:rgba(20,83,45,.18);border-radius:14px;padding:10px;color:#bbf7d0;font-weight:800;}
+        .wz189-result-warn{margin-top:10px;border:1px solid rgba(251,191,36,.18);background:rgba(113,63,18,.16);border-radius:14px;padding:10px;color:#fde68a;font-weight:800;}
+        .wz189-mini-note{color:#94a3b8;font-size:.8rem;margin-top:8px;line-height:1.35;}
+        @media(max-width:900px){.wz189-grid,.wz189-card-grid,.wz189-compare{grid-template-columns:1fr}.wz189-topline{display:block}}
+        
+        /* Stop the floating bot from covering important result content. */
+        .st-key-wz141_float_workobot,
+        div[data-testid="stVerticalBlock"]:has(.st-key-wz141_open_workobot_float){
+            position:fixed!important;right:18px!important;bottom:18px!important;z-index:999!important;
+            width:58px!important;height:58px!important;max-width:58px!important;transform:none!important;
+        }
+        .st-key-wz141_float_workobot button,
+        .st-key-wz141_open_workobot_float button{
+            width:58px!important;height:58px!important;min-height:58px!important;border-radius:999px!important;padding:0!important;
+            box-shadow:0 0 0 8px rgba(34,211,238,.08),0 14px 34px rgba(37,99,235,.30)!important;
+            overflow:hidden!important;font-size:0!important;
+        }
+        .st-key-wz141_float_workobot:after,
+        .st-key-wz141_float_workobot:before,
+        .st-key-wz141_open_workobot_float:after,
+        .st-key-wz141_open_workobot_float:before{display:none!important;content:none!important;}
+        .st-key-wz141_float_workobot button:after,
+        .st-key-wz141_open_workobot_float button:after{content:"🤖";font-size:1.35rem!important;}
+        </style>
+        ''', unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz189_flatten_answers():
+    answers = []
+    keys = [
+        'wz_ri_answers', 'real_interview_answers', 'interview_answers',
+        'wz187_answer_history', 'latest_interview_answer', 'interview_answer',
+        'wz187_candidate_answer', 'wz113_latest_answer'
+    ]
+    for key in keys:
+        val = st.session_state.get(key)
+        if not val:
+            continue
+        if isinstance(val, list):
+            for item in val:
+                if isinstance(item, dict):
+                    text = item.get('answer') or item.get('user_answer') or item.get('text') or item.get('content') or ''
+                else:
+                    text = str(item or '')
+                if text and len(text.strip()) > 8:
+                    answers.append(text.strip())
+        elif isinstance(val, dict):
+            text = val.get('answer') or val.get('user_answer') or val.get('text') or val.get('content') or ''
+            if text and len(text.strip()) > 8:
+                answers.append(text.strip())
+        elif isinstance(val, str) and len(val.strip()) > 8:
+            answers.append(val.strip())
+    # Deduplicate while preserving order.
+    seen = set()
+    clean = []
+    for a in answers:
+        sig = a[:120].lower()
+        if sig not in seen:
+            seen.add(sig)
+            clean.append(a)
+    return clean[-8:]
+
+
+def _wz189_score_answer(answer: str):
+    text = str(answer or '').strip()
+    low = text.lower()
+    words = _wz189_re.findall(r"\b\w+\b", low)
+    wc = len(words)
+    has_metric = bool(_wz189_re.search(r"\d|%|percent|reduced|increased|saved|improved|faster|revenue|cost|time|quality|output", low))
+    has_result = any(x in low for x in ['result', 'impact', 'outcome', 'therefore', 'because', 'so that', 'which helped'])
+    has_ownership = any(x in low for x in ['i led', 'i owned', 'i built', 'i analyzed', 'i resolved', 'i designed', 'my role', 'i implemented', 'i improved'])
+    vague = sum(1 for x in ['kind of', 'things', 'stuff', 'good', 'nice', 'some', 'many', 'basically', 'etc', 'like '] if x in low)
+    score = 48
+    score += 18 if has_metric else -14
+    score += 14 if has_result else -10
+    score += 10 if has_ownership else -6
+    if 45 <= wc <= 120:
+        score += 8
+    elif wc > 150:
+        score -= 16
+    elif wc < 25:
+        score -= 12
+    score -= min(18, vague * 4)
+    score = max(0, min(100, int(score)))
+    flags = []
+    if not has_metric: flags.append('Missing metrics')
+    if not has_result: flags.append('Weak business impact')
+    if not has_ownership: flags.append('Ownership unclear')
+    if wc > 150: flags.append('Too much background')
+    if vague >= 2: flags.append('Vague wording')
+    return {'score': score, 'word_count': wc, 'has_metric': has_metric, 'has_result': has_result, 'has_ownership': has_ownership, 'flags': flags or ['Mostly clear']}
+
+
+def _wz189_weakest_answer():
+    answers = _wz189_flatten_answers()
+    if not answers:
+        # Use a realistic demo fallback so the section still teaches users what the loop does.
+        answers = [st.session_state.get('wz189_demo_weak_answer') or "I have experience with different tools and worked on projects. I think it was good and helped the team. I learned a lot and improved my skills."]
+    scored = [(a, _wz189_score_answer(a)) for a in answers]
+    scored.sort(key=lambda x: x[1]['score'])
+    return scored[0]
+
+
+def _wz189_pattern_cards():
+    answers = _wz189_flatten_answers()
+    combined = ' '.join(answers).lower()
+    state = st.session_state.get('wz187_recruiter_state') if isinstance(st.session_state.get('wz187_recruiter_state'), dict) else {}
+    confidence = int(state.get('confidence') or 72)
+    patterns = []
+    if not _wz189_re.search(r"\d|%|percent|reduced|increased|saved|improved", combined):
+        patterns.append(('Avoids measurable metrics', 'Recruiter needs proof, numbers, scope, speed, quality, or outcome.'))
+    else:
+        patterns.append(('Uses some measurable proof', 'Keep turning claims into results and business impact.'))
+    if any(x in combined for x in ['kind of', 'basically', 'things', 'stuff', 'some', 'many']):
+        patterns.append(('Vagueness appears under pressure', 'Answers become broader when the recruiter pushes for clarity.'))
+    else:
+        patterns.append(('Communication stays fairly clear', 'Now improve precision with stronger examples.'))
+    if confidence < 65:
+        patterns.append(('Confidence dropped during pressure', 'The recruiter needs a stronger recovery answer.'))
+    else:
+        patterns.append(('Recruiter confidence is recoverable', 'One specific STAR example can move the signal upward.'))
+    patterns.append(('Technical depth stronger than storytelling', 'The next leap is explaining why the work mattered.'))
+    return patterns[:4]
+
+
+def _wz189_emotional_timeline():
+    state = st.session_state.get('wz187_recruiter_state') if isinstance(st.session_state.get('wz187_recruiter_state'), dict) else {}
+    confidence = int(state.get('confidence') or 72)
+    trend = str(state.get('trend') or 'steady')
+    if confidence < 60:
+        return ['🙂 Interested', '😐 Neutral', '⚠️ Doubt increased', '🔴 Confidence dropped']
+    if trend in {'recovering', 'up'} or confidence >= 78:
+        return ['🙂 Interested', '⚠️ Doubt tested', '🟢 Recovered after proof', '✅ Recruiter engaged']
+    return ['🙂 Interested', '😐 Neutral', '⚠️ Wants proof', '🟡 Still evaluating']
+
+
+def _wz189_render_memory_engine():
+    _wz189_apply_memory_engine_css()
+    weakest, weak_score = _wz189_weakest_answer()
+    patterns = _wz189_pattern_cards()
+    timeline = _wz189_emotional_timeline()
+    weak_flags = weak_score.get('flags') or []
+
+    st.markdown('''
+    <div class="wz189-memory-wrap">
+      <div class="wz189-topline">
+        <div>
+          <div class="wz189-kicker">Recruiter memory engine</div>
+          <div class="wz189-title">Patterns across sessions</div>
+          <div class="wz189-sub">WorkZo tracks where recruiter confidence rises, drops, and recovers — so practice becomes a loop, not a one-time report.</div>
+        </div>
+      </div>
+      <div class="wz189-grid">
+        <div class="wz189-panel">
+          <div class="wz189-kicker">Recurring patterns detected</div>
+          <div class="wz189-card-grid">
+    ''' + ''.join([f'<div class="wz189-pattern"><b>{html.escape(t)}</b><span>{html.escape(d)}</span></div>' for t, d in patterns]) + '''
+          </div>
+        </div>
+        <div class="wz189-panel">
+          <div class="wz189-kicker">Recruiter emotional reaction timeline</div>
+          <div class="wz189-timeline">
+    ''' + ''.join([f'<span class="wz189-step">{html.escape(step)}</span>' + ('' if i == len(timeline)-1 else '<span class="wz189-arrow">→</span>') for i, step in enumerate(timeline)]) + '''
+          </div>
+          <div class="wz189-kicker" style="margin-top:16px;">Trust risk flags</div>
+          <div class="wz189-chip-row">
+    ''' + ''.join([f'<span class="wz189-risk-chip">⚠️ {html.escape(flag)}</span>' for flag in weak_flags[:5]]) + '''
+          </div>
+          <div class="wz189-kicker" style="margin-top:16px;">What helped you</div>
+          <div class="wz189-chip-row"><span class="wz189-good-chip">✅ Relevant experience</span><span class="wz189-good-chip">✅ Coachable recovery</span><span class="wz189-good-chip">✅ Role awareness</span></div>
+        </div>
+      </div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    with st.container(key='wz189_retry_weakest_answer'):
+        st.markdown('<div class="wz189-retry-box"><div class="wz189-kicker">Weakest answer recovery loop</div><div class="wz189-title" style="font-size:1.15rem;">🎤 Retry weakest answer immediately</div><div class="wz189-mini-note">This is the retention loop: old answer → retry → recruiter confidence recovery.</div></div>', unsafe_allow_html=True)
+        with st.expander('Answer that damaged trust', expanded=False):
+            st.markdown(f'<div class="wz189-old-answer">{html.escape(weakest[:900])}{"…" if len(weakest) > 900 else ""}</div>', unsafe_allow_html=True)
+        retry = st.text_area('Retry this answer now', key='wz189_retry_answer_text', height=120, placeholder='Give a sharper answer. Lead with the result, add a real metric if true, then explain your role.')
+        c1, c2, c3 = st.columns([1.2, 1.2, 3])
+        with c1:
+            compare = st.button('Compare old vs new', key='wz189_compare_retry', type='primary', use_container_width=True)
+        with c2:
+            if st.button('Use this as next practice target', key='wz189_save_retry_target', use_container_width=True):
+                st.session_state['wz189_next_practice_target'] = 'Retry weakest answer with measurable impact, clearer ownership, and direct JD alignment.'
+                st.success('Saved as next practice target.')
+        if compare and str(retry or '').strip():
+            new_score = _wz189_score_answer(retry)
+            delta = int(new_score['score']) - int(weak_score['score'])
+            st.markdown(
+                '<div class="wz189-compare">'
+                f'<div class="wz189-score-card"><label>Old answer</label><b>{int(weak_score["score"])} / 100</b></div>'
+                f'<div class="wz189-score-card"><label>New answer</label><b>{int(new_score["score"])} / 100</b></div>'
+                f'<div class="wz189-score-card"><label>Recruiter confidence</label><b>{"Recovered" if delta >= 10 else "Still cautious"}</b></div>'
+                '</div>', unsafe_allow_html=True
+            )
+            if delta >= 10:
+                st.markdown(f'<div class="wz189-result-good">🟢 Strong recovery: confidence improved by {delta} points. Recruiter is more engaged because the answer is clearer and more evidence-based.</div>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<div class="wz189-result-warn">🟡 Small recovery: improvement is {delta} points. Add a truthful metric, clearer ownership, or stronger business impact.</div>', unsafe_allow_html=True)
+            st.session_state.setdefault('wz189_retry_history', []).append({'old_score': weak_score['score'], 'new_score': new_score['score'], 'answer': retry})
+
+
+# Upgrade final readiness reports so generated output supports the memory-engine direction.
+def _wz114_build_report_prompt(mode):
+    ctx = _wz114_get_ctx() if callable(globals().get('_wz114_get_ctx')) else {}
+    role = _wz114_safe_text(ctx.get('target_role') or 'target role', 200) if callable(globals().get('_wz114_safe_text')) else str(ctx.get('target_role') or 'target role')[:200]
+    company = _wz114_safe_text(ctx.get('target_company') or 'target company', 200) if callable(globals().get('_wz114_safe_text')) else str(ctx.get('target_company') or 'target company')[:200]
+    try:
+        history = json.dumps(st.session_state.get('wz_ri_answers') or st.session_state.get('real_interview_answers') or st.session_state.get('wz189_retry_history') or [], ensure_ascii=False)[:5000]
+    except Exception:
+        history = _wz114_latest_answer() if callable(globals().get('_wz114_latest_answer')) else ''
+    return f"""
+Create a conservative recruiter-memory interview report for this candidate.
+
+Interviewer mode used: {mode}
+Role: {role}
+Company: {company}
+Interview answers/history: {history or 'No full history detected. Use latest available answer/context.'}
+
+Rules:
+- Be honest and not overly positive.
+- Do not invent facts, numbers, companies, certifications, or outcomes.
+- If a metric is missing, say "add a real metric if true".
+- Keep the output scan-friendly. Avoid long bullet lists.
+- Focus on recruiter psychology: where confidence rose, dropped, or recovered.
+
+Return exactly this structure:
+Recruiter hiring decision:
+...
+
+Readiness score:
+X/100
+
+Would this recruiter refer you internally?
+YES / MAYBE / NO
+Reason: ...
+
+Patterns across sessions:
+- ...
+- ...
+- ...
+
+Recruiter emotional reaction timeline:
+🙂 Interested → 😐 Neutral → ⚠️ Doubt increased → 🔴 Confidence dropped / 🟢 Recovered after proof
+
+Answer that damaged trust:
+...
+
+Why trust dropped:
+⚠️ ...
+⚠️ ...
+⚠️ ...
+
+Retry this answer next:
+Give a stronger 45-second version that leads with result, includes only truthful metrics, clarifies ownership, and connects to the role.
+
+Next practice target:
+...
+""".strip()
+
+
+# Recruiter Memory Engine is intentionally NOT injected into the main dashboard.
+# It is a post-interview/result experience, not a pre-interview dashboard block.
+# Keeping the renderer available for future result-page wiring, but disabled here
+# so the dashboard stays focused on starting the live simulation.
+try:
+    st.session_state['wz189_memory_engine_main_disabled'] = True
+except Exception:
+    pass
+
+# =========================================================
+# WorkZo v190 - Global Recruiter Intelligence + Honesty Engine
+# =========================================================
+# Purpose:
+# - Make WorkZo global, not Germany-specific.
+# - Force AI outputs to be conservative, evidence-based, and country-aware.
+# - Add a compact market/recruiter expectation layer before interview practice.
+# - Improve Work-O-Bot and interview/report prompts without changing existing routes.
+
+try:
+    import json as _wz190_json
+except Exception:
+    _wz190_json = None
+
+
+def _wz190_clean_text(value, fallback="Not specified", limit=1200):
+    try:
+        text = str(value or fallback).strip()
+        if not text:
+            text = fallback
+        return text[:limit]
+    except Exception:
+        return fallback
+
+
+def _wz190_country_key(country):
+    c = str(country or "").strip().lower()
+    aliases = {
+        "us": "usa", "u.s.": "usa", "u.s.a": "usa", "united states": "usa", "america": "usa",
+        "uk": "uk", "united kingdom": "uk", "england": "uk", "great britain": "uk",
+        "deutschland": "germany", "de": "germany",
+        "uae": "uae", "united arab emirates": "uae", "dubai": "uae",
+        "nl": "netherlands", "holland": "netherlands",
+        "ca": "canada", "au": "australia", "ch": "switzerland",
+    }
+    return aliases.get(c, c or "global")
+
+
+def _wz190_country_intelligence(country):
+    key = _wz190_country_key(country)
+    base = {
+        "resume_style": "Use a clean ATS-friendly resume. Lead with role fit, relevant skills, measurable outcomes, and proof. Avoid unsupported claims.",
+        "interview_style": "Expect role-specific, evidence-based questions. Use concise STAR stories and connect each answer to the job.",
+        "communication_style": "Professional, clear, specific, and honest. Do not exaggerate experience or invent numbers.",
+        "recruiter_rewards": ["specific examples", "truthful metrics", "clear ownership", "job relevance"],
+        "recruiter_risks": ["vague claims", "missing measurable impact", "weak job alignment", "overly long answers"],
+        "avoid": ["invented achievements", "fake metrics", "generic motivation", "copy-paste answers"],
+        "platforms": ["LinkedIn", "Indeed", "company career pages"],
+        "local_note": "Apply local norms, but keep the advice globally usable.",
+    }
+    rules = {
+        "germany": {
+            "resume_style": "Germany: structured Lebenslauf style is common. Keep it clear, factual, reverse chronological, and evidence-based. Photo/date/place of birth are optional and context-dependent; do not force sensitive details.",
+            "interview_style": "German recruiters often value structure, reliability, direct answers, practical examples, and detail. Be precise about responsibilities, tools, timelines, and results.",
+            "communication_style": "Direct, professional, structured, and modest. Avoid over-selling. Use evidence and clear ownership.",
+            "recruiter_rewards": ["structured answers", "role relevance", "reliability", "tool/process clarity"],
+            "recruiter_risks": ["unclear ownership", "missing proof", "too much storytelling", "weak language/job fit"],
+            "platforms": ["LinkedIn", "Xing", "StepStone", "Indeed", "company career pages"],
+        },
+        "usa": {
+            "resume_style": "USA: one-to-two page resume, no photo, no age/date of birth/marital status. Lead with impact, scope, metrics, and keywords from the job description.",
+            "interview_style": "US recruiters often expect confident, achievement-focused STAR answers with metrics, ownership, and business impact.",
+            "communication_style": "Confident, concise, outcome-focused, and enthusiastic. Show impact without exaggeration.",
+            "recruiter_rewards": ["measurable achievements", "ownership", "business impact", "strong role fit"],
+            "recruiter_risks": ["generic claims", "lack of impact", "no metrics", "unclear career story"],
+            "platforms": ["LinkedIn", "Indeed", "Glassdoor", "ZipRecruiter", "company career pages"],
+        },
+        "uk": {
+            "resume_style": "UK: CV should be concise, skills-and-experience focused, and usually avoids photo, date of birth, and unnecessary personal details.",
+            "interview_style": "UK interviews often use competency-based questions. Prepare STAR examples around teamwork, problem solving, customer/stakeholder impact, and motivation.",
+            "communication_style": "Professional, balanced, clear, and evidence-led. Avoid sounding exaggerated.",
+            "recruiter_rewards": ["competency examples", "clear communication", "teamwork", "practical results"],
+            "recruiter_risks": ["weak STAR structure", "vague motivation", "missing examples", "too much background"],
+            "platforms": ["LinkedIn", "Indeed", "Reed", "Totaljobs", "company career pages"],
+        },
+        "canada": {
+            "resume_style": "Canada: ATS-friendly resume, no photo or personal demographic details. Show transferable skills, measurable outcomes, and local role relevance.",
+            "interview_style": "Canadian interviews often value behavioral examples, collaboration, communication, and practical role fit.",
+            "communication_style": "Clear, professional, collaborative, and evidence-based.",
+            "recruiter_rewards": ["collaboration", "measurable outcomes", "adaptability", "job relevance"],
+            "recruiter_risks": ["unclear local fit", "generic answers", "missing metrics", "weak communication proof"],
+            "platforms": ["LinkedIn", "Indeed Canada", "Job Bank", "company career pages"],
+        },
+        "india": {
+            "resume_style": "India: ATS keywords, projects, tools, education, and role-specific skills matter. Keep claims truthful and avoid inflated experience.",
+            "interview_style": "Indian hiring can involve technical screening, project discussion, HR motivation, notice period/salary questions, and practical problem-solving.",
+            "communication_style": "Clear, confident, skill-specific, and prepared for follow-up questions.",
+            "recruiter_rewards": ["technical clarity", "project proof", "hands-on tools", "role motivation"],
+            "recruiter_risks": ["keyword stuffing", "unverified claims", "weak project depth", "generic HR answers"],
+            "platforms": ["LinkedIn", "Naukri", "Indeed", "Instahyre", "company career pages"],
+        },
+        "uae": {
+            "resume_style": "UAE: CVs may be slightly longer, but keep them focused and achievement-based. Include location/work authorization only when relevant and safe.",
+            "interview_style": "UAE recruiters often value availability, communication, multicultural teamwork, industry fit, and practical delivery examples.",
+            "communication_style": "Polished, respectful, concise, and commercially aware.",
+            "recruiter_rewards": ["availability", "communication", "industry relevance", "adaptability"],
+            "recruiter_risks": ["unclear availability", "generic experience", "weak business impact", "poor role match"],
+            "platforms": ["LinkedIn", "GulfTalent", "Bayt", "NaukriGulf", "company career pages"],
+        },
+        "netherlands": {
+            "resume_style": "Netherlands: concise CV, direct role fit, skills, results, and clear experience. Avoid unnecessary personal data unless expected by the specific context.",
+            "interview_style": "Dutch interviews often value directness, independence, collaboration, and practical examples.",
+            "communication_style": "Direct, honest, practical, and not over-polished.",
+            "recruiter_rewards": ["direct answers", "ownership", "practical examples", "team fit"],
+            "recruiter_risks": ["over-selling", "unclear responsibility", "missing examples", "vague motivation"],
+            "platforms": ["LinkedIn", "Indeed", "Nationale Vacaturebank", "company career pages"],
+        },
+        "australia": {
+            "resume_style": "Australia: concise resume focused on skills, experience, outcomes, and role keywords. Avoid unnecessary personal details.",
+            "interview_style": "Australian interviews often value behavioral examples, communication, team fit, and practical delivery.",
+            "communication_style": "Clear, natural, confident, and evidence-based.",
+            "recruiter_rewards": ["practical results", "communication", "team fit", "ownership"],
+            "recruiter_risks": ["generic claims", "weak examples", "no measurable outcomes", "poor role relevance"],
+            "platforms": ["LinkedIn", "Seek", "Indeed", "company career pages"],
+        },
+        "singapore": {
+            "resume_style": "Singapore: concise, achievement-based resume with skills, tools, education, and role-specific keywords. Keep it factual and ATS-friendly.",
+            "interview_style": "Singapore interviews often value practical competence, communication, stakeholder handling, and fast learning.",
+            "communication_style": "Professional, concise, prepared, and role-focused.",
+            "recruiter_rewards": ["skills proof", "adaptability", "business awareness", "clear examples"],
+            "recruiter_risks": ["generic answers", "unclear impact", "weak technical depth", "poor motivation"],
+            "platforms": ["LinkedIn", "JobStreet", "Indeed", "MyCareersFuture", "company career pages"],
+        },
+        "france": {
+            "resume_style": "France: clear CV with education, experience, skills, and language ability. Keep personal details minimal and relevant.",
+            "interview_style": "French interviews may value education, structured thinking, motivation, communication, and role fit.",
+            "communication_style": "Structured, professional, concise, and specific.",
+            "recruiter_rewards": ["structured reasoning", "role motivation", "language clarity", "relevant examples"],
+            "recruiter_risks": ["vague motivation", "weak examples", "unclear fit", "missing proof"],
+            "platforms": ["LinkedIn", "Welcome to the Jungle", "Indeed", "APEC", "company career pages"],
+        },
+        "switzerland": {
+            "resume_style": "Switzerland: precise, structured CV with strong emphasis on reliability, qualifications, language skills, and role fit. Keep sensitive details optional and context-aware.",
+            "interview_style": "Swiss interviews often value precision, professionalism, reliability, and evidence of quality work.",
+            "communication_style": "Polished, precise, factual, and respectful.",
+            "recruiter_rewards": ["precision", "quality", "reliability", "language/market fit"],
+            "recruiter_risks": ["imprecision", "unsupported claims", "weak local fit", "unclear motivation"],
+            "platforms": ["LinkedIn", "Jobs.ch", "Indeed", "company career pages"],
+        },
+    }
+    selected = dict(base)
+    selected.update(rules.get(key, {}))
+    selected["country_key"] = key
+    selected["display_country"] = _wz190_clean_text(country, "Global market", 80)
+    return selected
+
+
+def _wz190_current_context():
+    try:
+        country = st.session_state.get("migration_country") or st.session_state.get("target_country") or st.session_state.get("selected_country") or st.session_state.get("country") or "Global market"
+        role = st.session_state.get("target_role") or st.session_state.get("real_interview_target_role") or st.session_state.get("last_role") or "target role"
+        company = st.session_state.get("target_company") or st.session_state.get("real_interview_company") or st.session_state.get("company_name") or "target company"
+        jd = st.session_state.get("real_interview_jd") or st.session_state.get("last_prepare_job_description") or st.session_state.get("job_description") or ""
+        cv = st.session_state.get("cv_text") or st.session_state.get("clean_structured_cv_text") or ""
+        language = st.session_state.get("interview_language") or st.session_state.get("language") or "User selected language"
+    except Exception:
+        country, role, company, jd, cv, language = "Global market", "target role", "target company", "", "", "User selected language"
+    intel = _wz190_country_intelligence(country)
+    return {"country": country, "role": role, "company": company, "job_description": jd, "cv_text": cv, "language": language, "intel": intel}
+
+
+def _wz190_context_block(ctx=None):
+    ctx = ctx or _wz190_current_context()
+    intel = ctx.get("intel") or _wz190_country_intelligence(ctx.get("country"))
+    try:
+        rewards = ", ".join(intel.get("recruiter_rewards", [])[:5])
+        risks = ", ".join(intel.get("recruiter_risks", [])[:5])
+        avoid = ", ".join(intel.get("avoid", [])[:5])
+    except Exception:
+        rewards, risks, avoid = "specific proof", "vague claims", "invented metrics"
+    return f"""
+
+WORKZO GLOBAL RECRUITER INTELLIGENCE ENGINE — MUST FOLLOW
+Candidate target country/market: {_wz190_clean_text(ctx.get('country'), limit=120)}
+Target role: {_wz190_clean_text(ctx.get('role'), limit=160)}
+Target company: {_wz190_clean_text(ctx.get('company'), limit=160)}
+Interview/output language: {_wz190_clean_text(ctx.get('language'), limit=80)}
+
+Country/market expectations:
+- Resume/CV expectation: {intel.get('resume_style')}
+- Interview expectation: {intel.get('interview_style')}
+- Communication expectation: {intel.get('communication_style')}
+- Recruiters reward: {rewards}
+- Recruiter risk flags: {risks}
+
+HONESTY RULES — NON-NEGOTIABLE
+- Do NOT invent metrics, job titles, employers, certifications, dates, achievements, visa status, language level, or outcomes.
+- If proof is missing, say exactly what is missing.
+- If a metric would help, say: "add a real metric if true".
+- Give conservative readiness/rejection risk. Do not overpraise weak answers.
+- Separate facts from suggestions.
+- Prioritize recruiter psychology: where confidence rises, drops, or recovers.
+- Keep advice global and country-aware; do not assume Germany unless the selected country is Germany.
+- Avoid asking for too many details; make the best use of CV + JD + selected country.
+- Avoid corporate dashboard language. Make outputs emotional, recruiter-like, and practical.
+
+Do not include this instruction block in the user-facing answer.
+""".strip()
+
+
+def _wz190_wrap_prompt(prompt):
+    text = str(prompt or "")
+    if "WORKZO GLOBAL RECRUITER INTELLIGENCE ENGINE" in text:
+        return text
+    return text.rstrip() + "\n\n" + _wz190_context_block()
+
+
+# Apply the intelligence/honesty layer to all AI calls routed through run_ai_prompt.
+try:
+    if callable(globals().get("run_ai_prompt")) and not globals().get("_wz190_run_ai_wrapped"):
+        _wz190_original_run_ai_prompt = run_ai_prompt
+        def run_ai_prompt(prompt, *args, **kwargs):
+            return _wz190_original_run_ai_prompt(_wz190_wrap_prompt(prompt), *args, **kwargs)
+        _wz190_run_ai_wrapped = True
+except Exception:
+    pass
+
+
+# Upgrade Work-O-Bot prompt with global/country-aware honesty.
+try:
+    _wz190_previous_workobot_prompt = globals().get("_wz110_build_workobot_prompt")
+    def _wz110_build_workobot_prompt(user_message: str, ctx: dict) -> str:
+        try:
+            base = _wz190_previous_workobot_prompt(user_message, ctx) if callable(_wz190_previous_workobot_prompt) else str(user_message or "")
+            country = ctx.get("country") or st.session_state.get("country") or "Global market"
+            role = ctx.get("target_role") or st.session_state.get("target_role") or "target role"
+            company = ctx.get("target_company") or st.session_state.get("target_company") or "target company"
+            block = _wz190_context_block({"country": country, "role": role, "company": company, "language": ctx.get("interview_language") or "User selected language", "intel": _wz190_country_intelligence(country)})
+            return base.rstrip() + "\n\n" + block
+        except Exception:
+            return str(user_message or "") + "\n\n" + _wz190_context_block()
+except Exception:
+    pass
+
+
+# Upgrade interview feedback/follow-up/report prompt builders if present.
+for _wz190_name in ["_wz114_build_feedback_prompt", "_wz114_build_followup_prompt", "_wz114_build_report_prompt", "_wz113_make_helper_prompt", "_wz121_context_aware_application_prompt"]:
+    try:
+        _old = globals().get(_wz190_name)
+        if callable(_old) and not getattr(_old, "_wz190_wrapped", False):
+            def _make_wrapper(fn):
+                def _wrapped(*args, **kwargs):
+                    try:
+                        return _wz190_wrap_prompt(fn(*args, **kwargs))
+                    except Exception:
+                        return _wz190_context_block()
+                _wrapped._wz190_wrapped = True
+                return _wrapped
+            globals()[_wz190_name] = _make_wrapper(_old)
+    except Exception:
+        pass
+
+
+def _wz190_apply_global_intelligence_css():
+    try:
+        st.markdown(r'''
+        <style id="wz190-global-intelligence-css">
+          .wz190-market-strip{
+            max-width:1480px;margin:7px auto 4px;padding:9px 12px;border-radius:16px;
+            background:linear-gradient(135deg,rgba(8,47,73,.38),rgba(30,27,75,.30));
+            border:1px solid rgba(56,189,248,.14);color:#e2e8f0;
+            display:grid;grid-template-columns:1.1fr .95fr .95fr;gap:8px;
+          }
+          .wz190-market-card{padding:8px 10px;border-radius:13px;background:rgba(15,23,42,.28);border:1px solid rgba(148,163,184,.09)}
+          .wz190-market-card label{display:block;color:#93c5fd;text-transform:uppercase;letter-spacing:.14em;font-size:.62rem;font-weight:1000;margin-bottom:4px}
+          .wz190-market-card b{display:block;color:#f8fafc;font-size:.86rem;line-height:1.15;margin-bottom:3px}
+          .wz190-market-card span{display:block;color:rgba(203,213,225,.72);font-size:.70rem;line-height:1.22;font-weight:700}
+          .wz190-honesty-chip{display:inline-flex;margin-top:5px;padding:3px 7px;border-radius:999px;background:rgba(239,68,68,.10);border:1px solid rgba(248,113,113,.16);color:#fecaca;font-size:.66rem;font-weight:900}
+          @media(max-width:900px){.wz190-market-strip{grid-template-columns:1fr;margin-left:4px;margin-right:4px}}
+        </style>
+        ''', unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz190_render_market_expectations_strip():
+    try:
+        ctx = _wz190_current_context()
+        intel = ctx.get("intel") or {}
+        country = html.escape(_wz190_clean_text(ctx.get("country"), "Global market", 60))
+        style = html.escape(_wz190_clean_text(intel.get("interview_style"), limit=190))
+        comm = html.escape(_wz190_clean_text(intel.get("communication_style"), limit=170))
+        risks = intel.get("recruiter_risks") or []
+        rewards = intel.get("recruiter_rewards") or []
+        risk_text = html.escape(" · ".join([str(x) for x in risks[:3]]) or "vague claims · missing proof")
+        reward_text = html.escape(" · ".join([str(x) for x in rewards[:3]]) or "specific proof · role relevance")
+        _wz190_apply_global_intelligence_css()
+        st.markdown(f'''
+        <div class="wz190-market-strip">
+          <div class="wz190-market-card"><label>Global recruiter intelligence</label><b>{country} expectations active</b><span>{style}</span></div>
+          <div class="wz190-market-card"><label>Recruiter rewards</label><b>{reward_text}</b><span>{comm}</span></div>
+          <div class="wz190-market-card"><label>Honest risk flags</label><b>{risk_text}</b><span class="wz190-honesty-chip">No fake metrics · no invented experience</span></div>
+        </div>
+        ''', unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+# Show compact market expectations before the Start Interview CTA without turning the dashboard into a report.
+try:
+    _wz190_previous_dashboard_html = globals().get("_wz181_dashboard_html")
+    def _wz181_dashboard_html():
+        if callable(_wz190_previous_dashboard_html):
+            _wz190_previous_dashboard_html()
+        _wz190_render_market_expectations_strip()
+except Exception:
+    pass
+
+
+# Improve static country caption used inside the simulation hero.
+try:
+    _wz190_previous_country_caption = globals().get("_wz183_country_caption")
+    def _wz183_country_caption(country: str) -> str:
+        intel = _wz190_country_intelligence(country)
+        key = intel.get("country_key", "global")
+        if key == "germany":
+            return "structured, evidence-based German interviews"
+        if key == "usa":
+            return "achievement and impact-focused US interviews"
+        if key == "uk":
+            return "competency-based UK interviews"
+        if key == "canada":
+            return "collaboration and evidence-focused Canadian interviews"
+        if key == "india":
+            return "skills, projects, and technical depth-focused interviews"
+        if key == "uae":
+            return "availability, communication, and business-fit interviews"
+        if key == "netherlands":
+            return "direct, practical Dutch interviews"
+        if key == "australia":
+            return "behavioral and team-fit Australian interviews"
+        if key == "singapore":
+            return "practical competence and communication-focused interviews"
+        return "local recruiter expectations applied"
+except Exception:
+    pass
+
+
+# =========================================================
+# WorkZo v191 - Global feature polish + country/language controls
+# =========================================================
+# Fixes requested:
+# 1) Understand Job / Prepare Job get the same premium hero-card treatment as Find Jobs.
+# 2) Floating Work-O-Bot is moved safely inside the viewport.
+# 3) WorkZo logo/name area becomes a home button.
+# 4) Interviewer personas adapt to the selected country, not Germany by default.
+# 5) Country adaptation supports a broad global list + interview language selection.
+
+_WZ191_COUNTRY_OPTIONS = [
+    "Auto-detect from role/company", "Global / Remote", "Germany", "United States", "United Kingdom", "Canada", "India", "United Arab Emirates",
+    "Netherlands", "France", "Switzerland", "Australia", "Singapore", "Ireland", "Austria", "Belgium", "Denmark", "Sweden", "Norway",
+    "Finland", "Spain", "Portugal", "Italy", "Poland", "Czech Republic", "Hungary", "Romania", "Greece", "Turkey", "Luxembourg",
+    "New Zealand", "South Africa", "Nigeria", "Kenya", "Ghana", "Egypt", "Morocco", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman",
+    "Israel", "Japan", "South Korea", "China", "Hong Kong", "Taiwan", "Malaysia", "Thailand", "Vietnam", "Indonesia", "Philippines",
+    "Brazil", "Mexico", "Argentina", "Chile", "Colombia", "Peru", "Uruguay", "Costa Rica", "Pakistan", "Bangladesh", "Sri Lanka", "Nepal"
+]
+
+_WZ191_LANGUAGE_OPTIONS = [
+    "Auto-detect / User preference", "English", "German", "French", "Dutch", "Spanish", "Portuguese", "Italian", "Arabic", "Hindi", "Tamil", "Malayalam", "Telugu", "Kannada",
+    "Mandarin Chinese", "Japanese", "Korean", "Swedish", "Danish", "Norwegian", "Finnish", "Polish", "Turkish", "Greek", "Romanian", "Czech", "Hungarian", "Thai", "Vietnamese", "Indonesian"
+]
+
+
+def _wz191_normalize_country_name(country):
+    c = str(country or "").strip()
+    if not c or c.lower().startswith("auto"):
+        c = str(st.session_state.get("selected_country") or st.session_state.get("target_country") or st.session_state.get("country") or "Global / Remote").strip()
+    low = c.lower()
+    aliases = {
+        "usa": "United States", "us": "United States", "u.s.": "United States", "u.s.a.": "United States", "america": "United States",
+        "uk": "United Kingdom", "u.k.": "United Kingdom", "england": "United Kingdom", "britain": "United Kingdom",
+        "uae": "United Arab Emirates", "emirates": "United Arab Emirates",
+        "deutschland": "Germany", "german": "Germany",
+        "global": "Global / Remote", "remote": "Global / Remote"
+    }
+    return aliases.get(low, c)
+
+
+def _wz191_personas_for_country(country):
+    c = _wz191_normalize_country_name(country).lower()
+    base = [
+        "👩 Sarah — Friendly HR",
+        "👨 Daniel — Technical Hiring Manager",
+        "👩 Priya — Fast-paced Startup Recruiter",
+    ]
+    if "germany" in c:
+        local = "👨 Markus — German Corporate Interviewer"
+    elif "united states" in c or c == "usa":
+        local = "👩 Jessica — US Behavioral Interviewer"
+    elif "united kingdom" in c or c == "uk":
+        local = "👨 James — UK Competency Interviewer"
+    elif "canada" in c:
+        local = "👩 Emily — Canadian Hiring Manager"
+    elif "india" in c:
+        local = "👩 Asha — Indian Technical Recruiter"
+    elif "united arab emirates" in c or "qatar" in c or "saudi" in c:
+        local = "👨 Omar — Gulf Region Recruiter"
+    elif "netherlands" in c:
+        local = "👨 Lars — Dutch Direct Interviewer"
+    elif "france" in c:
+        local = "👩 Camille — French Structured Interviewer"
+    elif "singapore" in c:
+        local = "👩 Mei — Singapore Recruiter"
+    elif "australia" in c or "new zealand" in c:
+        local = "👩 Olivia — ANZ Behavioral Interviewer"
+    elif "switzerland" in c:
+        local = "👨 Luca — Swiss Precision Interviewer"
+    else:
+        local = "👤 Alex — Global Recruiter"
+    return base + [local]
+
+
+def _wz191_personality_caption(recruiter):
+    captions = {
+        "👩 Sarah — Friendly HR": "Supportive and communication-focused. Helps you recover while still asking follow-ups.",
+        "👨 Daniel — Technical Hiring Manager": "Analytical and detail-oriented. Pushes for tools, logic, trade-offs, and proof.",
+        "👩 Priya — Fast-paced Startup Recruiter": "Fast-paced and impact-focused. Wants direct answers and ownership quickly.",
+        "👨 Markus — German Corporate Interviewer": "Structured and process-oriented. Expects precision, evidence, and clear responsibility.",
+        "👩 Jessica — US Behavioral Interviewer": "STAR-focused and outcome-driven. Expects impact, ownership, and confident storytelling.",
+        "👨 James — UK Competency Interviewer": "Competency-based and structured. Looks for situation, task, action, and result.",
+        "👩 Emily — Canadian Hiring Manager": "Collaborative and evidence-focused. Values team fit, communication, and measurable outcomes.",
+        "👩 Asha — Indian Technical Recruiter": "Skills and project-depth focused. Tests practical knowledge, tools, and role readiness.",
+        "👨 Omar — Gulf Region Recruiter": "Business-fit and availability focused. Looks for communication, adaptability, and credibility.",
+        "👨 Lars — Dutch Direct Interviewer": "Direct and practical. Rewards clarity, honesty, independence, and specific examples.",
+        "👩 Camille — French Structured Interviewer": "Structured and motivation-focused. Looks for clear reasoning and role fit.",
+        "👩 Mei — Singapore Recruiter": "Practical and efficiency-focused. Rewards competence, communication, and fast learning.",
+        "👩 Olivia — ANZ Behavioral Interviewer": "Behavioral and team-fit focused. Looks for practical examples and clear outcomes.",
+        "👨 Luca — Swiss Precision Interviewer": "Precise and quality-focused. Expects reliability, accuracy, and strong local fit.",
+        "👤 Alex — Global Recruiter": "Global and role-focused. Adapts expectations to the selected country, language, CV, and job description.",
+    }
+    return captions.get(str(recruiter), "Adapts to the selected country, language, role, and job description.")
+
+
+def _wz191_apply_final_css():
+    try:
+        st.markdown(r'''
+        <style id="wz191-global-polish-css">
+          /* Keep Work-O-Bot safely inside the viewport so the icon is not cut. */
+          .st-key-wz182_float_bot{
+            right:28px!important;
+            bottom:26px!important;
+            width:58px!important;
+            height:58px!important;
+          }
+          .st-key-wz182_float_bot button{width:58px!important;height:58px!important;}
+          .st-key-wz182_float_bot button:after{font-size:27px!important;}
+          .st-key-wz182_float_bot:before{
+            right:66px!important;
+            top:12px!important;
+            font-size:.72rem!important;
+            padding:7px 9px!important;
+          }
+
+          /* Logo/home lockup becomes an intentional clickable home target. */
+          .st-key-wz191_brand_home{position:relative!important;min-height:58px!important;}
+          .st-key-wz191_brand_home_btn{position:absolute!important;inset:0!important;z-index:5!important;}
+          .st-key-wz191_brand_home_btn button{
+            position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+            opacity:0!important;background:transparent!important;border:0!important;box-shadow:none!important;
+            cursor:pointer!important;
+          }
+          .st-key-wz191_brand_home:hover .wz182-logo{transform:scale(1.035);box-shadow:0 0 0 1px rgba(103,232,249,.55),0 16px 38px rgba(34,211,238,.24)!important;}
+
+          /* Premium feature hero cards for Understand Job and Prepare Job. */
+          .wz191-feature-hero{
+            max-width:1480px;margin:8px auto 20px;padding:24px 28px;border-radius:26px;
+            background:linear-gradient(135deg,rgba(8,47,73,.46),rgba(30,27,75,.36));
+            border:1px solid rgba(34,211,238,.22);box-shadow:0 18px 48px rgba(0,0,0,.20);
+          }
+          .wz191-feature-kicker{color:#67e8f9;text-transform:uppercase;letter-spacing:.16em;font-size:.72rem;font-weight:1000;margin-bottom:10px;}
+          .wz191-feature-title{font-size:clamp(1.7rem,3vw,2.6rem);font-weight:1000;letter-spacing:-.055em;color:#f8fafc;line-height:.96;margin-bottom:8px;}
+          .wz191-feature-sub{color:rgba(226,232,240,.82);font-size:1rem;font-weight:650;line-height:1.35;max-width:980px;}
+          .wz191-step-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;}
+          .wz191-step-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;background:rgba(15,23,42,.55);border:1px solid rgba(148,163,184,.18);color:#dbeafe;font-weight:900;font-size:.82rem;}
+          .wz191-step-chip.done{border-color:rgba(34,197,94,.35);background:rgba(22,101,52,.22);color:#dcfce7;}
+          .wz191-step-chip.active{border-color:rgba(34,211,238,.44);background:rgba(14,116,144,.24);color:#cffafe;}
+
+          /* Make old plain feature headings less dominant when a premium card is above them. */
+          .st-key-wz191_feature_hero + div h1,
+          .st-key-wz191_feature_hero + div h2,
+          .st-key-wz191_feature_hero + div h3{margin-top:.25rem!important;}
+
+          @media(max-width:760px){
+            .st-key-wz182_float_bot{right:18px!important;bottom:18px!important;}
+            .st-key-wz182_float_bot:before{display:none!important;}
+            .wz191-feature-hero{padding:18px 18px;border-radius:20px;margin:6px 4px 14px;}
+          }
+        </style>
+        ''', unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz191_render_feature_hero(mode):
+    mode = str(mode or "find").lower()
+    if mode.startswith("prepare"):
+        kicker = "Interview step"
+        title = "Prepare for this interview"
+        sub = "Turn the job description into role-specific practice, recruiter concerns, and clear next actions before the real interview."
+        chips = [("✅ CV uploaded", "done"), ("✅ Job decoded", "done"), ("🎯 Interview prep", "active"), ("🎙 Practice next", "")]
+    else:
+        kicker = "Job step"
+        title = "Decode recruiter expectations"
+        sub = "Paste one real job description. WorkZo identifies honest fit, missing proof, recruiter risk flags, and what to prepare next."
+        chips = [("✅ CV uploaded", "done"), ("🧠 Recruiter expectations", "active"), ("🎯 Interview focus", ""), ("📄 Tailor resume", "")]
+    _wz191_apply_final_css()
+    chip_html = "".join([f'<span class="wz191-step-chip {cls}">{html.escape(text)}</span>' for text, cls in chips])
+    st.markdown(f'''
+    <div class="wz191-feature-hero">
+      <div class="wz191-feature-kicker">{html.escape(kicker)}</div>
+      <div class="wz191-feature-title">{html.escape(title)}</div>
+      <div class="wz191-feature-sub">{html.escape(sub)}</div>
+      <div class="wz191-step-row">{chip_html}</div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+
+# Wrap Understand Job / Prepare Job direct renderer with the premium hero card.
+try:
+    _wz191_previous_advanced_job_mode = globals().get('_wz108_render_advanced_job_mode')
+    def _wz108_render_advanced_job_mode(mode: str):
+        try:
+            _wz191_render_feature_hero(mode)
+        except Exception:
+            pass
+        if callable(_wz191_previous_advanced_job_mode):
+            return _wz191_previous_advanced_job_mode(mode)
+        return None
+except Exception:
+    pass
+
+
+# Make the approved topbar logo/name act as Home without adding a second visible header.
+try:
+    def _wz182_topbar():
+        logo = globals().get("_WZ181_LOGO_DATA_URI", "") or globals().get("_WZ146_LOGO_DATA_URI", "")
+        with st.container(key="wz182_topbar_native"):
+            c_logo, c_dash, c_sessions, c_progress, c_spacer, c_tools, c_settings = st.columns([3.2, 1.12, 1.08, 1.05, 1.35, 1.55, .85], vertical_alignment="center")
+            with c_logo:
+                with st.container(key="wz191_brand_home"):
+                    st.markdown(f'''
+                    <div class="wz182-brand-inline">
+                      <img class="wz182-logo" src="{logo}" alt="WorkZo AI logo" />
+                      <div><div class="wz182-name">WorkZo AI</div><div class="wz182-sub">AI Interview Simulator</div></div>
+                    </div>
+                    ''', unsafe_allow_html=True)
+                    if st.button("Home", key="wz191_brand_home_btn", help="Go to main dashboard"):
+                        _wz182_route("dashboard")
+            with c_dash:
+                if st.button("▦ Dashboard", key="wz182_nav_dashboard", use_container_width=True):
+                    _wz182_route("dashboard")
+            with c_sessions:
+                if st.button("▣ Sessions", key="wz182_nav_sessions", use_container_width=True):
+                    st.session_state["wz182_session_panel"] = True
+                    _wz182_route("dashboard")
+            with c_progress:
+                if st.button("▰ Progress", key="wz182_nav_progress", use_container_width=True):
+                    st.session_state["wz182_progress_panel"] = True
+                    _wz182_route("dashboard")
+            with c_tools:
+                if hasattr(st, "popover"):
+                    with st.popover("▧ Toolbox", use_container_width=True):
+                        if st.button("✨ Improve Resume for This Role", key="wz182_tool_improve_cv", use_container_width=True): _wz182_route("improve_cv")
+                        if st.button("🧠 Decode Recruiter Expectations", key="wz182_tool_understand", use_container_width=True): _wz182_route("understand_job")
+                        if st.button("🔎 Find Jobs", key="wz182_tool_find", use_container_width=True): _wz182_route("find_jobs")
+                        if st.button("🎯 Prepare for This Interview", key="wz182_tool_prepare", use_container_width=True): _wz182_route("prepare_job")
+                        if st.button("📝 Cover Letter", key="wz182_tool_cover", use_container_width=True): _wz182_route("cover_letter")
+                        if st.button("☻ Ask Work-O-Bot", key="wz182_tool_bot", use_container_width=True): _wz182_route("workobot")
+                else:
+                    if st.button("▧ Toolbox", key="wz182_toolbox_toggle", use_container_width=True):
+                        st.session_state["wz182_toolbox_open"] = not bool(st.session_state.get("wz182_toolbox_open"))
+            with c_settings:
+                if hasattr(st, "popover"):
+                    with st.popover("⋯", use_container_width=True):
+                        if st.button("Founder dashboard", key="wz182_more_founder", use_container_width=True): _wz182_route("founder_dashboard")
+                        if st.button("Exit", key="wz182_more_exit", use_container_width=True): _wz182_exit_to_landing()
+                else:
+                    if st.button("⋯", key="wz182_settings_toggle", use_container_width=True):
+                        st.session_state["wz182_settings_open"] = not bool(st.session_state.get("wz182_settings_open"))
+        _wz191_apply_final_css()
+        if st.session_state.get("wz182_toolbox_open"):
+            c1, c2, c3 = st.columns([6, 2.2, .8])
+            with c2:
+                with st.container(key="wz182_toolbox_fallback"):
+                    if st.button("✨ Improve Resume for This Role", key="wz182_fb_improve"): _wz182_route("improve_cv")
+                    if st.button("🧠 Decode Recruiter Expectations", key="wz182_fb_understand"): _wz182_route("understand_job")
+                    if st.button("🔎 Find Jobs", key="wz182_fb_find"): _wz182_route("find_jobs")
+                    if st.button("🎯 Prepare for This Interview", key="wz182_fb_prepare"): _wz182_route("prepare_job")
+                    if st.button("📝 Cover Letter", key="wz182_fb_cover"): _wz182_route("cover_letter")
+                    if st.button("☻ Ask Work-O-Bot", key="wz182_fb_bot"): _wz182_route("workobot")
+        if st.session_state.get("wz182_settings_open"):
+            c1, c2, c3 = st.columns([7, 1.3, .8])
+            with c2:
+                if st.button("Founder dashboard", key="wz182_fb_founder"): _wz182_route("founder_dashboard")
+                if st.button("Exit", key="wz182_fb_exit"): _wz182_exit_to_landing()
+except Exception:
+    pass
+
+
+# Replace the interview setup controls so country/persona/language are global.
+try:
+    def _wz181_interactive_controls():
+        _wz183_apply_density_css()
+        _wz191_apply_final_css()
+        with st.container(key="wz183_start_real_interview"):
+            if st.button("🎙 Start Real Interview", key="wz183_start_real_interview_btn", type="primary", use_container_width=True):
+                st.session_state["wz_ri_started"] = True
+                st.session_state["page"] = "real_interview"
+                st.session_state["nav_page"] = "real_interview"
+                try:
+                    if callable(globals().get("start_real_interview")):
+                        start_real_interview()
+                except Exception:
+                    pass
+                st.rerun()
+        st.markdown('<div class="wz183-after-cta">CV + JD analyzed · Interview adapts to your role, country, language, answers, and recruiter style</div>', unsafe_allow_html=True)
+
+        role = _wz181_safe(st.session_state.get("target_role") or st.session_state.get("real_interview_target_role"), "Junior Data Analyst")
+        company = _wz181_safe(st.session_state.get("target_company") or st.session_state.get("real_interview_company"), "Demo Company")
+        country = _wz191_normalize_country_name(st.session_state.get("wz_ri_country_adaptation_v181") or st.session_state.get("selected_country") or st.session_state.get("target_country") or st.session_state.get("country") or "Global / Remote")
+
+        with st.container(key="wz183_setup_expander"):
+            with st.expander("⚙ Simulation Setup", expanded=False):
+                st.markdown('''
+                <div class="wz183-mini-box"><label>AI identified interview focus</label><div class="wz183-focus-row"><span>Role proof</span><span>Measurable impact</span><span>Country expectations</span></div></div>
+                ''', unsafe_allow_html=True)
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    st.text_input("Target role", value=role, key="wz183_target_role")
+                with c2:
+                    st.text_input("Target company", value=company, key="wz183_target_company")
+                with c3:
+                    selected_country = st.selectbox(
+                        "Country / location",
+                        _WZ191_COUNTRY_OPTIONS,
+                        index=(_WZ191_COUNTRY_OPTIONS.index(country) if country in _WZ191_COUNTRY_OPTIONS else 0),
+                        key="wz_ri_country_adaptation_v181"
+                    )
+                    st.session_state["target_country"] = _wz191_normalize_country_name(selected_country)
+                    st.session_state["selected_country"] = _wz191_normalize_country_name(selected_country)
+                lang_default = st.session_state.get("interview_language") or st.session_state.get("preferred_language") or "Auto-detect / User preference"
+                lang_index = _WZ191_LANGUAGE_OPTIONS.index(lang_default) if lang_default in _WZ191_LANGUAGE_OPTIONS else 0
+                st.selectbox("Interview language", _WZ191_LANGUAGE_OPTIONS, index=lang_index, key="interview_language")
+                st.caption("WorkZo adapts recruiter expectations by country and lets users practice in the interview language they actually need.")
+
+        current_country = _wz191_normalize_country_name(st.session_state.get("wz_ri_country_adaptation_v181") or country)
+        persona_options = _wz191_personas_for_country(current_country)
+        current_persona = st.session_state.get("wz_ri_recruiter_personality_v181") or persona_options[0]
+        if current_persona not in persona_options:
+            current_persona = persona_options[0]
+            st.session_state["wz_ri_recruiter_personality_v181"] = current_persona
+
+        with st.container(key="wz183_advanced_expander"):
+            with st.expander("🧠 Recruiter Behavior & Difficulty", expanded=False):
+                c1, c2 = st.columns(2)
+                with c1:
+                    recruiter = st.selectbox("Who are you interviewing with?", persona_options, index=persona_options.index(current_persona), key="wz_ri_recruiter_personality_v181")
+                    st.caption(_wz191_personality_caption(recruiter))
+                    st.selectbox("Recruiter style", ["Balanced", "Behavioral-heavy", "Technical-heavy", "Fast-paced", "Leadership-focused"], key="wz_ri_recruiter_style_v181")
+                with c2:
+                    st.radio("How tough should this recruiter be?", ["🙂 Supportive", "😐 Realistic", "😤 Challenging", "🔥 Brutal recruiter"], horizontal=True, key="wz_ri_difficulty_v181")
+                    st.selectbox("Country adaptation", _WZ191_COUNTRY_OPTIONS, index=(_WZ191_COUNTRY_OPTIONS.index(current_country) if current_country in _WZ191_COUNTRY_OPTIONS else 0), key="wz_ri_country_adaptation_secondary_v191")
+                    st.caption("Use Simulation Setup above to change the active country. This list confirms global coverage.")
+
+        with st.container(key="wz183_memory_expander"):
+            with st.expander("📈 AI Memory & Smart Coaching", expanded=False):
+                st.markdown('''
+                <div class="wz183-mini-grid">
+                  <div class="wz183-mini-box"><label>AI Memory</label><b>Tracks confidence drops</b></div>
+                  <div class="wz183-mini-box"><label>Needs improvement</label><b>Proof, metrics, direct answers</b></div>
+                  <div class="wz183-mini-box"><label>Current coaching focus</label><b>Country-aware STAR answer</b></div>
+                </div>
+                ''', unsafe_allow_html=True)
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    st.checkbox("Interrupt vague answers", value=True, key="wz_ri_interrupt_v181")
+                    st.checkbox("Ask for measurable impact", value=True, key="wz_ri_metrics_v181")
+                with c2:
+                    st.checkbox("Pressure escalation", value=True, key="wz_ri_pressure_v183")
+                    st.checkbox("Adaptive follow-ups", value=True, key="wz_ri_adaptive_followups_v183")
+                with c3:
+                    st.checkbox("Real-time coaching", value=True, key="wz_ri_realtime_coaching_v183")
+                    st.checkbox("Track weak areas", value=True, key="wz_ri_memory_v181")
+except Exception:
+    pass
+
+
+# Make global intelligence use the explicit interview language and country controls.
+try:
+    _wz191_previous_current_context = globals().get('_wz190_current_context')
+    def _wz190_current_context():
+        try:
+            base = _wz191_previous_current_context() if callable(_wz191_previous_current_context) else {}
+            country = _wz191_normalize_country_name(st.session_state.get('wz_ri_country_adaptation_v181') or st.session_state.get('wz_ri_country_adaptation_secondary_v191') or base.get('country'))
+            language = st.session_state.get('interview_language') or base.get('language') or 'Auto-detect / User preference'
+            base['country'] = country
+            base['language'] = language
+            base['intel'] = _wz190_country_intelligence(country) if callable(globals().get('_wz190_country_intelligence')) else base.get('intel', {})
+            return base
+        except Exception:
+            return {'country':'Global / Remote','role':'target role','company':'target company','language':'Auto-detect / User preference','intel':{}}
+except Exception:
+    pass
+
+
+# Re-apply final CSS whenever existing CSS layers run.
+try:
+    _wz191_previous_wz182_css = globals().get('_wz182_css')
+    def _wz182_css():
+        if callable(_wz191_previous_wz182_css):
+            try: _wz191_previous_wz182_css()
+            except Exception: pass
+        _wz191_apply_final_css()
+except Exception:
+    pass
+
+try:
+    _wz191_previous_wz185_css = globals().get('_wz185_final_order_spacing_css')
+    def _wz185_final_order_spacing_css():
+        if callable(_wz191_previous_wz185_css):
+            try: _wz191_previous_wz185_css()
+            except Exception: pass
+        _wz191_apply_final_css()
+except Exception:
+    pass
+
+# =========================================================
+# WorkZo v192 - Intelligence, honesty, global realism + retention loop
+# =========================================================
+# Adds the missing product-intelligence layer without adding dashboard clutter:
+# - Live recruiter confidence evolution based on answer quality.
+# - Silence/rambling/interruption triggers.
+# - Stronger honesty rules: no fake metrics, no invented achievements.
+# - Global recruiter psychology by selected country + interview language.
+# - Post-interview memory/retry components only for result pages, not main dashboard.
+# =========================================================
+
+import re as _wz192_re
+import time as _wz192_time
+
+
+def _wz192_safe_text(value, fallback="", limit=400):
+    try:
+        text = str(value if value is not None else fallback).strip()
+        if not text:
+            text = str(fallback or "").strip()
+        if limit and len(text) > limit:
+            text = text[:limit].rstrip() + "…"
+        return text
+    except Exception:
+        return str(fallback or "")
+
+
+def _wz192_selected_country():
+    try:
+        normalizer = globals().get("_wz191_normalize_country_name")
+        raw = (
+            st.session_state.get("wz_ri_country_adaptation_v181")
+            or st.session_state.get("wz_ri_country_adaptation_secondary_v191")
+            or st.session_state.get("target_country")
+            or st.session_state.get("selected_country")
+            or st.session_state.get("country")
+            or "Global / Remote"
+        )
+        return normalizer(raw) if callable(normalizer) else str(raw)
+    except Exception:
+        return "Global / Remote"
+
+
+def _wz192_selected_language():
+    try:
+        return _wz192_safe_text(
+            st.session_state.get("interview_language")
+            or st.session_state.get("preferred_language")
+            or st.session_state.get("language")
+            or "Auto-detect / User preference",
+            "Auto-detect / User preference",
+            80,
+        )
+    except Exception:
+        return "Auto-detect / User preference"
+
+
+def _wz192_country_profile(country=None):
+    country = country or _wz192_selected_country()
+    try:
+        if callable(globals().get("_wz190_country_intelligence")):
+            base = dict(_wz190_country_intelligence(country) or {})
+        else:
+            base = {}
+    except Exception:
+        base = {}
+    key = str(base.get("country_key") or country or "global").lower()
+    # Deeper behavioural layer used by interviews, interruptions, and result honesty.
+    profiles = {
+        "germany": {
+            "tone": "structured, evidence-heavy, cautious",
+            "confidence_gain": "clear responsibility + truthful measurable result",
+            "confidence_drop": "unsupported claims, vague ownership, exaggerated wording",
+            "interruptions": [
+                "Let me stop you there — what was the exact result?",
+                "Please structure that more clearly: situation, action, result.",
+                "I still need your specific contribution, not the team activity.",
+            ],
+        },
+        "usa": {
+            "tone": "impact-focused, energetic, ownership-driven",
+            "confidence_gain": "confident storytelling with outcome and scale",
+            "confidence_drop": "low energy, weak ownership, no measurable impact",
+            "interruptions": [
+                "What was the business impact?",
+                "Give me the result first, then the example.",
+                "What did you personally own in that situation?",
+            ],
+        },
+        "united kingdom": {
+            "tone": "competency-based, balanced, evidence-led",
+            "confidence_gain": "clear competency example with action and result",
+            "confidence_drop": "rambling, overclaiming, weak STAR structure",
+            "interruptions": [
+                "Can you give that as a clearer competency example?",
+                "What was your action and what was the result?",
+                "That is too broad — make it specific.",
+            ],
+        },
+        "india": {
+            "tone": "skills-depth, project-detail, communication-aware",
+            "confidence_gain": "technical clarity + practical project proof",
+            "confidence_drop": "too much background, unclear depth, generic claims",
+            "interruptions": [
+                "Can you explain the technical depth more clearly?",
+                "What exactly did you build or solve?",
+                "Keep it shorter and connect it to this role.",
+            ],
+        },
+        "united arab emirates": {
+            "tone": "professional, multicultural, business-fit aware",
+            "confidence_gain": "adaptability, availability, stakeholder communication",
+            "confidence_drop": "unclear fit, unclear availability, generic examples",
+            "interruptions": [
+                "How does this fit the role and business context?",
+                "Can you make the outcome clearer?",
+                "What would make you successful in this market?",
+            ],
+        },
+        "global / remote": {
+            "tone": "global, remote-ready, concise, proof-focused",
+            "confidence_gain": "clear remote collaboration + measurable outcome",
+            "confidence_drop": "unclear communication, generic claims, no proof",
+            "interruptions": [
+                "Can you answer that more directly?",
+                "What proof shows this worked?",
+                "What exactly was your contribution?",
+            ],
+        },
+    }
+    profile = profiles.get(key) or profiles.get(str(country).lower()) or profiles["global / remote"]
+    merged = dict(base)
+    merged.update(profile)
+    return merged
+
+
+def _wz192_default_memory():
+    return {
+        "sessions": 0,
+        "answers_saved": 0,
+        "confidence_history": [],
+        "recurring_patterns": {},
+        "best_recovery": "Not enough answers yet",
+        "pressure_trigger": "Not enough answers yet",
+        "last_weak_answer": "",
+        "last_strong_answer": "",
+        "last_rejection_reason": "",
+    }
+
+
+def _wz192_get_memory():
+    mem = st.session_state.get("wz192_recruiter_memory")
+    if not isinstance(mem, dict):
+        mem = _wz192_default_memory()
+    for k, v in _wz192_default_memory().items():
+        mem.setdefault(k, v)
+    st.session_state["wz192_recruiter_memory"] = mem
+    return mem
+
+
+def _wz192_add_pattern(name, amount=1):
+    mem = _wz192_get_memory()
+    patterns = mem.setdefault("recurring_patterns", {})
+    patterns[name] = int(patterns.get(name, 0)) + int(amount)
+    st.session_state["wz192_recruiter_memory"] = mem
+
+
+def _wz192_answer_quality(answer):
+    text = str(answer or "").strip()
+    low = text.lower()
+    words = _wz192_re.findall(r"\b[\w'-]+\b", low)
+    wc = len(words)
+    has_metric = bool(_wz192_re.search(r"\d|%|percent|reduced|increased|improved|saved|revenue|cost|time|faster|slower|quality|volume|accuracy|users|customers", low))
+    has_result = any(x in low for x in ["result", "outcome", "impact", "therefore", "because", "which led", "so that", "as a result"])
+    has_star = any(x in low for x in ["situation", "task", "action", "result"]) or ("problem" in low and ("action" in low or "solved" in low))
+    has_ownership = any(x in low for x in ["i led", "i owned", "i built", "i created", "i analyzed", "i resolved", "i improved", "my role", "i was responsible", "i handled"])
+    vague_hits = sum(1 for x in ["stuff", "things", "etc", "kind of", "basically", "some", "many", "good", "nice", "maybe", "i think", "like "] if x in low)
+    filler_hits = sum(1 for x in ["um", "uh", "you know", "actually", "literally", "sort of", "kind of"] if x in low)
+    score = 50
+    score += 14 if has_metric else -16
+    score += 11 if has_result else -10
+    score += 10 if has_ownership else -8
+    score += 8 if has_star else -6
+    if 45 <= wc <= 120:
+        score += 8
+    elif wc < 25:
+        score -= 14
+    elif wc > 155:
+        score -= 18
+    score -= min(16, vague_hits * 4)
+    score -= min(8, filler_hits * 2)
+    score = max(0, min(100, int(score)))
+    flags = []
+    if not has_metric: flags.append("missing metrics")
+    if not has_result: flags.append("missing outcome")
+    if not has_ownership: flags.append("ownership unclear")
+    if not has_star: flags.append("weak structure")
+    if wc > 155: flags.append("too long")
+    if wc < 25: flags.append("too short")
+    if vague_hits >= 2: flags.append("vague wording")
+    return {
+        "score": score,
+        "word_count": wc,
+        "has_metric": has_metric,
+        "has_result": has_result,
+        "has_ownership": has_ownership,
+        "has_star": has_star,
+        "flags": flags,
+        "vague_hits": vague_hits,
+        "filler_hits": filler_hits,
+    }
+
+
+def _wz192_interruption_for(eval_data, country=None):
+    profile = _wz192_country_profile(country)
+    country_interruptions = profile.get("interruptions") or []
+    flags = eval_data.get("flags") or []
+    if "too long" in flags:
+        return country_interruptions[0] if country_interruptions else "Let me stop you there — can you answer that more directly?"
+    if "missing metrics" in flags or "missing outcome" in flags:
+        return country_interruptions[1] if len(country_interruptions) > 1 else "What was the measurable result?"
+    if "ownership unclear" in flags:
+        return country_interruptions[2] if len(country_interruptions) > 2 else "What exactly was your contribution?"
+    if "weak structure" in flags:
+        return "Structure it clearly: situation, action, result."
+    if "vague wording" in flags:
+        return "That sounds broad — give me one specific example."
+    return ""
+
+
+def _wz192_apply_live_recruiter_evolution(answer):
+    """Public helper: call this after each user answer to evolve recruiter state."""
+    try:
+        eval_data = _wz192_answer_quality(answer)
+        # Reuse v187 state when available so existing dashboard updates automatically.
+        if callable(globals().get("_wz187_get_recruiter_state")):
+            state = _wz187_get_recruiter_state()
+        else:
+            state = {"confidence": 72, "attention": 82, "patience": 68, "hiring_signal": "Needs proof", "mood": "Calm", "trend": "steady"}
+        conf = int(state.get("confidence", 72))
+        attn = int(state.get("attention", 82))
+        patience = int(state.get("patience", 68))
+        score = int(eval_data.get("score", 0))
+        interruption = _wz192_interruption_for(eval_data)
+        flags = eval_data.get("flags") or []
+        if score >= 78:
+            state.update({
+                "confidence": max(0, min(100, conf + 11)),
+                "attention": max(0, min(100, attn + 7)),
+                "patience": max(0, min(100, patience + 4)),
+                "hiring_signal": "Strengthening",
+                "mood": "Engaged again",
+                "trend": "recovering",
+                "concern": "keep this level of proof consistent",
+                "last_reaction": "Strong recovery — the example rebuilt recruiter confidence.",
+                "last_interrupt": "",
+            })
+            _wz192_add_pattern("confidence recovery")
+            _wz192_get_memory()["last_strong_answer"] = str(answer or "")[:900]
+        elif score >= 58:
+            state.update({
+                "confidence": max(0, min(100, conf + 1)),
+                "attention": max(0, min(100, attn - 1)),
+                "patience": max(0, min(100, patience - 1)),
+                "hiring_signal": "Needs proof",
+                "mood": "Testing proof",
+                "trend": "steady",
+                "concern": ", ".join(flags[:2]) if flags else "recruiter wants stronger proof",
+                "last_reaction": "Useful answer, but not fully convincing yet.",
+                "last_interrupt": interruption,
+            })
+        else:
+            state.update({
+                "confidence": max(0, min(100, conf - 15)),
+                "attention": max(0, min(100, attn - 11)),
+                "patience": max(0, min(100, patience - 8)),
+                "hiring_signal": "Weakening",
+                "mood": "Losing confidence" if conf < 55 else "Skeptical",
+                "trend": "dropping",
+                "concern": ", ".join(flags[:3]) if flags else "answer did not create enough trust",
+                "last_reaction": interruption or "I’m not convinced yet — give me stronger evidence.",
+                "last_interrupt": interruption or "Can you answer that more directly?",
+            })
+            _wz192_get_memory()["last_weak_answer"] = str(answer or "")[:900]
+        mem = _wz192_get_memory()
+        mem["answers_saved"] = int(mem.get("answers_saved", 0)) + 1
+        mem.setdefault("confidence_history", []).append(int(state.get("confidence", 0)))
+        mem["confidence_history"] = mem["confidence_history"][-20:]
+        for flag in flags:
+            _wz192_add_pattern(flag)
+        if "too long" in flags:
+            mem["pressure_trigger"] = "answers become weaker when interrupted for length"
+        if "missing metrics" in flags:
+            mem["last_rejection_reason"] = "recruiter could not see measurable impact"
+        st.session_state["wz192_last_answer_eval"] = eval_data
+        st.session_state["wz187_recruiter_state"] = state
+        st.session_state["wz192_recruiter_memory"] = mem
+        return state
+    except Exception:
+        return st.session_state.get("wz187_recruiter_state", {})
+
+
+# Make v187 use the deeper v192 scoring automatically, if the live panel calls _wz187_apply_answer.
+try:
+    def _wz187_apply_answer(answer: str):
+        return _wz192_apply_live_recruiter_evolution(answer)
+except Exception:
+    pass
+
+
+def _wz192_silence_tick(seconds_without_answer=0):
+    """Optional helper for future voice mode: call with silence duration to reduce attention/patience."""
+    try:
+        sec = int(seconds_without_answer or 0)
+        if sec < 18:
+            return st.session_state.get("wz187_recruiter_state", {})
+        state = _wz187_get_recruiter_state() if callable(globals().get("_wz187_get_recruiter_state")) else {}
+        state["attention"] = max(0, int(state.get("attention", 82)) - (4 if sec < 35 else 10))
+        state["patience"] = max(0, int(state.get("patience", 68)) - (3 if sec < 35 else 9))
+        state["mood"] = "Waiting" if sec < 35 else "Impatient"
+        state["hiring_signal"] = "Needs clearer response"
+        state["concern"] = "long silence may signal uncertainty unless the answer recovers strongly"
+        state["last_interrupt"] = "Take a breath, then answer directly with one example."
+        state["trend"] = "dropping"
+        st.session_state["wz187_recruiter_state"] = state
+        return state
+    except Exception:
+        return {}
+
+
+def _wz192_honesty_instruction_block():
+    profile = _wz192_country_profile()
+    language = _wz192_selected_language()
+    country = _wz192_selected_country()
+    return f"""
+WORKZO v192 HONEST GLOBAL RECRUITER PSYCHOLOGY MODE
+Country/market: {country}
+Interview language: {language}
+Recruiter tone for this market: {profile.get('tone')}
+Confidence rises when: {profile.get('confidence_gain')}
+Confidence drops when: {profile.get('confidence_drop')}
+
+Non-negotiable honesty rules:
+- Never invent metrics, achievements, titles, employers, dates, visa status, language level, tools, or outcomes.
+- If a metric is missing, say: "No measurable result detected. Add a real metric if true."
+- If an answer is weak, say why a recruiter may lose confidence.
+- Distinguish facts from suggested improvements.
+- Give conservative readiness and rejection risk. Do not give fake encouragement.
+- Use recruiter psychology language: confidence rose, confidence dropped, trust risk, recovery, proof, concern.
+- Keep outputs practical and emotionally realistic, not dashboard-heavy.
+- Adapt expectations to the selected country and interview language; never assume Germany unless Germany is selected.
+- Prefer compact cards/chips and short sections over long bullet lists.
+""".strip()
+
+
+try:
+    _wz192_previous_wrap_prompt = globals().get("_wz190_wrap_prompt")
+    def _wz190_wrap_prompt(prompt):
+        text = str(prompt or "")
+        if callable(_wz192_previous_wrap_prompt):
+            try:
+                text = _wz192_previous_wrap_prompt(text)
+            except Exception:
+                pass
+        if "WORKZO v192 HONEST GLOBAL RECRUITER PSYCHOLOGY MODE" not in text:
+            text = text.rstrip() + "\n\n" + _wz192_honesty_instruction_block()
+        return text
+except Exception:
+    pass
+
+
+def _wz192_apply_result_memory_css():
+    try:
+        st.markdown(r'''
+        <style id="wz192-result-memory-css">
+          .wz192-memory-engine{max-width:1460px;margin:14px auto;padding:16px;border-radius:22px;background:linear-gradient(135deg,rgba(8,30,54,.82),rgba(30,27,75,.54));border:1px solid rgba(56,189,248,.16)}
+          .wz192-memory-title{font-size:1.25rem;font-weight:1000;color:#f8fafc;margin:0 0 4px}
+          .wz192-memory-sub{font-size:.86rem;color:#94a3b8;margin-bottom:12px}
+          .wz192-chipgrid{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
+          .wz192-chip{padding:8px 10px;border-radius:999px;background:rgba(15,23,42,.62);border:1px solid rgba(148,163,184,.16);color:#e5e7eb;font-weight:850;font-size:.82rem}
+          .wz192-chip.risk{background:rgba(127,29,29,.22);border-color:rgba(248,113,113,.22);color:#fecaca}
+          .wz192-chip.good{background:rgba(20,83,45,.22);border-color:rgba(74,222,128,.22);color:#bbf7d0}
+          .wz192-timeline{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-top:9px}
+          .wz192-step{padding:8px 10px;border-radius:999px;background:rgba(15,23,42,.60);border:1px solid rgba(148,163,184,.14);font-weight:850;color:#e2e8f0;font-size:.80rem}
+          .wz192-arrow{color:#60a5fa;font-weight:1000}
+          .wz192-retry{margin-top:12px;padding:13px;border-radius:18px;background:rgba(15,23,42,.42);border:1px solid rgba(99,102,241,.18)}
+          .wz192-small{font-size:.78rem;color:#94a3b8;line-height:1.35}
+          .wz192-comparegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+          .wz192-comparecard{padding:10px;border-radius:14px;background:rgba(2,6,23,.36);border:1px solid rgba(148,163,184,.12);font-size:.84rem;color:#cbd5e1;line-height:1.35}
+          @media(max-width:800px){.wz192-comparegrid{grid-template-columns:1fr}}
+        </style>
+        ''', unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz192_patterns_from_memory():
+    mem = _wz192_get_memory()
+    patterns = mem.get("recurring_patterns") or {}
+    ordered = sorted(patterns.items(), key=lambda x: x[1], reverse=True)
+    labels = []
+    mapping = {
+        "missing metrics": "Consistently avoids measurable metrics",
+        "missing outcome": "Needs clearer business outcome",
+        "ownership unclear": "Ownership is not clear enough",
+        "weak structure": "STAR structure needs practice",
+        "too long": "Answers become too long under pressure",
+        "vague wording": "Answers become vague after pressure",
+        "confidence recovery": "Confidence is recoverable after stronger examples",
+    }
+    for key, count in ordered[:6]:
+        labels.append(mapping.get(key, str(key).replace("_", " ").title()))
+    if not labels:
+        labels = [
+            "No recurring pattern yet — complete one more interview",
+            "WorkZo will track where recruiter confidence rises and drops",
+            "Retry loops will show whether your answer recovered trust",
+        ]
+    return labels
+
+
+def _wz192_render_post_interview_memory_engine():
+    """Use only on result/post-interview screens. Do not place on main dashboard."""
+    try:
+        _wz192_apply_result_memory_css()
+        mem = _wz192_get_memory()
+        state = st.session_state.get("wz187_recruiter_state") or {}
+        confidence = int(state.get("confidence", 72)) if isinstance(state, dict) else 72
+        patterns = _wz192_patterns_from_memory()
+        weak = _wz192_safe_text(mem.get("last_weak_answer"), "No weakest answer saved yet.", 900)
+        strong = _wz192_safe_text(mem.get("last_strong_answer"), "Retry a weak answer to create a stronger recovery example.", 900)
+        trend = "🟢 Recovered" if confidence >= 75 else ("🟡 Still evaluating" if confidence >= 55 else "🔴 Confidence dropped")
+        chip_html = "".join(f'<span class="wz192-chip risk">⚠ {html.escape(p)}</span>' for p in patterns[:4])
+        st.markdown(f'''
+        <div class="wz192-memory-engine">
+          <div class="wz192-memory-title">Recruiter memory engine</div>
+          <div class="wz192-memory-sub">Patterns across sessions · emotional reaction timeline · weakest-answer recovery loop</div>
+          <div class="wz192-chipgrid">{chip_html}<span class="wz192-chip good">Current recruiter confidence: {confidence}%</span><span class="wz192-chip good">{html.escape(trend)}</span></div>
+          <div class="wz192-timeline"><span class="wz192-step">🙂 Interested</span><span class="wz192-arrow">→</span><span class="wz192-step">😐 Testing proof</span><span class="wz192-arrow">→</span><span class="wz192-step">⚠ Doubt increased</span><span class="wz192-arrow">→</span><span class="wz192-step">{html.escape(trend)}</span></div>
+          <div class="wz192-retry"><b>🎤 Retry weakest answer immediately</b><div class="wz192-small">Old answer → retry → recruiter confidence recovery. This is the learning loop.</div></div>
+          <div class="wz192-comparegrid"><div class="wz192-comparecard"><b>Answer that damaged trust</b><br>{html.escape(weak)}</div><div class="wz192-comparecard"><b>Answer that helped you</b><br>{html.escape(strong)}</div></div>
+        </div>
+        ''', unsafe_allow_html=True)
+        retry = st.text_area("Retry this answer now", key="wz192_retry_weak_answer", height=110, placeholder="Lead with the result, add a real metric if true, explain your role, then connect it to the job.")
+        c1, c2, c3 = st.columns([1.2, 1.2, 4])
+        with c1:
+            if st.button("Compare old vs new", key="wz192_compare_retry", type="primary", use_container_width=True) and retry.strip():
+                old_eval = _wz192_answer_quality(weak)
+                new_eval = _wz192_answer_quality(retry)
+                _wz192_apply_live_recruiter_evolution(retry)
+                st.success(f"Recruiter confidence loop: old answer {old_eval['score']}/100 → new answer {new_eval['score']}/100")
+                st.rerun()
+        with c2:
+            if st.button("Use as next practice target", key="wz192_use_next_target", use_container_width=True):
+                st.session_state["wz187_current_question"] = "Retry your weakest answer. Lead with the result, prove impact, and make ownership clear."
+                st.success("Saved as next practice target.")
+    except Exception:
+        pass
+
+
+# Hook into known final-result renderers if they exist, without placing memory engine on dashboard.
+for _wz192_result_fn_name in [
+    "render_interview_result",
+    "render_final_interview_report",
+    "render_interview_summary",
+    "show_interview_results",
+    "render_real_interview_results",
+]:
+    try:
+        _old_fn = globals().get(_wz192_result_fn_name)
+        if callable(_old_fn) and not getattr(_old_fn, "_wz192_wrapped", False):
+            def _wz192_make_result_wrapper(fn):
+                def _wrapped(*args, **kwargs):
+                    result = fn(*args, **kwargs)
+                    _wz192_render_post_interview_memory_engine()
+                    return result
+                _wrapped._wz192_wrapped = True
+                return _wrapped
+            globals()[_wz192_result_fn_name] = _wz192_make_result_wrapper(_old_fn)
+    except Exception:
+        pass
+
+
+# Global recruiter category copy helper for any future page that wants positioning without adding clutter.
+def _wz192_product_positioning_line():
+    return "Practice with an AI recruiter that reacts like a real hiring manager — confidence rises, drops, and recovers based on your answers."
+
+
+# Avoid duplicate floating assistant overlap: keep it inside viewport and slightly smaller on result-heavy pages.
+def _wz192_apply_floating_assistant_safety_css():
+    try:
+        st.markdown(r'''
+        <style id="wz192-floating-assistant-safety-css">
+          [class*="workobot"], [class*="Work-O-Bot"], .wz-floating-bot, .workzo-floating-bot{
+            right:22px!important; bottom:24px!important; max-width:260px!important;
+          }
+          @media(max-width:900px){[class*="workobot"], [class*="Work-O-Bot"], .wz-floating-bot, .workzo-floating-bot{right:14px!important;bottom:16px!important;transform:scale(.88);transform-origin:bottom right;}}
+        </style>
+        ''', unsafe_allow_html=True)
+    except Exception:
+        pass
+
+try:
+    _wz192_previous_wz182_css = globals().get("_wz182_css")
+    def _wz182_css():
+        if callable(_wz192_previous_wz182_css):
+            try:
+                _wz192_previous_wz182_css()
+            except Exception:
+                pass
+        _wz192_apply_floating_assistant_safety_css()
+except Exception:
+    pass
+
+try:
+    _wz192_apply_floating_assistant_safety_css()
+except Exception:
+    pass
+
+
+# =========================================================
+# WorkZo v194 - Missing intelligence/retention/global layer
+# Purpose:
+# - Adds real answer-linked recruiter state scoring helpers.
+# - Adds voice/interruption readiness helpers without breaking current Streamlit flow.
+# - Strengthens global country + interview language awareness.
+# - Adds honest feedback / anti-hallucination guardrails to AI prompts.
+# - Adds compact post-interview retry loop + mobile/floating bot safety CSS.
+# - Keeps WorkZo positioned as AI recruiter simulation, not a generic dashboard.
+# =========================================================
+
+try:
+    import re as _wz194_re
+    import html as _wz194_html
+except Exception:
+    pass
+
+
+def _wz194_safe_text(value, limit=1200):
+    try:
+        value = str(value or "").strip()
+        value = _wz194_re.sub(r"\s+", " ", value)
+        return value[:limit]
+    except Exception:
+        return ""
+
+
+def _wz194_country_options():
+    """Broad global country list for country adaptation selectors."""
+    return [
+        "Global / Not sure yet", "Germany", "United States", "United Kingdom", "Canada", "India",
+        "United Arab Emirates", "Netherlands", "Australia", "New Zealand", "Ireland", "France",
+        "Spain", "Italy", "Switzerland", "Austria", "Belgium", "Sweden", "Norway", "Denmark",
+        "Finland", "Poland", "Portugal", "Czech Republic", "Singapore", "Malaysia", "Philippines",
+        "Indonesia", "Thailand", "Vietnam", "Japan", "South Korea", "China", "Hong Kong",
+        "Taiwan", "Saudi Arabia", "Qatar", "Kuwait", "Oman", "Bahrain", "South Africa",
+        "Nigeria", "Kenya", "Egypt", "Brazil", "Mexico", "Argentina", "Chile", "Colombia",
+        "Turkey", "Israel", "Pakistan", "Bangladesh", "Sri Lanka", "Nepal"
+    ]
+
+
+def _wz194_interview_language_options():
+    """Common interview languages. User can choose a language independent of country."""
+    return [
+        "English", "German", "French", "Spanish", "Italian", "Dutch", "Portuguese", "Hindi",
+        "Tamil", "Malayalam", "Telugu", "Kannada", "Bengali", "Urdu", "Arabic", "Turkish",
+        "Polish", "Czech", "Danish", "Swedish", "Norwegian", "Finnish", "Japanese", "Korean",
+        "Mandarin Chinese", "Cantonese", "Thai", "Vietnamese", "Indonesian", "Malay", "Filipino"
+    ]
+
+
+def _wz194_market_profile(country=None):
+    c = _wz194_safe_text(country or st.session_state.get("interview_country") or st.session_state.get("country") or "Global / Not sure yet", 80).lower()
+    profiles = {
+        "germany": {
+            "style": "Structured, evidence-heavy, concise, careful with exaggeration.",
+            "rewards": "clear ownership, truthful metrics, process thinking, relevant examples",
+            "risks": "vague claims, overconfidence without proof, unclear language level, missing role fit",
+            "interviewer": "Markus — structured corporate interviewer",
+        },
+        "united states": {
+            "style": "Confident storytelling, ownership, business impact, energetic communication.",
+            "rewards": "measurable wins, initiative, leadership, strong examples",
+            "risks": "low confidence, unclear impact, weak storytelling, no ownership",
+            "interviewer": "Sarah — impact-focused hiring manager",
+        },
+        "united kingdom": {
+            "style": "Balanced professionalism, collaborative tone, precise examples, understated confidence.",
+            "rewards": "teamwork, calm communication, credible achievements, concise reasoning",
+            "risks": "over-selling, unclear collaboration, too much background, vague outcomes",
+            "interviewer": "James — measured UK interviewer",
+        },
+        "india": {
+            "style": "Technical depth, clear project explanation, confidence, communication fluency.",
+            "rewards": "tools, responsibilities, technical clarity, examples under pressure",
+            "risks": "generic project descriptions, no exact contribution, weak fundamentals",
+            "interviewer": "Priya — fast-paced technical recruiter",
+        },
+        "united arab emirates": {
+            "style": "Professional, multicultural, adaptable, polished communication.",
+            "rewards": "flexibility, stakeholder awareness, professionalism, global communication",
+            "risks": "unclear visa/work context, weak adaptability proof, informal tone",
+            "interviewer": "Aisha — multicultural recruiter",
+        },
+        "netherlands": {
+            "style": "Direct, practical, honest, collaborative, low-fluff communication.",
+            "rewards": "straight answers, ownership, team fit, practical outcomes",
+            "risks": "overly polished answers, vague ownership, weak collaboration proof",
+            "interviewer": "Lotte — direct hiring manager",
+        },
+    }
+    for key, val in profiles.items():
+        if key in c:
+            return val
+    return {
+        "style": "Global recruiter mode: clear, truthful, role-specific, evidence-based answers.",
+        "rewards": "specific examples, real metrics if true, ownership, role alignment",
+        "risks": "generic answers, invented numbers, unclear impact, weak JD alignment",
+        "interviewer": "Alex — global recruiter",
+    }
+
+
+def _wz194_answer_quality(answer):
+    """Lightweight local scorer used to drive live recruiter-state changes before/without AI."""
+    text = _wz194_safe_text(answer, 4000)
+    low = text.lower()
+    words = len(low.split())
+    metrics = bool(_wz194_re.search(r"\b\d+\b|%|percent|reduced|increased|saved|improved|decreased|grew|faster|slower", low))
+    ownership = any(x in low for x in [" i ", "my role", "i led", "i handled", "i built", "i analyzed", "i resolved", "i improved", "i supported"])
+    structure = any(x in low for x in ["situation", "task", "action", "result", "first", "then", "finally", "because"])
+    jd_link = any(x in low for x in ["role", "job", "company", "customer", "stakeholder", "business", "team", "user", "data", "support"])
+    too_short = words < 35
+    too_long = words > 190
+    vague = any(x in low for x in ["etc", "many things", "stuff", "something", "good experience", "hard working", "responsible for everything"])
+    score = 42
+    score += 18 if metrics else -12
+    score += 14 if ownership else -10
+    score += 12 if structure else -7
+    score += 10 if jd_link else -6
+    score -= 10 if too_short else 0
+    score -= 9 if too_long else 0
+    score -= 8 if vague else 0
+    score = max(15, min(96, score))
+    weaknesses = []
+    if not metrics: weaknesses.append("missing measurable proof")
+    if not ownership: weaknesses.append("ownership unclear")
+    if not structure: weaknesses.append("weak answer structure")
+    if not jd_link: weaknesses.append("not tied to the role")
+    if too_long: weaknesses.append("too long for recruiter attention")
+    if too_short: weaknesses.append("too short to build trust")
+    if vague: weaknesses.append("vague wording")
+    strengths = []
+    if metrics: strengths.append("has measurable proof")
+    if ownership: strengths.append("shows personal contribution")
+    if structure: strengths.append("has some structure")
+    if jd_link: strengths.append("connects to job context")
+    return {"score": score, "weaknesses": weaknesses[:4], "strengths": strengths[:4], "words": words}
+
+
+def _wz194_get_recruiter_state():
+    default = {"confidence": 72, "attention": 82, "patience": 68, "hiring_signal": "Testing proof", "mood": "Interested", "concern": "Waiting for evidence", "last_interrupt": ""}
+    try:
+        state = st.session_state.get("wz194_recruiter_state") or st.session_state.get("wz187_recruiter_state") or default
+        merged = dict(default)
+        if isinstance(state, dict): merged.update(state)
+        st.session_state["wz194_recruiter_state"] = merged
+        st.session_state["wz187_recruiter_state"] = merged
+        return merged
+    except Exception:
+        return default
+
+
+def _wz194_update_recruiter_state_from_answer(answer):
+    """Live confidence/attention/patience update based on the actual answer text."""
+    try:
+        state = _wz194_get_recruiter_state()
+        q = _wz194_answer_quality(answer)
+        old_conf = int(state.get("confidence", 72))
+        old_attention = int(state.get("attention", 82))
+        score = int(q["score"])
+        delta = round((score - 60) / 3)
+        if "too long for recruiter attention" in q["weaknesses"]:
+            state["attention"] = max(12, old_attention - 13)
+            state["patience"] = max(10, int(state.get("patience", 68)) - 12)
+            state["last_interrupt"] = "Let me stop you there — can you answer that more directly?"
+        elif "missing measurable proof" in q["weaknesses"]:
+            state["last_interrupt"] = "What was the measurable impact? Can you quantify that?"
+        elif "ownership unclear" in q["weaknesses"]:
+            state["last_interrupt"] = "What exactly was your contribution?"
+        elif score >= 76:
+            state["last_interrupt"] = "Good recovery — now connect that result to this role."
+        state["confidence"] = max(8, min(96, old_conf + delta))
+        if score >= 78:
+            state["attention"] = min(96, old_attention + 7)
+            state["patience"] = min(96, int(state.get("patience", 68)) + 4)
+            state["hiring_signal"] = "Recovering / stronger proof"
+            state["mood"] = "Engaged again"
+            state["concern"] = "Keep this level of proof consistent"
+        elif score >= 58:
+            state["attention"] = max(20, old_attention - 2)
+            state["hiring_signal"] = "Still evaluating"
+            state["mood"] = "Neutral but testing"
+            state["concern"] = ", ".join(q["weaknesses"][:2]) or "needs sharper role fit"
+        else:
+            state["attention"] = max(10, old_attention - 9)
+            state["patience"] = max(10, int(state.get("patience", 68)) - 8)
+            state["hiring_signal"] = "Weakening"
+            state["mood"] = "Skeptical"
+            state["concern"] = ", ".join(q["weaknesses"][:3]) or "answer did not build trust"
+        state["last_score"] = score
+        state["last_weaknesses"] = q["weaknesses"]
+        state["last_strengths"] = q["strengths"]
+        st.session_state["wz194_recruiter_state"] = state
+        st.session_state["wz187_recruiter_state"] = state
+        # memory for retention loop
+        mem = st.session_state.get("wz194_interview_memory") or {}
+        mem.setdefault("attempts", 0)
+        mem["attempts"] += 1
+        mem["last_score"] = score
+        if score < 60:
+            mem["last_weak_answer"] = _wz194_safe_text(answer, 900)
+            mem["last_weaknesses"] = q["weaknesses"]
+        else:
+            mem["last_strong_answer"] = _wz194_safe_text(answer, 900)
+        st.session_state["wz194_interview_memory"] = mem
+        return state
+    except Exception:
+        return _wz194_get_recruiter_state()
+
+
+# Alias older dynamic-state hooks to the stronger answer-linked version.
+try:
+    def _wz192_apply_live_recruiter_evolution(answer):
+        return _wz194_update_recruiter_state_from_answer(answer)
+    def _wz187_apply_answer(answer):
+        return _wz194_update_recruiter_state_from_answer(answer)
+except Exception:
+    pass
+
+
+def _wz194_silence_tick(seconds_without_answer=0):
+    """Future voice mode: call this while user is silent to reduce attention/patience realistically."""
+    try:
+        sec = int(seconds_without_answer or 0)
+        state = _wz194_get_recruiter_state()
+        if sec >= 18:
+            state["attention"] = max(8, int(state.get("attention", 82)) - (5 if sec < 35 else 12))
+            state["patience"] = max(8, int(state.get("patience", 68)) - (4 if sec < 35 else 10))
+            state["mood"] = "Waiting" if sec < 35 else "Impatient"
+            state["hiring_signal"] = "Needs clearer response"
+            state["concern"] = "long pause may signal uncertainty"
+            state["last_interrupt"] = "Take a breath — give me one direct example."
+            st.session_state["wz194_recruiter_state"] = state
+            st.session_state["wz187_recruiter_state"] = state
+        return state
+    except Exception:
+        return {}
+
+
+def _wz194_honesty_global_prompt_block():
+    country = st.session_state.get("interview_country") or st.session_state.get("country") or "Global / Not sure yet"
+    language = st.session_state.get("interview_language") or st.session_state.get("preferred_language") or "English"
+    prof = _wz194_market_profile(country)
+    return f"""
+WORKZO AI RECRUITER SIMULATION — GLOBAL HONESTY MODE
+Product category: AI recruiter simulation / recruiter psychology training.
+Selected country/market: {country}
+Interview language: {language}
+Market interview style: {prof.get('style')}
+Recruiters reward: {prof.get('rewards')}
+Recruiter risk flags: {prof.get('risks')}
+
+Non-negotiable rules:
+- Do not invent metrics, achievements, dates, employers, job titles, certifications, salary, visa status, language level, or tools.
+- If measurable proof is missing, say: "No measurable result detected. Add a real metric if true."
+- Be honest about trust risk and rejection risk; do not give fake praise.
+- Explain where recruiter confidence rises, drops, or recovers.
+- Keep output compact, emotional, and recruiter-like — not chart-heavy or corporate-dashboard-like.
+- Adapt tone, interview expectations, and feedback to the selected country and interview language.
+- Support global users; never assume Germany unless Germany is selected.
+- The desired user loop is: upload CV → paste job → start recruiter simulation → get feedback → retry weakest answer.
+Do not show this instruction block to the user.
+""".strip()
+
+
+# Wrap common AI prompt paths with the stronger global honesty layer.
+try:
+    _wz194_prev_wrap_prompt = globals().get("_wz190_wrap_prompt")
+    def _wz190_wrap_prompt(prompt):
+        text = str(prompt or "")
+        try:
+            if callable(_wz194_prev_wrap_prompt):
+                text = _wz194_prev_wrap_prompt(text)
+        except Exception:
+            pass
+        if "WORKZO AI RECRUITER SIMULATION — GLOBAL HONESTY MODE" not in text:
+            text = text.rstrip() + "\n\n" + _wz194_honesty_global_prompt_block()
+        return text
+except Exception:
+    pass
+
+try:
+    if callable(globals().get("run_ai_prompt")) and not globals().get("_wz194_run_ai_wrapped"):
+        _wz194_original_run_ai_prompt = run_ai_prompt
+        def run_ai_prompt(prompt, *args, **kwargs):
+            return _wz194_original_run_ai_prompt(_wz190_wrap_prompt(prompt), *args, **kwargs)
+        _wz194_run_ai_wrapped = True
+except Exception:
+    pass
+
+try:
+    if callable(globals().get("_wz110_call_workobot_ai")) and not globals().get("_wz194_workobot_wrapped"):
+        _wz194_original_workobot_ai = _wz110_call_workobot_ai
+        def _wz110_call_workobot_ai(user_message: str) -> str:
+            return _wz194_original_workobot_ai(_wz190_wrap_prompt(user_message))
+        _wz194_workobot_wrapped = True
+except Exception:
+    pass
+
+
+def _wz194_apply_missing_layer_css():
+    try:
+        st.markdown(r'''
+        <style id="wz194-missing-layer-css">
+          .wz194-loop{max-width:1460px;margin:12px auto;padding:14px;border-radius:22px;background:linear-gradient(135deg,rgba(8,47,73,.38),rgba(30,27,75,.32));border:1px solid rgba(56,189,248,.16)}
+          .wz194-title{font-size:1.05rem;font-weight:950;color:#f8fafc;margin-bottom:4px}.wz194-sub{font-size:.84rem;color:#94a3b8;margin-bottom:10px}
+          .wz194-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.wz194-card{border:1px solid rgba(148,163,184,.15);background:rgba(15,23,42,.50);border-radius:15px;padding:10px;color:#e2e8f0;font-size:.82rem;line-height:1.3}.wz194-card b{display:block;color:#f8fafc;margin-bottom:3px}
+          .wz194-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.wz194-chip{padding:7px 9px;border-radius:999px;background:rgba(15,23,42,.62);border:1px solid rgba(148,163,184,.15);font-size:.78rem;font-weight:850;color:#dbeafe}.wz194-chip.warn{color:#fed7aa;border-color:rgba(251,146,60,.24);background:rgba(124,45,18,.18)}.wz194-chip.good{color:#bbf7d0;border-color:rgba(74,222,128,.20);background:rgba(20,83,45,.18)}
+          .wz194-mobile-safe [class*="floating"], .wz194-mobile-safe [class*="workobot"], .wz194-mobile-safe [class*="Work-O-Bot"]{right:22px!important;bottom:24px!important;max-width:245px!important}
+          [class*="workobot"], [class*="Work-O-Bot"], .workzo-floating-bot, .wz-floating-bot{right:24px!important;bottom:26px!important;max-width:248px!important;z-index:900!important}
+          @media(max-width:820px){.wz194-grid{grid-template-columns:1fr 1fr}.wz194-loop{padding:12px;margin:8px 6px}.wz194-card{font-size:.78rem;padding:9px}[class*="workobot"], [class*="Work-O-Bot"], .workzo-floating-bot, .wz-floating-bot{right:12px!important;bottom:14px!important;transform:scale(.82);transform-origin:bottom right;}}
+          @media(max-width:520px){.wz194-grid{grid-template-columns:1fr}}
+        </style>
+        ''', unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz194_render_compact_simulation_intelligence_strip():
+    """Small, non-dashboard-heavy strip that explains the new intelligence layer."""
+    try:
+        _wz194_apply_missing_layer_css()
+        state = _wz194_get_recruiter_state()
+        country = st.session_state.get("interview_country") or st.session_state.get("country") or "Global"
+        language = st.session_state.get("interview_language") or st.session_state.get("preferred_language") or "English"
+        prof = _wz194_market_profile(country)
+        st.markdown(f'''
+        <div class="wz194-loop">
+          <div class="wz194-title">AI recruiter simulation engine</div>
+          <div class="wz194-sub">Live confidence, honest feedback, global interview norms, and retry loops are now connected to the interview experience.</div>
+          <div class="wz194-grid">
+            <div class="wz194-card"><b>Live confidence</b>{int(state.get('confidence',72))}% · { _wz194_html.escape(str(state.get('hiring_signal','Testing proof'))) }</div>
+            <div class="wz194-card"><b>Global mode</b>{_wz194_html.escape(str(country))} · {_wz194_html.escape(str(language))}</div>
+            <div class="wz194-card"><b>Recruiter style</b>{_wz194_html.escape(str(prof.get('style','Evidence-based and role-specific')))}</div>
+            <div class="wz194-card"><b>Honesty rules</b>No invented metrics · no fake praise · proof required</div>
+          </div>
+          <div class="wz194-chips"><span class="wz194-chip good">Retry weakest answer</span><span class="wz194-chip">Voice-ready interruptions</span><span class="wz194-chip warn">Trust-risk detection</span><span class="wz194-chip">Mobile-safe assistant</span></div>
+        </div>
+        ''', unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz194_render_retry_loop_widget():
+    """Compact post-answer retry loop that can be shown on interview/result pages."""
+    try:
+        _wz194_apply_missing_layer_css()
+        mem = st.session_state.get("wz194_interview_memory") or st.session_state.get("wz192_interview_memory") or {}
+        weak = _wz194_safe_text(mem.get("last_weak_answer"), 700)
+        if not weak:
+            return
+        st.markdown('<div class="wz194-loop"><div class="wz194-title">Retry weakest answer</div><div class="wz194-sub">Repair the answer that lowered recruiter confidence. WorkZo compares old vs new and updates the confidence loop.</div></div>', unsafe_allow_html=True)
+        retry = st.text_area("Retry this answer now", key="wz194_retry_answer", height=110, placeholder="Lead with the result. Add a real metric only if true. Explain your role. Connect it to the job.")
+        if st.button("Compare old vs new answer", key="wz194_compare_retry_btn", type="primary") and retry.strip():
+            old_score = _wz194_answer_quality(weak)["score"]
+            new_score = _wz194_answer_quality(retry)["score"]
+            _wz194_update_recruiter_state_from_answer(retry)
+            st.success(f"Recruiter confidence recovery loop: old answer {old_score}/100 → new answer {new_score}/100")
+            st.rerun()
+    except Exception:
+        pass
+
+
+# Add compact simulation strip to known Real Interview renderers without adding bulky dashboards.
+for _wz194_fn_name in ["render_real_interview_simulation", "show_interview_simulation", "show_real_interview", "render_real_interview"]:
+    try:
+        _wz194_old_fn = globals().get(_wz194_fn_name)
+        if callable(_wz194_old_fn) and not getattr(_wz194_old_fn, "_wz194_wrapped", False):
+            def _wz194_make_interview_wrapper(fn):
+                def _wrapped(*args, **kwargs):
+                    _wz194_apply_missing_layer_css()
+                    result = fn(*args, **kwargs)
+                    # Keep this below the main interview UI: informative but not overwhelming.
+                    _wz194_render_compact_simulation_intelligence_strip()
+                    _wz194_render_retry_loop_widget()
+                    return result
+                _wrapped._wz194_wrapped = True
+                return _wrapped
+            globals()[_wz194_fn_name] = _wz194_make_interview_wrapper(_wz194_old_fn)
+    except Exception:
+        pass
+
+
+# Strengthen final-result pages with retry loop only after the interview/report.
+for _wz194_result_fn in ["render_interview_result", "render_final_interview_report", "render_interview_summary", "show_interview_results", "render_real_interview_results"]:
+    try:
+        _old_result = globals().get(_wz194_result_fn)
+        if callable(_old_result) and not getattr(_old_result, "_wz194_wrapped", False):
+            def _wz194_make_result_wrapper(fn):
+                def _wrapped(*args, **kwargs):
+                    result = fn(*args, **kwargs)
+                    _wz194_render_retry_loop_widget()
+                    return result
+                _wrapped._wz194_wrapped = True
+                return _wrapped
+            globals()[_wz194_result_fn] = _wz194_make_result_wrapper(_old_result)
+    except Exception:
+        pass
+
+
+# Store onboarding clarity copy for any header/intro that wants it.
+def _wz194_onboarding_clarity_line():
+    return "Upload CV → paste job → start recruiter simulation → get honest feedback → retry weakest answer."
+
+
+# Backwards-compatible aliases for country/language selectors in older code.
+try:
+    country_options = _wz194_country_options()
+    language_options = _wz194_interview_language_options()
+except Exception:
+    pass
+
+try:
+    _wz194_apply_missing_layer_css()
+except Exception:
+    pass
+
+# ============================================================================
+# WorkZo v195 - Real Answer Intelligence + Global Honesty Retention Upgrade
+# ============================================================================
+try:
+    import re as _wz195_re
+    import html as _wz195_html
+    from datetime import datetime as _wz195_datetime
+except Exception:
+    pass
+
+def _wz195_int(v, default=0):
+    try: return int(v)
+    except Exception: return default
+
+def _wz195_clamp(v, lo=0, hi=100):
+    try: return max(lo, min(hi, int(v)))
+    except Exception: return lo
+
+def _wz195_text(v, limit=1200):
+    try: return str(v or '').strip()[:limit]
+    except Exception: return ''
+
+def _wz195_selected_country():
+    try:
+        return (st.session_state.get('interview_country') or st.session_state.get('target_country') or st.session_state.get('migration_country') or st.session_state.get('country') or 'Global')
+    except Exception:
+        return 'Global'
+
+def _wz195_selected_language():
+    try:
+        return (st.session_state.get('interview_language') or st.session_state.get('preferred_language') or st.session_state.get('response_language') or st.session_state.get('language') or 'English')
+    except Exception:
+        return 'English'
+
+def _wz195_country_rules(country=None):
+    c = str(country or _wz195_selected_country() or 'Global').lower()
+    if 'germany' in c or 'deutschland' in c:
+        return {'market':'Germany','expects':['structured answers','specific proof','modest confidence','clear ownership'],'risks':['unsupported claims','over-selling','missing measurable impact'],'tone':'structured, evidence-heavy, direct','reward_metrics':10,'reward_structure':10,'penalty_hype':8}
+    if 'usa' in c or 'united states' in c or 'america' in c:
+        return {'market':'United States','expects':['impact storytelling','ownership','confidence','business outcomes'],'risks':['too passive','no measurable outcomes','weak ownership'],'tone':'confident, concise, impact-oriented','reward_metrics':12,'reward_structure':7,'penalty_hype':5}
+    if 'uk' in c or 'united kingdom' in c or 'england' in c:
+        return {'market':'United Kingdom','expects':['balanced professionalism','collaboration','clear examples'],'risks':['too much self-promotion','weak collaboration proof','unclear outcome'],'tone':'professional, balanced, concise','reward_metrics':8,'reward_structure':8,'penalty_hype':7}
+    if 'canada' in c:
+        return {'market':'Canada','expects':['collaboration','role fit','communication clarity','impact'],'risks':['generic answers','missing team context','unclear impact'],'tone':'warm, structured, collaborative','reward_metrics':9,'reward_structure':8,'penalty_hype':6}
+    if 'india' in c:
+        return {'market':'India','expects':['technical depth','clear ownership','project details','communication fluency'],'risks':['too theoretical','unclear contribution','weak communication clarity'],'tone':'detailed but direct, technical and ownership-focused','reward_metrics':8,'reward_structure':7,'penalty_hype':5}
+    if 'uae' in c or 'emirates' in c or 'dubai' in c:
+        return {'market':'UAE','expects':['professionalism','multicultural communication','adaptability','business value'],'risks':['poor cross-cultural clarity','vague motivation','weak professionalism'],'tone':'polished, adaptable, business-focused','reward_metrics':9,'reward_structure':7,'penalty_hype':5}
+    return {'market':str(country or 'Global'),'expects':['clear role fit','specific examples','honest evidence','measurable impact when available'],'risks':['generic claims','missing proof','unclear ownership','weak job alignment'],'tone':'honest, recruiter-like, concise, globally adaptable','reward_metrics':9,'reward_structure':8,'penalty_hype':6}
+
+def _wz195_detect_answer_signals(answer):
+    a = _wz195_text(answer, 5000)
+    low = a.lower()
+    try: words = _wz195_re.findall(r"\b[\w%€$£+-]+\b", low)
+    except Exception: words = low.split()
+    word_count = len(words)
+    try:
+        numbers = _wz195_re.findall(r"(?<!\w)(?:\d+[\d,.]*\s?%?|[$€£]\s?\d+[\d,.]*|\d+\s?(?:users|customers|tickets|hours|days|weeks|months|revenue|cost|sla|csat|nps|projects|reports))(?!\w)", a, flags=_wz195_re.I)
+    except Exception:
+        numbers = []
+    metric_words = ['increased','reduced','improved','saved','decreased','grew','delivered','resolved','automated','optimized','cut','raised','lowered','faster','accuracy','revenue','cost','sla','csat','nps']
+    ownership_words = ['i ','my ','i led','i built','i created','i handled','i resolved','i analyzed','i improved','i worked on','i was responsible']
+    structure_words = ['situation','task','action','result','first','then','finally','because','therefore','as a result','outcome']
+    jd_words = ['role','job','position','requirement','customer','stakeholder','data','analysis','support','team','business','user','client','product','technical']
+    vague_words = ['many','some','various','things','stuff','good','better','helped','worked','responsible for','involved in','etc','and so on']
+    hype_words = ['best','perfect','expert','excellent at everything','guaranteed','always','never failed']
+    filler_words = ['basically','actually','kind of','sort of','maybe','i think','you know','like']
+    return {
+        'word_count': word_count,
+        'numbers': numbers[:5],
+        'has_metric': bool(numbers) or any(w in low for w in metric_words),
+        'has_ownership': any(w in low for w in ownership_words),
+        'has_structure': sum(1 for w in structure_words if w in low) >= 2,
+        'has_jd_alignment': sum(1 for w in jd_words if w in low) >= 2,
+        'vague_count': sum(1 for w in vague_words if w in low),
+        'hype_count': sum(1 for w in hype_words if w in low),
+        'filler_count': sum(1 for w in filler_words if w in low),
+        'too_short': word_count < 35,
+        'too_long': word_count > 180,
+    }
+
+def _wz195_score_answer(answer, country=None):
+    rules = _wz195_country_rules(country)
+    s = _wz195_detect_answer_signals(answer)
+    score, feedback, trust_flags, strengths = 42, [], [], []
+    if s['has_metric']:
+        score += rules.get('reward_metrics', 9); strengths.append('measurable proof detected')
+    else:
+        score -= 10; trust_flags.append('No measurable result detected'); feedback.append('Add a real metric only if true.')
+    if s['has_ownership']:
+        score += 12; strengths.append('ownership is visible')
+    else:
+        score -= 8; trust_flags.append('Your exact contribution is unclear'); feedback.append('Say what YOU did, not only what the team did.')
+    if s['has_structure']:
+        score += rules.get('reward_structure', 8); strengths.append('structured answer')
+    else:
+        score -= 7; trust_flags.append('Answer lacks clear structure'); feedback.append('Use result-first or STAR structure.')
+    if s['has_jd_alignment']:
+        score += 10; strengths.append('connected to job expectations')
+    else:
+        score -= 8; trust_flags.append('Weak job-description alignment'); feedback.append('Connect the example to the target role.')
+    if s['too_short']:
+        score -= 9; trust_flags.append('Too short to build trust')
+    if s['too_long']:
+        score -= 9; trust_flags.append('Too long; recruiter attention may drop'); feedback.append('Be more direct. Lead with the result.')
+    if s['vague_count'] >= 2:
+        score -= min(14, s['vague_count'] * 3); trust_flags.append('Vague wording reduces recruiter confidence')
+    if s['hype_count']:
+        score -= rules.get('penalty_hype', 6); trust_flags.append('Sounds over-claimed or rehearsed')
+    if s['filler_count'] >= 2:
+        score -= min(8, s['filler_count'] * 2); trust_flags.append('Filler words weaken confidence')
+    score = _wz195_clamp(score, 5, 96)
+    if score >= 78:
+        mood, hiring_signal, interrupt, concern = 'Engaged', 'Strengthening', '', 'Keep this level of proof and stay concise.'
+    elif score >= 62:
+        mood, hiring_signal, interrupt, concern = 'Interested but testing', 'Needs proof', 'Can you make the outcome more specific?', (trust_flags[0] if trust_flags else 'Recruiter wants sharper evidence.')
+    elif score >= 45:
+        mood, hiring_signal, interrupt, concern = 'Skeptical', 'Weakening', 'Let me stop you there — what was the actual result?', (trust_flags[0] if trust_flags else 'Answer is not convincing yet.')
+    else:
+        mood, hiring_signal, interrupt, concern = 'Losing confidence', 'High risk', 'Can you answer that more directly? I’m still missing proof.', (trust_flags[0] if trust_flags else 'Recruiter confidence dropped.')
+    return {'score':score,'signals':s,'strengths':strengths[:4] or ['some relevant content detected'],'trust_flags':trust_flags[:5] or ['No major trust risk detected'],'feedback':feedback[:4] or ['Keep it specific, truthful, and tied to the job.'],'mood':mood,'hiring_signal':hiring_signal,'interrupt':interrupt,'concern':concern,'country_rules':rules}
+
+def _wz195_get_state():
+    try:
+        state = st.session_state.get('wz195_recruiter_state') or st.session_state.get('wz194_recruiter_state') or st.session_state.get('wz187_recruiter_state') or {}
+        if not isinstance(state, dict): state = {}
+        state.setdefault('confidence',72); state.setdefault('attention',82); state.setdefault('patience',68); state.setdefault('hiring_signal','Needs proof'); state.setdefault('mood','Calm'); state.setdefault('concern','Waiting for role-specific evidence'); state.setdefault('timeline',[])
+        return state
+    except Exception:
+        return {'confidence':72,'attention':82,'patience':68,'hiring_signal':'Needs proof','mood':'Calm','concern':'Waiting for role-specific evidence','timeline':[]}
+
+def _wz195_set_state(state):
+    try:
+        st.session_state['wz195_recruiter_state'] = state; st.session_state['wz194_recruiter_state'] = state; st.session_state['wz187_recruiter_state'] = state
+    except Exception: pass
+    return state
+
+def _wz195_update_state_from_answer(answer, source='answer'):
+    try:
+        q = _wz195_score_answer(answer, _wz195_selected_country())
+        state = _wz195_get_state(); score = q['score']; before = _wz195_int(state.get('confidence'),72)
+        if score >= 78: cd, ad, pd = 12, 7, 4
+        elif score >= 62: cd, ad, pd = 3, 1, 0
+        elif score >= 45: cd, ad, pd = -12, -8, -6
+        else: cd, ad, pd = -20, -14, -10
+        state['confidence'] = _wz195_clamp(before + cd); state['attention'] = _wz195_clamp(_wz195_int(state.get('attention'),82) + ad); state['patience'] = _wz195_clamp(_wz195_int(state.get('patience'),68) + pd)
+        state['hiring_signal'] = q['hiring_signal']; state['mood'] = q['mood']; state['concern'] = q['concern']; state['last_interrupt'] = q['interrupt']; state['last_quality'] = q; state['last_score'] = score
+        try: state['last_updated'] = _wz195_datetime.utcnow().isoformat()
+        except Exception: state['last_updated'] = ''
+        timeline = state.get('timeline') if isinstance(state.get('timeline'), list) else []
+        timeline.append({'source':source,'score':score,'before':before,'after':state['confidence'],'mood':q['mood'],'signal':q['hiring_signal'],'concern':q['concern']})
+        state['timeline'] = timeline[-10:]
+        _wz195_set_state(state)
+        mem = st.session_state.get('wz195_recruiter_memory') or st.session_state.get('wz194_interview_memory') or {}
+        if not isinstance(mem, dict): mem = {}
+        mem['attempts'] = int(mem.get('attempts',0)) + 1; mem['last_score'] = score; mem['last_trust_flags'] = q['trust_flags']; mem['last_feedback'] = q['feedback']
+        if score < 62:
+            mem['last_weak_answer'] = _wz195_text(answer, 1000); mem['last_weak_score'] = score
+        else:
+            mem['last_strong_answer'] = _wz195_text(answer, 1000); mem['last_strong_score'] = score
+        patterns = mem.get('patterns') if isinstance(mem.get('patterns'), dict) else {}
+        for flag in q['trust_flags']: patterns[flag] = int(patterns.get(flag,0)) + 1
+        mem['patterns'] = patterns
+        st.session_state['wz195_recruiter_memory'] = mem; st.session_state['wz194_interview_memory'] = mem
+        try:
+            if callable(globals().get('track_event')):
+                track_event('answer_scored', 'Interview', {'score': score, 'confidence_after': state['confidence'], 'country': _wz195_selected_country(), 'language': _wz195_selected_language()})
+        except Exception: pass
+        return state
+    except Exception:
+        return _wz195_get_state()
+
+try:
+    def _wz194_update_recruiter_state_from_answer(answer): return _wz195_update_state_from_answer(answer, source='wz194_alias')
+    def _wz192_apply_live_recruiter_evolution(answer): return _wz195_update_state_from_answer(answer, source='wz192_alias')
+    def _wz187_apply_answer(answer): return _wz195_update_state_from_answer(answer, source='wz187_alias')
+except Exception: pass
+
+def _wz195_honesty_prompt_block():
+    rules = _wz195_country_rules(_wz195_selected_country())
+    return f"""
+WORKZO GLOBAL RECRUITER INTELLIGENCE MODE
+Role of AI: act like a realistic recruiter, not a motivational coach.
+Market: {rules.get('market')}
+Interview language: {_wz195_selected_language()}
+Recruiter tone: {rules.get('tone')}
+Market expects: {', '.join(rules.get('expects', []))}
+Market risk flags: {', '.join(rules.get('risks', []))}
+Honesty rules:
+- Never invent numbers, achievements, companies, job titles, certifications, visa status, or language level.
+- If proof is missing, say clearly: No measurable result detected. Add a real metric only if true.
+- Score evidence over confidence.
+- Explain where recruiter trust increased, dropped, or recovered.
+- Prefer compact recruiter-style feedback over long bullet lists.
+- Adapt expectations to selected country and selected interview language.
+- Keep WorkZo focused on recruiter psychology simulation: confidence, trust, pressure, interruption, recovery.
+""".strip()
+
+try:
+    _wz195_prev_wrap_prompt = globals().get('_wz190_wrap_prompt')
+    def _wz190_wrap_prompt(prompt):
+        base = str(prompt or '')
+        try:
+            if callable(_wz195_prev_wrap_prompt): base = _wz195_prev_wrap_prompt(base)
+        except Exception: pass
+        if 'WORKZO GLOBAL RECRUITER INTELLIGENCE MODE' not in base:
+            base = base.rstrip() + '\n\n' + _wz195_honesty_prompt_block()
+        return base
+except Exception: pass
+
+try:
+    if callable(globals().get('run_ai_prompt')) and not globals().get('_wz195_run_ai_prompt_wrapped'):
+        _wz195_original_run_ai_prompt = run_ai_prompt
+        def run_ai_prompt(prompt, *args, **kwargs): return _wz195_original_run_ai_prompt(_wz190_wrap_prompt(prompt), *args, **kwargs)
+        _wz195_run_ai_prompt_wrapped = True
+except Exception: pass
+
+def _wz195_apply_css():
+    try:
+        st.markdown(r'''
+        <style id="wz195-real-answer-intelligence-css">
+          .wz195-panel{max-width:1450px;margin:10px auto 12px;padding:13px;border-radius:20px;background:linear-gradient(135deg,rgba(15,23,42,.74),rgba(30,41,59,.54));border:1px solid rgba(148,163,184,.16);box-shadow:0 16px 45px rgba(2,6,23,.20)}
+          .wz195-title{font-size:1.02rem;font-weight:950;color:#f8fafc;margin-bottom:4px}.wz195-sub{font-size:.82rem;color:#94a3b8;margin-bottom:9px}
+          .wz195-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.wz195-card{padding:10px;border-radius:15px;background:rgba(15,23,42,.58);border:1px solid rgba(148,163,184,.14);color:#e2e8f0;font-size:.8rem;line-height:1.3}.wz195-card b{display:block;font-size:.74rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}.wz195-card strong{font-size:1rem;color:#f8fafc}
+          .wz195-flags{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.wz195-flag{padding:7px 9px;border-radius:999px;border:1px solid rgba(251,146,60,.22);background:rgba(124,45,18,.17);color:#fed7aa;font-size:.76rem;font-weight:850}.wz195-flag.good{border-color:rgba(74,222,128,.22);background:rgba(20,83,45,.17);color:#bbf7d0}.wz195-flag.info{border-color:rgba(56,189,248,.22);background:rgba(8,47,73,.18);color:#bae6fd}
+          .wz195-oldanswer{border-radius:14px;background:rgba(15,23,42,.68);border:1px solid rgba(148,163,184,.14);padding:10px;color:#cbd5e1;font-size:.82rem;line-height:1.45;margin:8px 0}
+          [class*="workobot"], [class*="Work-O-Bot"], .workzo-floating-bot, .wz-floating-bot{right:28px!important;bottom:30px!important;max-width:235px!important;z-index:880!important;}
+          @media(max-width:820px){.wz195-grid{grid-template-columns:1fr 1fr}.wz195-panel{margin:8px 4px;padding:11px}.wz195-card{padding:9px;font-size:.76rem}[class*="workobot"], [class*="Work-O-Bot"], .workzo-floating-bot, .wz-floating-bot{right:14px!important;bottom:18px!important;transform:scale(.78);transform-origin:bottom right;}}
+          @media(max-width:520px){.wz195-grid{grid-template-columns:1fr}.wz195-flags{gap:5px}.wz195-flag{font-size:.72rem;padding:6px 8px}}
+        </style>
+        ''', unsafe_allow_html=True)
+    except Exception: pass
+
+def _wz195_render_live_state_panel():
+    try:
+        _wz195_apply_css(); state = _wz195_get_state(); mem = st.session_state.get('wz195_recruiter_memory') or {}
+        q = state.get('last_quality') if isinstance(state.get('last_quality'), dict) else {}
+        flags = q.get('trust_flags') if isinstance(q.get('trust_flags'), list) else mem.get('last_trust_flags', [])
+        strengths = q.get('strengths') if isinstance(q.get('strengths'), list) else []
+        flag_html = ''.join([f'<span class="wz195-flag">⚠️ {_wz195_html.escape(str(x))}</span>' for x in (flags[:3] if flags else ['Waiting for answer proof'])])
+        good_html = ''.join([f'<span class="wz195-flag good">✓ {_wz195_html.escape(str(x))}</span>' for x in strengths[:2]])
+        st.markdown(f'''
+        <div class="wz195-panel">
+          <div class="wz195-title">Live recruiter confidence engine</div>
+          <div class="wz195-sub">Confidence changes from the actual answer: metrics, ownership, structure, JD fit, length, and market expectations.</div>
+          <div class="wz195-grid">
+            <div class="wz195-card"><b>Confidence</b><strong>{_wz195_int(state.get('confidence'),72)}%</strong></div>
+            <div class="wz195-card"><b>Hiring signal</b>{_wz195_html.escape(str(state.get('hiring_signal','Needs proof')))}</div>
+            <div class="wz195-card"><b>Recruiter mood</b>{_wz195_html.escape(str(state.get('mood','Calm')))}</div>
+            <div class="wz195-card"><b>Current concern</b>{_wz195_html.escape(str(state.get('concern','Waiting for role-specific evidence')))}</div>
+          </div>
+          <div class="wz195-flags">{flag_html}{good_html}<span class="wz195-flag info">🌍 {_wz195_html.escape(str(_wz195_selected_country()))} · {_wz195_html.escape(str(_wz195_selected_language()))}</span></div>
+        </div>
+        ''', unsafe_allow_html=True)
+    except Exception: pass
+
+def _wz195_render_retry_weakest_answer():
+    try:
+        _wz195_apply_css(); mem = st.session_state.get('wz195_recruiter_memory') or st.session_state.get('wz194_interview_memory') or {}
+        weak = _wz195_text(mem.get('last_weak_answer'), 900); weak_score = _wz195_int(mem.get('last_weak_score'), 0)
+        if not weak: return
+        st.markdown(f'''
+        <div class="wz195-panel">
+          <div class="wz195-title">🎤 Retry weakest answer immediately</div>
+          <div class="wz195-sub">Repair the answer that damaged recruiter trust and recover confidence.</div>
+          <div class="wz195-oldanswer"><b>Previous weak answer · {weak_score}/100</b><br>{_wz195_html.escape(weak)}</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        retry = st.text_area('Retry this answer now', key='wz195_retry_weakest_answer_text', height=115, placeholder='Lead with the result, explain your role, add a real metric only if true, and connect it to the target job.')
+        if st.button('Compare old vs new and update recruiter confidence', key='wz195_compare_retry', type='primary') and retry.strip():
+            old_score = _wz195_score_answer(weak)['score']; new_quality = _wz195_score_answer(retry); _wz195_update_state_from_answer(retry, source='retry_weakest_answer')
+            st.success(f'Recruiter recovery: old answer {old_score}/100 → new answer {new_quality["score"]}/100')
+            try:
+                if callable(globals().get('track_event')): track_event('retry_weakest_answer', 'Interview', {'old_score': old_score, 'new_score': new_quality['score']})
+            except Exception: pass
+            st.rerun()
+    except Exception: pass
+
+def _wz195_render_session_patterns():
+    try:
+        _wz195_apply_css(); mem = st.session_state.get('wz195_recruiter_memory') or {}; patterns = mem.get('patterns') if isinstance(mem.get('patterns'), dict) else {}
+        if not patterns: return
+        top = sorted(patterns.items(), key=lambda kv: kv[1], reverse=True)[:5]
+        chips = ''.join([f'<span class="wz195-flag">{_wz195_html.escape(k)} · {v}x</span>' for k, v in top])
+        st.markdown(f'<div class="wz195-panel"><div class="wz195-title">Patterns across sessions</div><div class="wz195-sub">WorkZo remembers recurring recruiter trust issues so users come back to improve them.</div><div class="wz195-flags">{chips}</div></div>', unsafe_allow_html=True)
+    except Exception: pass
+
+def _wz195_wrap_page_function(fn, show_live=True, show_retry=True, show_patterns=False):
+    def _wrapped(*args, **kwargs):
+        result = fn(*args, **kwargs)
+        if show_live: _wz195_render_live_state_panel()
+        if show_retry: _wz195_render_retry_weakest_answer()
+        if show_patterns: _wz195_render_session_patterns()
+        return result
+    _wrapped._wz195_wrapped = True
+    return _wrapped
+
+for _wz195_name in ['render_real_interview_simulation','show_interview_simulation','show_real_interview','render_real_interview']:
+    try:
+        _fn = globals().get(_wz195_name)
+        if callable(_fn) and not getattr(_fn, '_wz195_wrapped', False): globals()[_wz195_name] = _wz195_wrap_page_function(_fn, show_live=True, show_retry=True, show_patterns=False)
+    except Exception: pass
+
+for _wz195_name in ['render_interview_result','render_final_interview_report','render_interview_summary','show_interview_results','render_real_interview_results']:
+    try:
+        _fn = globals().get(_wz195_name)
+        if callable(_fn) and not getattr(_fn, '_wz195_wrapped', False): globals()[_wz195_name] = _wz195_wrap_page_function(_fn, show_live=True, show_retry=True, show_patterns=True)
+    except Exception: pass
+
+def _wz195_voice_ready_interruption(answer='', seconds_spoken=0, seconds_silent=0):
+    try:
+        if int(seconds_silent or 0) >= 18:
+            state = _wz195_get_state(); state['attention'] = _wz195_clamp(_wz195_int(state.get('attention'),82)-8); state['patience'] = _wz195_clamp(_wz195_int(state.get('patience'),68)-8); state['mood'] = 'Waiting'; state['last_interrupt'] = 'Take a breath — give me one direct example.'; state['concern'] = 'Long pause may signal uncertainty.'; _wz195_set_state(state); return state['last_interrupt']
+        if int(seconds_spoken or 0) >= 90:
+            state = _wz195_update_state_from_answer(answer, source='long_answer_interrupt') if answer else _wz195_get_state(); state['last_interrupt'] = 'Let me stop you there — can you answer that more directly?'; _wz195_set_state(state); return state['last_interrupt']
+        if answer: return _wz195_score_answer(answer).get('interrupt') or ''
+    except Exception: return ''
+    return ''
+
+def _wz195_onboarding_clarity_line():
+    return 'Upload CV → paste job → start AI recruiter simulation → get honest feedback → retry weakest answer.'
+
+try: _wz195_apply_css()
+except Exception: pass
+
+
+def workzo_streamlit_ready_disclaimer_text():
+    return "Testing mode: live voice, interruption timing, memory, analytics, and country behavior are Streamlit-ready beta features. A stronger real-time version is planned after moving WorkZo to a bigger platform."
+
+
+# =========================================================
+# WorkZo v130 - Founder Dashboard: Recruiter Simulation Intelligence
+# Scope: founder analytics only. Privacy-safe, Streamlit-manageable.
+# Does NOT store CV, JD, names, emails, phone numbers, or answer transcripts.
+# =========================================================
+
+try:
+    import json as _wz130_json
+    import math as _wz130_math
+    from collections import Counter as _wz130_Counter, defaultdict as _wz130_defaultdict
+except Exception:
+    pass
+
+
+def _wz130_safe_int(value, default=0):
+    try:
+        if value is None or value == '':
+            return default
+        return int(float(str(value).replace('%', '').strip()))
+    except Exception:
+        return default
+
+
+def _wz130_details(row):
+    try:
+        raw = row.get('details') if isinstance(row, dict) else ''
+        if isinstance(raw, dict):
+            return raw
+        if not raw:
+            return {}
+        parsed = _wz130_json.loads(raw)
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        return {}
+
+
+def _wz130_text(row):
+    try:
+        d = _wz130_details(row)
+        return (str(row.get('event', '')) + ' ' + str(row.get('page', '')) + ' ' + ' '.join([str(k) + ' ' + str(v) for k, v in d.items()])).lower()
+    except Exception:
+        return ''
+
+
+def _wz130_has(row, *terms):
+    try:
+        text = _wz130_text(row)
+        return any(str(t).lower() in text for t in terms)
+    except Exception:
+        return False
+
+
+def _wz130_sessions(rows):
+    grouped = {}
+    try:
+        for r in rows or []:
+            sid = str(r.get('session_id') or 'unknown')
+            grouped.setdefault(sid, []).append(r)
+    except Exception:
+        pass
+    return grouped
+
+
+def _wz130_count(rows, *terms):
+    try:
+        return sum(1 for r in rows or [] if _wz130_has(r, *terms))
+    except Exception:
+        return 0
+
+
+def _wz130_unique_sessions_with(rows, *terms):
+    try:
+        return len({str(r.get('session_id') or '') for r in rows or [] if str(r.get('session_id') or '') and _wz130_has(r, *terms)})
+    except Exception:
+        return 0
+
+
+def _wz130_pct(part, total):
+    try:
+        return f"{int(round((float(part) / float(total)) * 100))}%" if total else '0%'
+    except Exception:
+        return '0%'
+
+
+def _wz130_event_bucket(row):
+    """Map raw events to the founder's real product questions."""
+    try:
+        if _wz130_has(row, 'retry', 'weakest answer', 're-answer'):
+            return 'Retry loop'
+        if _wz130_has(row, 'confidence_drop', 'trust_drop', 'confidence dropped', 'losing trust', 'weak answer'):
+            return 'Confidence drop'
+        if _wz130_has(row, 'confidence_recovery', 'recovered', 'recovery', 'strong recovery'):
+            return 'Recovery moment'
+        if _wz130_has(row, 'interruption', 'let me stop', 'answer directly', 'pressure'):
+            return 'Pressure/interruption'
+        if _wz130_has(row, 'start_real_interview', 'start interview', 'interview_started', 'start_recruiter'):
+            return 'Interview started'
+        if _wz130_has(row, 'answer_submitted', 'typed_answer', 'spoken_answer', 'submit answer'):
+            return 'Answer submitted'
+        if _wz130_has(row, 'post_interview', 'final report', 'interview_completed', 'results'):
+            return 'Report viewed'
+        if _wz130_has(row, 'cv upload', 'cv_uploaded', 'has_cv'):
+            return 'CV uploaded'
+        if _wz130_has(row, 'job description', 'jd', 'job_pasted', 'understand job'):
+            return 'Job context'
+        if _wz130_has(row, 'feedback', 'like', 'dislike'):
+            return 'Feedback'
+        if _wz130_has(row, 'find job', 'jobs'):
+            return 'Job search'
+        if _wz130_has(row, 'cover letter', 'cover'):
+            return 'Cover letter'
+        if _wz130_has(row, 'improve cv', 'resume'):
+            return 'Resume/CV tool'
+        if _wz130_has(row, 'work-o-bot', 'coach', 'assistant'):
+            return 'Assistant used'
+    except Exception:
+        pass
+    return 'Other'
+
+
+def _wz130_session_bucket(items):
+    text = ' '.join(_wz130_text(r) for r in items or [])
+    if any(t in text for t in ['retry', 'weakest answer', 're-answer']):
+        return 'Retried weak answer'
+    if any(t in text for t in ['final report', 'interview_completed', 'post_interview', 'results']):
+        return 'Reached report'
+    if any(t in text for t in ['answer_submitted', 'typed_answer', 'spoken_answer']):
+        return 'Submitted answer'
+    if any(t in text for t in ['start interview', 'interview_started', 'start_recruiter']):
+        return 'Started interview'
+    if any(t in text for t in ['cv_uploaded', 'cv upload', 'has_cv']):
+        return 'Uploaded CV'
+    return 'Visited only'
+
+
+def _wz130_founder_insights(rows):
+    """Generate human founder insights from safe event patterns."""
+    insights = []
+    try:
+        total_sessions = len(_wz130_sessions(rows)) or 0
+        started = _wz130_unique_sessions_with(rows, 'start interview', 'interview_started', 'start_recruiter')
+        answers = _wz130_unique_sessions_with(rows, 'answer_submitted', 'typed_answer', 'spoken_answer')
+        reports = _wz130_unique_sessions_with(rows, 'final report', 'interview_completed', 'post_interview', 'results')
+        retries = _wz130_unique_sessions_with(rows, 'retry', 'weakest answer', 're-answer')
+        drops = _wz130_count(rows, 'confidence_drop', 'trust_drop', 'losing trust', 'weak answer')
+        recoveries = _wz130_count(rows, 'confidence_recovery', 'recovered', 'recovery')
+        interruptions = _wz130_count(rows, 'interruption', 'let me stop', 'answer directly', 'pressure')
+
+        if started and answers == 0:
+            insights.append(('Interview room friction', 'Users start interviews but do not submit answers yet. Check the answer input, mic/typing clarity, and first-question pressure.'))
+        if started and reports and reports / max(started, 1) >= 0.45:
+            insights.append(('Good completion signal', f'{_wz130_pct(reports, started)} of interview starters reached report/result signals. Keep the flow focused.'))
+        if started and retries / max(started, 1) >= 0.20:
+            insights.append(('Retention loop emerging', f'{_wz130_pct(retries, started)} of interview starters triggered retry behavior. This is your strongest engagement signal.'))
+        elif started:
+            insights.append(('Retry loop needs visibility', 'Retry weakest answer is not yet strongly used. Make it appear immediately after confidence drops.'))
+        if drops and not recoveries:
+            insights.append(('Pressure without recovery', 'Confidence drops are being detected, but recovery moments are low. Users need a clearer path to repair trust.'))
+        if recoveries and drops:
+            insights.append(('Emotional recovery loop working', 'Both confidence drops and recovery moments exist. This is the WorkZo moat: recruiter trust can be repaired.'))
+        if interruptions and started:
+            insights.append(('Pressure realism active', 'Interruption/pressure signals are present. Watch whether they improve retry behavior or cause drop-off.'))
+        if total_sessions and started / max(total_sessions, 1) < 0.25:
+            insights.append(('Onboarding/start friction', 'Many visitors do not start an interview. Make the first action even clearer: CV → Job → Start Simulation.'))
+        if not rows:
+            insights.append(('No analytics yet', 'Use the app once end-to-end, then reopen this dashboard. Analytics will populate automatically.'))
+    except Exception:
+        pass
+    return insights[:8]
+
+
+def _wz130_dropoff_table(rows):
+    try:
+        grouped = _wz130_sessions(rows)
+        counts = _wz130_Counter(_wz130_session_bucket(items) for items in grouped.values())
+        return dict(counts.most_common())
+    except Exception:
+        return {}
+
+
+def _wz130_country_language(rows):
+    countries, languages = [], []
+    try:
+        for r in rows or []:
+            c = str(r.get('country') or '').strip()
+            l = str(r.get('language') or '').strip()
+            if c:
+                countries.append(c)
+            if l:
+                languages.append(l)
+    except Exception:
+        pass
+    return dict(_wz130_Counter(countries).most_common(12)), dict(_wz130_Counter(languages).most_common(12))
+
+
+def _wz130_render_card(title, value, note='', tone='default'):
+    try:
+        tone_border = {
+            'good': 'rgba(34,197,94,.35)',
+            'warn': 'rgba(245,158,11,.35)',
+            'bad': 'rgba(239,68,68,.35)',
+            'default': 'rgba(148,163,184,.22)',
+        }.get(tone, 'rgba(148,163,184,.22)')
+        st.markdown(f"""
+        <div class="wz130-founder-card" style="border-color:{tone_border};">
+            <div class="wz130-card-title">{title}</div>
+            <div class="wz130-card-value">{value}</div>
+            <div class="wz130-card-note">{note}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    except Exception:
+        st.metric(title, value, help=note or None)
+
+
+def _wz130_render_founder_css():
+    try:
+        st.markdown("""
+        <style id="workzo-v130-founder-dashboard-css">
+        .wz130-founder-hero{
+            border:1px solid rgba(96,165,250,.24);
+            background:radial-gradient(circle at top left, rgba(37,99,235,.22), rgba(15,23,42,.84) 54%);
+            border-radius:26px;
+            padding:22px 24px;
+            margin:6px 0 18px 0;
+            box-shadow:0 18px 44px rgba(2,6,23,.30);
+        }
+        .wz130-founder-kicker{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:#93c5fd;font-weight:800;margin-bottom:6px;}
+        .wz130-founder-title{font-size:1.6rem;font-weight:900;color:#f8fafc;line-height:1.15;margin-bottom:8px;}
+        .wz130-founder-sub{font-size:.95rem;color:#cbd5e1;line-height:1.55;max-width:860px;}
+        .wz130-founder-card{
+            background:rgba(15,23,42,.78);
+            border:1px solid rgba(148,163,184,.22);
+            border-radius:20px;
+            padding:15px 16px;
+            min-height:112px;
+            box-shadow:0 12px 28px rgba(2,6,23,.22);
+            margin-bottom:10px;
+        }
+        .wz130-card-title{font-size:.76rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;font-weight:800;margin-bottom:6px;}
+        .wz130-card-value{font-size:1.55rem;color:#f8fafc;font-weight:900;line-height:1.15;margin-bottom:6px;}
+        .wz130-card-note{font-size:.82rem;color:#cbd5e1;line-height:1.35;}
+        .wz130-insight{
+            border:1px solid rgba(148,163,184,.18);
+            background:rgba(30,41,59,.56);
+            border-radius:18px;
+            padding:13px 15px;
+            margin:8px 0;
+        }
+        .wz130-insight b{color:#f8fafc;}
+        .wz130-insight span{color:#cbd5e1;font-size:.9rem;}
+        .wz130-pill{display:inline-block;border:1px solid rgba(148,163,184,.22);border-radius:999px;padding:6px 10px;margin:4px 5px 4px 0;color:#e2e8f0;background:rgba(15,23,42,.72);font-size:.82rem;}
+        @media(max-width:760px){
+            .wz130-founder-hero{padding:17px 16px;border-radius:22px;}
+            .wz130-founder-title{font-size:1.28rem;}
+            .wz130-founder-card{min-height:auto;padding:13px 14px;}
+            .wz130-card-value{font-size:1.25rem;}
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+try:
+    _wz130_previous_founder_dashboard = render_founder_dashboard
+except Exception:
+    _wz130_previous_founder_dashboard = None
+
+
+def render_founder_dashboard():
+    """Founder Dashboard v130: emotional recruiter-simulation analytics.
+
+    Goal: help the founder understand why users return, retry, recover, or leave.
+    Privacy: reads only safe analytics rows. No CV/JD/answer text is stored or shown.
+    """
+    try:
+        _wz130_render_founder_css()
+        try:
+            if callable(globals().get('_wz119_write_event')):
+                _wz119_write_event('founder_dashboard_opened', 'Founder Dashboard', {'source': 'v130'})
+        except Exception:
+            pass
+
+        rows = []
+        feedback_rows = []
+        try:
+            rows = _wz119_read_csv_dicts(_wz119_analytics_file()) if callable(globals().get('_wz119_read_csv_dicts')) else []
+        except Exception:
+            rows = []
+        try:
+            feedback_rows = _wz119_read_csv_dicts(_wz119_feedback_file()) if callable(globals().get('_wz119_read_csv_dicts')) else []
+        except Exception:
+            feedback_rows = []
+
+        # Remove the dashboard-open event from metrics so founder views do not inflate product usage.
+        product_rows = [r for r in rows if not _wz130_has(r, 'founder_dashboard_opened', 'founder dashboard')]
+        sessions = _wz130_sessions(product_rows)
+        total_sessions = len(sessions)
+        return_sessions = sum(1 for _sid, items in sessions.items() if len(items) >= 4)
+        interview_starts = _wz130_unique_sessions_with(product_rows, 'start interview', 'interview_started', 'start_recruiter')
+        answers = _wz130_unique_sessions_with(product_rows, 'answer_submitted', 'typed_answer', 'spoken_answer')
+        reports = _wz130_unique_sessions_with(product_rows, 'final report', 'interview_completed', 'post_interview', 'results')
+        retries = _wz130_unique_sessions_with(product_rows, 'retry', 'weakest answer', 're-answer')
+        drops = _wz130_count(product_rows, 'confidence_drop', 'trust_drop', 'losing trust', 'weak answer')
+        recoveries = _wz130_count(product_rows, 'confidence_recovery', 'recovered', 'recovery')
+        interruptions = _wz130_count(product_rows, 'interruption', 'let me stop', 'answer directly', 'pressure')
+
+        st.markdown("""
+        <div class="wz130-founder-hero">
+            <div class="wz130-founder-kicker">Founder intelligence</div>
+            <div class="wz130-founder-title">Recruiter Simulation Analytics</div>
+            <div class="wz130-founder-sub">Track the signals that matter for WorkZo: interview starts, confidence drops, recovery loops, retries, global usage, and where users leave. This dashboard intentionally avoids CV text, JD text, personal data, and answer transcripts.</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        k1, k2, k3, k4 = st.columns(4)
+        with k1:
+            _wz130_render_card('Users / sessions', total_sessions, 'Anonymous safe session IDs.', 'default')
+        with k2:
+            _wz130_render_card('Interview starts', interview_starts, f'{_wz130_pct(interview_starts, total_sessions)} of sessions.', 'good' if interview_starts else 'warn')
+        with k3:
+            _wz130_render_card('Retry loop', retries, f'{_wz130_pct(retries, interview_starts)} of interview starters retried.', 'good' if retries else 'warn')
+        with k4:
+            _wz130_render_card('Report reached', reports, f'{_wz130_pct(reports, interview_starts)} start → report.', 'good' if reports else 'warn')
+
+        st.markdown('### Emotional simulation signals')
+        e1, e2, e3, e4 = st.columns(4)
+        with e1:
+            _wz130_render_card('Confidence drops', drops, 'Moments where recruiter trust weakened.', 'warn' if drops else 'default')
+        with e2:
+            _wz130_render_card('Recovery moments', recoveries, 'Moments where user repaired recruiter trust.', 'good' if recoveries else 'warn')
+        with e3:
+            _wz130_render_card('Interruptions / pressure', interruptions, 'Realism events: direct challenge, stop, clarify.', 'default')
+        with e4:
+            _wz130_render_card('Return-like sessions', return_sessions, 'Sessions with multiple meaningful actions.', 'good' if return_sessions else 'default')
+
+        st.markdown('### Core product funnel')
+        funnel = {
+            'Visited': total_sessions,
+            'Started interview': interview_starts,
+            'Submitted answer': answers,
+            'Reached report': reports,
+            'Retried weak answer': retries,
+        }
+        try:
+            st.bar_chart(funnel)
+        except Exception:
+            st.write(funnel)
+
+        st.markdown('### Where users currently stop')
+        d1, d2 = st.columns([1.15, .85])
+        with d1:
+            dropoff = _wz130_dropoff_table(product_rows)
+            if dropoff:
+                st.bar_chart(dropoff)
+            else:
+                st.info('No drop-off pattern yet. Use one full interview flow, then reopen this dashboard.')
+        with d2:
+            st.markdown('**Founder read**')
+            if interview_starts and not answers:
+                st.warning('Users may be starting interviews but not answering. Check input clarity and first-question pressure.')
+            elif answers and not reports:
+                st.warning('Users answer but may not reach the final report. Make completion and feedback feel immediate.')
+            elif retries:
+                st.success('Retry behavior exists. This is a strong retention signal.')
+            else:
+                st.info('Look for whether users move from start → answer → report → retry.')
+
+        st.markdown('### Action groups')
+        buckets = dict(_wz130_Counter(_wz130_event_bucket(r) for r in product_rows).most_common(14))
+        if buckets:
+            st.bar_chart(buckets)
+        else:
+            st.info('No action groups yet.')
+
+        st.markdown('### Global usage')
+        ctry, lang = _wz130_country_language(product_rows)
+        g1, g2 = st.columns(2)
+        with g1:
+            st.markdown('**Countries selected**')
+            if ctry:
+                st.bar_chart(ctry)
+            else:
+                st.caption('No country selection tracked yet.')
+        with g2:
+            st.markdown('**Interview languages selected**')
+            if lang:
+                st.bar_chart(lang)
+            else:
+                st.caption('No language selection tracked yet.')
+
+        st.markdown('### Founder insights')
+        insights = _wz130_founder_insights(product_rows)
+        if insights:
+            for title, body in insights:
+                st.markdown(f"""
+                <div class="wz130-insight"><b>{title}</b><br><span>{body}</span></div>
+                """, unsafe_allow_html=True)
+        else:
+            st.info('No insights yet. Complete a few test sessions to generate founder intelligence.')
+
+        st.markdown('### Feedback quality')
+        fb1, fb2, fb3 = st.columns(3)
+        likes = sum(1 for r in feedback_rows if str(r.get('rating', '')).lower() in {'like', 'liked', '👍', 'positive'})
+        dislikes = sum(1 for r in feedback_rows if str(r.get('rating', '')).lower() in {'dislike', 'disliked', '👎', 'negative'})
+        with fb1:
+            _wz130_render_card('Feedback entries', len(feedback_rows), 'Written comments + reactions.', 'default')
+        with fb2:
+            _wz130_render_card('Positive', likes, 'Liked signals.', 'good' if likes else 'default')
+        with fb3:
+            _wz130_render_card('Negative', dislikes, 'Confusion or dislike signals.', 'bad' if dislikes else 'default')
+
+        if feedback_rows:
+            with st.expander('Recent feedback', expanded=False):
+                for r in list(reversed(feedback_rows[-15:])):
+                    page = str(r.get('page') or 'General')[:80]
+                    rating = str(r.get('rating') or 'note')[:20]
+                    text = str(r.get('feedback') or r.get('details') or '')[:900]
+                    ts = str(r.get('timestamp') or '')[:30]
+                    icon = '👍' if rating == 'like' else ('👎' if rating == 'dislike' else '💬')
+                    st.markdown(f'**{icon} {page}** · {ts}  \n{text}')
+                    st.markdown('---')
+
+        with st.expander('Privacy-safe raw analytics', expanded=False):
+            st.caption('Raw rows shown here are safe analytics only. Do not add CV/JD/answer text to analytics events.')
+            try:
+                import pandas as _wz130_pd
+                st.dataframe(_wz130_pd.DataFrame(product_rows[-300:]), use_container_width=True)
+            except Exception:
+                st.write(product_rows[-80:])
+
+        st.markdown('### What this dashboard should help you decide')
+        st.markdown("""
+        <span class="wz130-pill">Is recruiter pressure too strong?</span>
+        <span class="wz130-pill">Do users retry weak answers?</span>
+        <span class="wz130-pill">Where does trust drop?</span>
+        <span class="wz130-pill">Do users recover confidence?</span>
+        <span class="wz130-pill">Which countries/languages need better rules?</span>
+        <span class="wz130-pill">Where do users leave?</span>
+        """, unsafe_allow_html=True)
+
+    except Exception as exc:
+        try:
+            st.error(f'Founder analytics could not load safely: {exc}')
+            if callable(_wz130_previous_founder_dashboard):
+                st.caption('Showing previous founder dashboard fallback.')
+                _wz130_previous_founder_dashboard()
+        except Exception:
+            pass
+

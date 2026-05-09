@@ -6450,3 +6450,183 @@ def wz188_pre_interview_live_status(role="", jd="", personality=""):
         "Extracting measurable achievement opportunities...",
         "Calibrating pressure based on your answers...",
     ]
+
+
+# =========================================================
+# WorkZo Streamlit-Ready Recruiter Intelligence Upgrade
+# Manageable in Streamlit now; stronger real-time voice can replace it later.
+# =========================================================
+try:
+    import json as _wz_sr_json, csv as _wz_sr_csv, uuid as _wz_sr_uuid, re as _wz_sr_re
+    from pathlib import Path as _wz_sr_Path
+    from datetime import datetime as _wz_sr_datetime
+except Exception: pass
+
+def _wz_sr_data_dir():
+    try:
+        p=_wz_sr_Path.cwd()/"workzo_data"; p.mkdir(parents=True, exist_ok=True); return p
+    except Exception: return _wz_sr_Path(".")
+def _wz_sr_user_id():
+    try:
+        if not st.session_state.get("wz_anonymous_user_id"): st.session_state["wz_anonymous_user_id"]="wz_"+_wz_sr_uuid.uuid4().hex[:12]
+        return st.session_state["wz_anonymous_user_id"]
+    except Exception: return "wz_local_user"
+def _wz_sr_track(event, payload=None):
+    payload=payload or {}
+    try:
+        if callable(globals().get("track_event")): track_event(event,"Interview",payload)
+    except Exception: pass
+    try:
+        path=_wz_sr_data_dir()/"workzo_founder_analytics.csv"; new=not path.exists()
+        with path.open("a", newline="", encoding="utf-8") as f:
+            w=_wz_sr_csv.DictWriter(f, fieldnames=["ts","user_id","event","country","language","payload"])
+            if new: w.writeheader()
+            w.writerow({"ts":_wz_sr_datetime.utcnow().isoformat(),"user_id":_wz_sr_user_id(),"event":event,"country":str(st.session_state.get("country") or "Global"),"language":str(st.session_state.get("wz_ri_interview_language") or st.session_state.get("preferred_language") or "English"),"payload":_wz_sr_json.dumps(payload, ensure_ascii=False)})
+    except Exception: pass
+def _wz_sr_memory_path(): return _wz_sr_data_dir()/"workzo_interview_memory.json"
+def _wz_sr_load_memory():
+    try:
+        p=_wz_sr_memory_path()
+        return _wz_sr_json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+    except Exception: return {}
+def _wz_sr_save_memory(memory):
+    try: _wz_sr_memory_path().write_text(_wz_sr_json.dumps(memory, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception: pass
+def _wz_sr_country_rules(country=None):
+    country=country or st.session_state.get("country") or st.session_state.get("selected_country") or "Global"
+    try:
+        if callable(globals().get("get_workzo_global_recruiter_rules")): return get_workzo_global_recruiter_rules(country)
+    except Exception: pass
+    return {"country":country,"tone":"balanced realistic","expects":["clear proof","role fit"],"risks":["generic answers"],"languages":["English"],"scoring_weights":{"relevance":18,"clarity":14,"star":16,"metrics":18,"ownership":16,"confidence":8,"country_fit":10}}
+def _wz_sr_beta_disclaimer():
+    try: st.info("🧪 Testing mode: voice, interruption timing, recruiter memory, analytics, and country behavior are Streamlit-ready beta features. A stronger real-time version is planned after moving WorkZo to a bigger platform.")
+    except Exception: pass
+
+def _wz_sr_score_answer(answer, jd="", cv_text="", question="", country=None):
+    text=str(answer or "").strip(); lower=text.lower(); words=len(text.split()); jd_lower=str(jd or "").lower(); rules=_wz_sr_country_rules(country)
+    weights=rules.get("scoring_weights",{}) if isinstance(rules,dict) else {}
+    def w(k,d):
+        try: return int(weights.get(k,d))
+        except Exception: return d
+    has_metric=bool(_wz_sr_re.search(r"\b\d+[\d,.]*\s?(%|percent|hours?|days?|weeks?|months?|users?|customers?|tickets?|cases?|reports?|dashboards?|€|\$|k|m)?\b", lower))
+    impact=has_metric or any(x in lower for x in ["improved","reduced","increased","saved","resolved","optimized","automated","delivered","impact","result","outcome","faster","accuracy"])
+    ownership=any(x in lower for x in ["i ","i was","i built","i created","i handled","i analyzed","i led","my role","my responsibility","i worked","i solved"])
+    star_hits=sum(1 for x in ["situation","task","action","result","challenge","because","then","so i","finally","outcome"] if x in lower)
+    jd_terms=[t for t in ["sql","python","excel","tableau","power bi","dashboard","api","customer","stakeholder","crm","support","analytics","report","sla","ticket"] if t in jd_lower]
+    role_match=len([t for t in jd_terms if t in lower]); vague=sum(1 for p in ["many things","various","etc","good communication","hard working","team player","helped","worked on","responsible for"] if p in lower)
+    too_short=words<35; too_long=words>145; unsupported=[x for x in ["expert","advanced","excellent","strong","proven","successfully"] if x in lower and not has_metric]
+    relevance=min(10,4+role_match*2+(1 if not jd_terms else 0)); clarity=max(1,min(10,8-(2 if vague else 0)-(2 if too_long else 0)-(2 if too_short else 0)))
+    star=max(1,min(10,2+star_hits*2+(2 if ownership else 0)+(2 if impact else 0))); metrics=10 if has_metric else 5 if impact else 2; ownership_score=9 if ownership else 3
+    confidence=max(1,min(10,7-len(unsupported)-(2 if vague else 0)+(1 if has_metric else 0))); country_fit=7
+    risks=" ".join([str(x).lower() for x in rules.get("risks",[])])
+    if "overclaiming" in risks and unsupported: country_fit-=2
+    if "missing numbers" in risks and not has_metric: country_fit-=2
+    if "structure" in (risks+str(rules.get("tone","")).lower()) and star<6: country_fit-=1
+    country_fit=max(1,min(10,country_fit)); total=w("relevance",18)+w("clarity",14)+w("star",16)+w("metrics",18)+w("ownership",16)+w("confidence",8)+w("country_fit",10)
+    score=int(round((relevance*w("relevance",18)+clarity*w("clarity",14)+star*w("star",16)+metrics*w("metrics",18)+ownership_score*w("ownership",16)+confidence*w("confidence",8)+country_fit*w("country_fit",10))/max(1,total)*10))
+    flags=[]; strengths=[]
+    if not has_metric: flags.append("No measurable result detected")
+    if not ownership: flags.append("Ownership is unclear")
+    if star<6: flags.append("STAR structure is weak")
+    if too_long: flags.append("Answer may be too long")
+    if too_short: flags.append("Answer is too short to build trust")
+    if vague: flags.append("Vague wording reduces recruiter confidence")
+    if unsupported: flags.append("Sounds over-claimed without proof")
+    if relevance<6: flags.append("Weak connection to job requirements")
+    if has_metric: strengths.append("Measurable proof detected")
+    if ownership: strengths.append("Personal contribution is visible")
+    if role_match: strengths.append("Answer connects to role keywords")
+    mood,signal,interrupt=("Engaged","Strengthening","") if score>=78 else (("Testing","Needs proof","Can you make the outcome more specific?") if score>=62 else (("Skeptical","Weakening","Let me stop you there — what was the actual result?") if score>=45 else ("Losing confidence","High risk","Can you answer that more directly? I’m still missing proof.")))
+    return {"score":score,"scores":{"relevance":relevance,"clarity":clarity,"star":star,"metrics":metrics,"ownership":ownership_score,"confidence":confidence,"country_fit":country_fit},"flags":flags[:6],"strengths":strengths[:5],"mood":mood,"hiring_signal":signal,"interrupt":interrupt,"words":words,"country_rules":rules}
+
+def _wz_sr_update_memory(answer, score_pack, event="answer_scored"):
+    try:
+        memory=_wz_sr_load_memory(); uid=_wz_sr_user_id(); profile=memory.get(uid) if isinstance(memory.get(uid),dict) else {"sessions":0,"answers":0,"patterns":{},"scores":[],"recovery_events":0}
+        profile["answers"]=int(profile.get("answers",0))+1; profile.setdefault("scores",[]).append(int(score_pack.get("score",0))); profile["scores"]=profile["scores"][-30:]
+        patterns=profile.get("patterns") if isinstance(profile.get("patterns"),dict) else {}
+        for flag in score_pack.get("flags",[]): patterns[flag]=int(patterns.get(flag,0))+1
+        profile["patterns"]=patterns
+        if int(score_pack.get("score",0))<62: profile.update({"weakest_answer":str(answer or "")[:1200],"weakest_score":int(score_pack.get("score",0)),"weakest_flags":score_pack.get("flags",[])})
+        if len(profile.get("scores",[]))>=2 and profile["scores"][-2]<62 and profile["scores"][-1]>=70: profile["recovery_events"]=int(profile.get("recovery_events",0))+1
+        memory[uid]=profile; _wz_sr_save_memory(memory); st.session_state["wz_persistent_recruiter_memory"]=profile; return profile
+    except Exception: return {}
+def _wz_sr_apply_state(score_pack):
+    try:
+        state=st.session_state.get("wz_streamlit_recruiter_state") or {"confidence":72,"attention":82,"patience":68,"timeline":[]}; score=int(score_pack.get("score",60)); delta=(10,5,3) if score>=78 else ((2,0,0) if score>=62 else ((-12,-8,-6) if score>=45 else (-20,-14,-10)))
+        clamp=lambda v:max(1,min(99,int(v))); before=int(state.get("confidence",72)); state["confidence"]=clamp(before+delta[0]); state["attention"]=clamp(int(state.get("attention",82))+delta[1]); state["patience"]=clamp(int(state.get("patience",68))+delta[2])
+        state.update({"mood":score_pack.get("mood"),"hiring_signal":score_pack.get("hiring_signal"),"last_interrupt":score_pack.get("interrupt"),"last_flags":score_pack.get("flags",[]),"last_score":score})
+        timeline=list(state.get("timeline",[])); timeline.append({"before":before,"after":state["confidence"],"score":score,"mood":state["mood"],"signal":state["hiring_signal"],"ts":_wz_sr_datetime.utcnow().isoformat()}); state["timeline"]=timeline[-12:]
+        st.session_state["wz_streamlit_recruiter_state"]=state; st.session_state["wz195_recruiter_state"]=state; st.session_state["wz194_recruiter_state"]=state; return state
+    except Exception: return {}
+def _wz_sr_render_state_panel():
+    try:
+        state=st.session_state.get("wz_streamlit_recruiter_state") or {"confidence":72,"attention":82,"patience":68,"hiring_signal":"Needs proof"}; flags=state.get("last_flags",[]) or []
+        st.markdown("### Recruiter confidence · live"); c1,c2,c3,c4=st.columns(4); c1.metric("Confidence",f"{state.get('confidence',72)}%"); c2.metric("Attention",f"{state.get('attention',82)}%"); c3.metric("Patience",f"{state.get('patience',68)}%"); c4.metric("Hiring signal",str(state.get("hiring_signal","Needs proof")))
+        if flags: st.caption("Trust risks: "+" · ".join([str(x) for x in flags[:4]]))
+    except Exception: pass
+def _wz_sr_render_emotional_report():
+    try:
+        profile=st.session_state.get("wz_persistent_recruiter_memory") or _wz_sr_load_memory().get(_wz_sr_user_id(),{}); state=st.session_state.get("wz_streamlit_recruiter_state") or {}; timeline=state.get("timeline",[]) or []
+        if not timeline and not profile: return
+        st.markdown("## Recruiter psychology report"); st.caption("Where trust dropped, where you recovered, and what the recruiter would remember.")
+        if timeline:
+            labels=[]
+            for item in timeline[-6:]:
+                before,after=int(item.get("before",0)),int(item.get("after",0)); labels.append(("🟢 Recovered" if after>before else "🔴 Dropped" if after<before else "😐 Stable")+f" {before}% → {after}%")
+            st.info("  →  ".join(labels))
+        patterns=profile.get("patterns",{}) if isinstance(profile,dict) else {}
+        if patterns: st.warning("Recurring patterns: "+" · ".join([f"{k} ({v}x)" for k,v in sorted(patterns.items(), key=lambda kv: kv[1], reverse=True)[:5]]))
+        scores=profile.get("scores",[]) if isinstance(profile,dict) else []
+        if scores:
+            latest=int(scores[-1]); decision="YES" if latest>=78 else "MAYBE" if latest>=62 else "NO"; st.success(f"Would this recruiter refer you internally? {decision}. Latest answer trust score: {latest}/100.")
+        weakest=profile.get("weakest_answer") if isinstance(profile,dict) else ""
+        if weakest:
+            with st.expander("🎤 Retry weakest answer now", expanded=True):
+                st.caption("Old answer that damaged trust:"); st.write(weakest); retry=st.text_area("Rewrite it with truthful STAR structure and real proof", key="wz_sr_retry_weakest_text", height=120)
+                if st.button("Compare old vs new", key="wz_sr_compare_weakest") and retry.strip():
+                    old=int(profile.get("weakest_score",0)); new_pack=_wz_sr_score_answer(retry, st.session_state.get("wz_ri_jd",""), _wz_ri_get_cv_text() if callable(globals().get("_wz_ri_get_cv_text")) else ""); _wz_sr_apply_state(new_pack); _wz_sr_update_memory(retry,new_pack,"retry_weakest"); _wz_sr_track("retry_weakest_answer", {"old_score":old,"new_score":new_pack.get("score")}); st.success(f"Recovery result: {old}/100 → {new_pack.get('score')}/100")
+    except Exception: pass
+def _wz_sr_mobile_css():
+    try:
+        st.markdown(r'''
+        <style id="wz-streamlit-intel-mobile-css">
+        @media(max-width:760px){.block-container{padding-left:.75rem!important;padding-right:.75rem!important;padding-top:.7rem!important}[data-testid="stHorizontalBlock"]{gap:.5rem!important}.stButton button{min-height:42px!important;border-radius:13px!important}textarea{font-size:16px!important}[class*="workobot"],[class*="floating"],.workzo-floating-bot,.wz-floating-bot{right:16px!important;bottom:18px!important;transform:scale(.76)!important;transform-origin:bottom right!important;max-width:210px!important}}
+        </style>''', unsafe_allow_html=True)
+    except Exception: pass
+try:
+    _wz_sr_prev_country_rules=globals().get("_wz_ri_country_rules")
+    def _wz_ri_country_rules(country: str) -> dict:
+        rules=_wz_sr_country_rules(country); return {"country":rules.get("country",country),"style":rules.get("tone","realistic"),"expects":rules.get("expects",[]),"risks":rules.get("risks",[]),"languages":rules.get("languages",["English"]),"interruption_style":rules.get("interruption_style","Ask for clarity."),"resume_norms":rules.get("resume_norms",[]),"scoring_weights":rules.get("scoring_weights",{})}
+except Exception: pass
+try:
+    _wz_sr_original_react_to_answer=globals().get("_wz_ri_react_to_answer")
+    def _wz_ri_react_to_answer(question: str, answer: str, cv_text: str, jd: str, qa_pairs: list, language: str, personality: str):
+        score_pack=_wz_sr_score_answer(answer,jd=jd,cv_text=cv_text,question=question,country=st.session_state.get("country") or "Global"); state=_wz_sr_apply_state(score_pack); _wz_sr_update_memory(answer,score_pack); _wz_sr_track("answer_scored", {"score":score_pack.get("score"),"mood":score_pack.get("mood"),"signal":score_pack.get("hiring_signal"),"flags":score_pack.get("flags",[])[:3]})
+        reaction={}
+        try:
+            if callable(_wz_sr_original_react_to_answer): reaction=_wz_sr_original_react_to_answer(question,answer,cv_text,jd,qa_pairs,language,personality) or {}
+        except Exception: reaction={}
+        if not isinstance(reaction,dict): reaction={}
+        reaction.setdefault("reaction", score_pack.get("interrupt") or ("Good, that gives me proof." if score_pack.get("score",0)>=78 else "I need stronger evidence before I trust this answer.")); reaction.setdefault("needs_followup", bool(score_pack.get("interrupt"))); reaction.setdefault("followup_question", "Give me the same answer again with your action and one truthful result." if score_pack.get("score",0)<62 else "Can you briefly connect that result to this role?"); reaction.setdefault("interruption_reason", score_pack.get("flags",["answer quality"])[0] if score_pack.get("flags") else "none"); reaction.setdefault("live_reaction", score_pack.get("mood")); reaction.setdefault("coach_note", " · ".join(score_pack.get("flags",[])[:3]) or "Keep it truthful, specific, and role-linked."); reaction["workzo_score_pack"]=score_pack; reaction["recruiter_state"]=state; return reaction
+except Exception: pass
+try:
+    _wz_sr_original_render_interview=globals().get("render_real_interview_simulation")
+    def render_real_interview_simulation():
+        _wz_sr_mobile_css(); _wz_sr_beta_disclaimer(); _wz_sr_track("interview_page_opened", {"source":"streamlit_beta"}); result=None
+        if callable(_wz_sr_original_render_interview): result=_wz_sr_original_render_interview()
+        _wz_sr_render_state_panel(); return result
+except Exception: pass
+try:
+    _wz_sr_original_final_score=globals().get("_wz_ri_render_final_score")
+    def _wz_ri_render_final_score(result: dict, company: str, role: str, website: str, language: str):
+        _wz_sr_track("interview_finished", {"company":company,"role":role,"score":(result or {}).get("overall_score") if isinstance(result,dict) else None})
+        if callable(_wz_sr_original_final_score): _wz_sr_original_final_score(result,company,role,website,language)
+        _wz_sr_render_emotional_report()
+except Exception: pass
+def workzo_streamlit_voice_interruption_hint(seconds_elapsed=0, answer_text=""):
+    try:
+        if int(seconds_elapsed or 0)>=90: return "Let me stop you there — give me the result first, then one example."
+        if int(seconds_elapsed or 0)>=25 and not str(answer_text or "").strip():
+            state=st.session_state.get("wz_streamlit_recruiter_state") or {"attention":82,"patience":68}; state["attention"]=max(1,int(state.get("attention",82))-6); state["patience"]=max(1,int(state.get("patience",68))-6); state["mood"]="Waiting"; st.session_state["wz_streamlit_recruiter_state"]=state; return "Take a breath — start with one specific example."
+    except Exception: pass
+    return ""
