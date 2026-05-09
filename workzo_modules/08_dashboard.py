@@ -34564,3 +34564,305 @@ try:
     _wz198_clear_stale_demo_results()
 except Exception:
     pass
+
+# =========================================================
+# WorkZo v199 - Voice Recruiter Reconnection Patch
+# =========================================================
+# Fix: recent dashboard routing opened a new text-only active room and bypassed
+# the older voice-first recruiter flow from 09_interview_assistant.py.
+# This patch makes Start Real Interview open the voice-enabled interview room
+# again, initializes questions before rendering, maps recruiter selections to
+# voice intent, and keeps strict result gating.
+# =========================================================
+
+try:
+    _wz199_prev_show_dashboard = show_dashboard
+except Exception:
+    _wz199_prev_show_dashboard = None
+
+try:
+    _wz199_prev_live_room = _wz197_render_live_room
+except Exception:
+    _wz199_prev_live_room = None
+
+
+def _wz199_text(value, fallback=""):
+    try:
+        value = str(value or "").strip()
+        return value if value else fallback
+    except Exception:
+        return fallback
+
+
+def _wz199_get_cv_text():
+    try:
+        if callable(globals().get("_wz_ri_get_cv_text")):
+            return _wz_ri_get_cv_text()
+    except Exception:
+        pass
+    for key in ["cv_text", "clean_structured_cv_text", "resume_text", "uploaded_cv_text"]:
+        txt = _wz199_text(st.session_state.get(key), "")
+        if txt:
+            return txt
+    return ""
+
+
+def _wz199_get_jd_text():
+    try:
+        if callable(globals().get("_wz_ri_get_jd_text")):
+            return _wz_ri_get_jd_text()
+    except Exception:
+        pass
+    for key in ["wz_ri_jd", "selected_job_description", "real_interview_jd_saved", "job_description", "jd_text"]:
+        txt = _wz199_text(st.session_state.get(key), "")
+        if txt:
+            return txt
+    return ""
+
+
+def _wz199_voice_profile_from_recruiter(recruiter=""):
+    """Map selected recruiter personality to a voice preference for browser speech."""
+    name = _wz199_text(recruiter or st.session_state.get("wz_ri_recruiter_personality_v181"), "Sarah — Friendly HR")
+    low = name.lower()
+    if any(x in low for x in ["daniel", "markus", "male", "technical", "manager"]):
+        gender = "male"
+        style = "structured" if any(x in low for x in ["markus", "german", "corporate"]) else "analytical"
+        preferred = ["Daniel", "Google UK English Male", "Microsoft Guy", "Microsoft George"]
+    else:
+        gender = "female"
+        style = "fast" if any(x in low for x in ["priya", "startup", "fast"]) else "friendly"
+        preferred = ["Samantha", "Google UK English Female", "Microsoft Jenny", "Microsoft Sonia", "Microsoft Aria"]
+    return {"name": name, "gender": gender, "style": style, "preferred_voices": preferred}
+
+
+def _wz199_apply_voice_profile():
+    try:
+        profile = _wz199_voice_profile_from_recruiter()
+        st.session_state["wz_voice_recruiter_name"] = profile.get("name")
+        st.session_state["wz_voice_recruiter_gender"] = profile.get("gender")
+        st.session_state["wz_voice_recruiter_style"] = profile.get("style")
+        st.session_state["wz_voice_preferred_voices"] = profile.get("preferred_voices")
+        # Also feed older interview module naming.
+        st.session_state["wz_ri_personality"] = profile.get("name")
+        st.session_state["wz_ri_recruiter_personality"] = profile.get("name")
+    except Exception:
+        pass
+
+
+def _wz199_initialize_voice_interview_if_needed():
+    """Prepare the old voice-first interview engine so it does not jump to results."""
+    try:
+        _wz199_apply_voice_profile()
+        cv_text = _wz199_get_cv_text()
+        jd = _wz199_get_jd_text()
+        role = _wz199_text(
+            st.session_state.get("wz_ri_role")
+            or st.session_state.get("target_role")
+            or st.session_state.get("real_interview_target_role")
+            or st.session_state.get("wz183_target_role"),
+            "the role",
+        )
+        company = _wz199_text(
+            st.session_state.get("wz_ri_company")
+            or st.session_state.get("target_company")
+            or st.session_state.get("real_interview_company")
+            or st.session_state.get("wz183_target_company"),
+            "",
+        )
+        language = _wz199_text(
+            st.session_state.get("wz_ri_interview_language")
+            or st.session_state.get("interview_language")
+            or st.session_state.get("preferred_language"),
+            "English",
+        )
+
+        st.session_state["wz_ri_role"] = role
+        st.session_state["wz_ri_company"] = company
+        st.session_state["wz_ri_jd"] = jd
+        st.session_state["target_role"] = role
+        st.session_state["target_company"] = company
+        st.session_state["selected_job_description"] = jd
+        st.session_state["real_interview_jd_saved"] = jd
+        st.session_state["wz_ri_interview_language"] = language
+        st.session_state.setdefault("wz_ri_answer_language", "Same as interview")
+
+        questions = st.session_state.get("wz_ri_questions")
+        answers = st.session_state.get("wz_ri_answers")
+        final = st.session_state.get("wz_ri_final_score")
+
+        # If Start Interview was clicked from dashboard, questions may not exist yet.
+        # Initialize them here so render_real_interview_simulation opens the live call,
+        # not the results page.
+        if not isinstance(questions, list) or len(questions) == 0:
+            if callable(globals().get("_wz_voice_first_build_opening_question")):
+                first_q = _wz_voice_first_build_opening_question(cv_text, jd, role, company, language)
+            else:
+                first_q = f"Tell me about yourself and keep it relevant to {role}{(' at ' + company) if company else ''}."
+            built = [first_q]
+            for i in range(1, 6):
+                try:
+                    if callable(globals().get("_wz_voice_first_next_question")):
+                        built.append(_wz_voice_first_next_question(cv_text, jd, role, company, language, [], i))
+                    else:
+                        built.append("Give me one specific example that proves you can do this job.")
+                except Exception:
+                    built.append("Give me one specific example that proves you can do this job.")
+            st.session_state["wz_ri_questions"] = built
+            st.session_state["wz_ri_current_index"] = 0
+            st.session_state["wz_ri_question_started_at"] = __import__("time").time()
+
+        if not isinstance(answers, list):
+            st.session_state["wz_ri_answers"] = []
+        # Never carry old/fake result into a new voice interview.
+        if not isinstance(final, dict) or not st.session_state.get("wz_ri_answers"):
+            st.session_state["wz_ri_final_score"] = {}
+
+        st.session_state["wz_ri_started"] = True
+        st.session_state["wz_active_interview_room"] = True
+        st.session_state["wz197_active_interview_mode"] = True
+        st.session_state["wz199_voice_room_active"] = True
+        return True
+    except Exception as exc:
+        try:
+            st.warning(f"Voice interview setup could not initialize fully: {exc}")
+        except Exception:
+            pass
+        return False
+
+
+def _wz199_voice_room_css():
+    try:
+        st.markdown(r'''
+<style id="wz199-voice-room-fix">
+/* Keep the active voice room clean and prevent duplicate old floating bot edges. */
+[class*="workobot"], [class*="Work-O-Bot"], .wz-floating-bot, .workzo-floating-bot{
+  right:28px!important; bottom:28px!important; z-index:880!important;
+}
+/* Voice room mobile support */
+@media(max-width:820px){
+  [class*="workobot"], [class*="Work-O-Bot"], .wz-floating-bot, .workzo-floating-bot{
+    right:14px!important; bottom:18px!important; transform:scale(.78)!important; transform-origin:bottom right!important;
+  }
+  .wz-call-card{padding:16px!important;border-radius:18px!important;}
+  .wz-call-title{font-size:1.55rem!important;line-height:1.08!important;}
+  .wz-question{padding:16px!important;border-radius:18px!important;}
+  .wz-question h2{font-size:1.12rem!important;line-height:1.35!important;}
+}
+</style>
+''', unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz199_render_voice_enabled_room():
+    """Use the existing voice-first interview from 09_interview_assistant.py."""
+    try:
+        if callable(globals().get("_wz182_css")):
+            _wz182_css()
+        if callable(globals().get("_wz186_hide_legacy_header_and_bot_css")):
+            _wz186_hide_legacy_header_and_bot_css()
+        _wz199_voice_room_css()
+        if callable(globals().get("_wz182_topbar")):
+            _wz182_topbar()
+
+        if not callable(globals().get("render_real_interview_simulation")):
+            # 09_interview_assistant.py may not be loaded in unusual local test runs.
+            if callable(_wz199_prev_live_room):
+                return _wz199_prev_live_room()
+            st.error("Voice interview renderer is unavailable. Make sure 09_interview_assistant.py is loaded after 08_dashboard.py.")
+            return
+
+        _wz199_initialize_voice_interview_if_needed()
+
+        st.info("🧪 Beta voice mode: recruiter voice uses your browser speech engine. If autoplay is blocked, click 🔊 Replay interviewer voice. You can answer by microphone or typed fallback.")
+        render_real_interview_simulation()
+
+        try:
+            if callable(globals().get("_wz182_floating_workobot")):
+                _wz182_floating_workobot()
+        except Exception:
+            pass
+        if callable(globals().get("_wz186_hide_legacy_header_and_bot_css")):
+            _wz186_hide_legacy_header_and_bot_css()
+    except Exception as exc:
+        st.error(f"Voice interview room could not open safely: {exc}")
+        if callable(_wz199_prev_live_room):
+            return _wz199_prev_live_room()
+
+
+# Replace the text-only room with the old voice-first room again.
+def _wz197_render_live_room():
+    return _wz199_render_voice_enabled_room()
+
+
+def _wz196_render_interview_room():
+    return _wz199_render_voice_enabled_room()
+
+
+# Extend strict answer-history gating to recognize voice-first answers too.
+def _wz198_answer_history():
+    clean = []
+    try:
+        hist = st.session_state.get("wz197_answer_history")
+        if isinstance(hist, list):
+            for item in hist:
+                if not isinstance(item, dict):
+                    continue
+                ans = str(item.get("answer") or "").strip()
+                q = str(item.get("question") or "").strip()
+                if len(ans.split()) >= 5 and q:
+                    clean.append(item)
+    except Exception:
+        pass
+    try:
+        voice_answers = st.session_state.get("wz_ri_answers")
+        if isinstance(voice_answers, list):
+            for item in voice_answers:
+                if isinstance(item, dict):
+                    ans = str(item.get("answer") or item.get("candidate_answer") or "").strip()
+                    q = str(item.get("question") or "").strip()
+                else:
+                    ans = str(item or "").strip()
+                    q = "voice answer"
+                if len(ans.split()) >= 5 and q:
+                    clean.append({"question": q, "answer": ans, "source": "voice_first"})
+    except Exception:
+        pass
+    return clean
+
+
+def _wz199_should_open_voice_room():
+    try:
+        return bool(
+            st.session_state.get("wz_ri_started")
+            or st.session_state.get("wz_active_interview_room")
+            or st.session_state.get("wz197_active_interview_mode")
+            or st.session_state.get("wz199_voice_room_active")
+        ) and not _wz198_can_show_results()
+    except Exception:
+        return False
+
+
+def show_dashboard():
+    """Final router: Start Real Interview opens voice-enabled recruiter room."""
+    try:
+        if _wz199_should_open_voice_room():
+            return _wz199_render_voice_enabled_room()
+        current = str(st.session_state.get("page") or st.session_state.get("nav_page") or st.session_state.get("current_page") or "").lower()
+        if any(x in current for x in ["progress", "result", "report"]) and not _wz198_can_show_results():
+            try:
+                _wz198_clear_stale_demo_results()
+                return _wz198_no_results_placeholder()
+            except Exception:
+                pass
+        if callable(_wz199_prev_show_dashboard):
+            return _wz199_prev_show_dashboard()
+        st.warning("WorkZo dashboard renderer is not available.")
+    except Exception as exc:
+        st.error(f"WorkZo could not route safely: {exc}")
+        try:
+            if callable(_wz199_prev_show_dashboard):
+                return _wz199_prev_show_dashboard()
+        except Exception:
+            pass
+
