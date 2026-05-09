@@ -920,7 +920,7 @@ def render_real_interview_simulation():
     cv_text = _wz_ri_get_cv_text()
     default_jd = _wz_ri_get_jd_text()
 
-    language_options = ["English", "German", "Dutch", "French", "Spanish", "Hindi", "Tamil"]
+    language_options = ["English", "German", "Dutch", "French", "Spanish", "Portuguese", "Italian", "Arabic", "Hindi", "Tamil", "Polish", "Turkish", "Swedish", "Danish", "Norwegian", "Finnish", "Czech", "Greek", "Japanese", "Korean", "Chinese"]
     current_lang = st.session_state.get("preferred_language", "English")
     if current_lang not in language_options:
         current_lang = "English"
@@ -1705,8 +1705,8 @@ def render_real_interview_simulation():
     default_jd = _wz_ri_get_jd_text()
     selected_job = _wz150_get_selected_job_context()
 
-    language_options = ["Auto", "English", "German", "Dutch", "French", "Spanish", "Hindi", "Tamil"]
-    answer_language_options = ["Same as interview", "English", "German", "Dutch", "French", "Spanish", "Hindi", "Tamil", "Any language"]
+    language_options = ["Auto", "English", "German", "Dutch", "French", "Spanish", "Portuguese", "Italian", "Arabic", "Hindi", "Tamil", "Polish", "Turkish", "Swedish", "Danish", "Norwegian", "Finnish", "Czech", "Greek", "Japanese", "Korean", "Chinese"]
+    answer_language_options = ["Same as interview", "English", "German", "Dutch", "French", "Spanish", "Portuguese", "Italian", "Arabic", "Hindi", "Tamil", "Polish", "Turkish", "Swedish", "Danish", "Norwegian", "Finnish", "Czech", "Greek", "Japanese", "Korean", "Chinese", "Any language"]
     preferred = st.session_state.get("preferred_language", "English")
     required = _wz150_detect_job_language_requirement(default_jd)
     suggested_language = required or preferred or "English"
@@ -6770,3 +6770,682 @@ def _wz_ri_render_final_score(result: dict, company: str, role: str, website: st
         _wz_sr_render_emotional_report()
     except Exception:
         pass
+
+# =========================================================
+# WorkZo v200 - Recruiter + Interview Language Sync Fix
+# =========================================================
+# Problem fixed:
+# - Dashboard dropdowns could show Daniel/German, but the voice room still used
+#   stale Sarah/English defaults.
+# - This patch locks the latest dashboard selections at interview start, maps the
+#   selected recruiter to the correct Streamlit voice/personality mode, and rebuilds
+#   the first question in the selected language if stale questions are detected.
+# =========================================================
+
+def _wz200_clean_text(value, fallback=""):
+    try:
+        value = str(value or "").strip()
+        return value if value else fallback
+    except Exception:
+        return fallback
+
+
+def _wz200_latest_language():
+    """Read the newest interview language from dashboard and interview state."""
+    candidates = [
+        st.session_state.get("interview_language"),
+        st.session_state.get("wz_ri_interview_language"),
+        st.session_state.get("wz_ri_language_choice_v150"),
+        st.session_state.get("preferred_language"),
+        st.session_state.get("language"),
+        st.session_state.get("response_language"),
+    ]
+    for lang in candidates:
+        lang = _wz200_clean_text(lang, "")
+        if lang and lang.lower() not in ["auto", "auto-detect", "auto-detect / user preference", "same as interview"]:
+            return lang
+    return "English"
+
+
+def _wz200_latest_recruiter():
+    """Read the newest selected recruiter from dashboard and interview state."""
+    candidates = [
+        st.session_state.get("wz_ri_recruiter_personality_v181"),
+        st.session_state.get("wz_ri_recruiter_personality"),
+        st.session_state.get("wz_voice_recruiter_name"),
+        st.session_state.get("selected_recruiter"),
+        st.session_state.get("interviewer_personality"),
+        st.session_state.get("wz_ri_personality"),
+    ]
+    for rec in candidates:
+        rec = _wz200_clean_text(rec, "")
+        if rec:
+            return rec
+    return "👩 Sarah — Friendly HR"
+
+
+def _wz200_map_recruiter_to_personality(recruiter):
+    """Map Sarah/Daniel/Priya/Markus into older 09_interview_assistant choices."""
+    low = _wz200_clean_text(recruiter, "").lower()
+    if "daniel" in low or "technical" in low:
+        return "Technical recruiter"
+    if "priya" in low or "startup" in low or "fast" in low:
+        return "Fast-paced"
+    if "markus" in low or "german" in low or "corporate" in low:
+        return "Strict"
+    if "skeptical" in low or "hiring manager" in low:
+        return "Skeptical hiring manager"
+    return "Friendly"
+
+
+def _wz200_recruiter_display_name(recruiter):
+    rec = _wz200_clean_text(recruiter, "Sarah — Friendly HR")
+    # Keep emoji if present, but remove duplicate weird whitespace.
+    return " ".join(rec.replace("—", " — ").split())
+
+
+def _wz200_voice_gender(recruiter):
+    low = _wz200_clean_text(recruiter, "").lower()
+    if any(x in low for x in ["daniel", "markus", "male", "manager", "technical"]):
+        return "male"
+    return "female"
+
+
+def _wz200_opening_question(language, recruiter, role, company, candidate=""):
+    role = _wz200_clean_text(role, "this role")
+    company = _wz200_clean_text(company, "the company")
+    candidate = _wz200_clean_text(candidate, "")
+    name_part_de = f" {candidate}," if candidate else ""
+    name_part_en = f" {candidate}," if candidate else ""
+    lang = _wz200_clean_text(language, "English").lower()
+    if lang == "german":
+        return f"Guten Tag{name_part_de}. Lassen Sie uns beginnen. Stellen Sie sich bitte kurz vor und verbinden Sie Ihren Hintergrund direkt mit der Position {role} bei {company}."
+    if lang == "dutch":
+        return f"Goedendag{name_part_en}. Laten we beginnen. Stel jezelf kort voor en verbind je achtergrond direct met de functie {role} bij {company}."
+    if lang == "french":
+        return f"Bonjour{name_part_en}. Commençons. Présentez-vous brièvement et reliez votre parcours directement au poste {role} chez {company}."
+    if lang == "spanish":
+        return f"Hola{name_part_en}. Empecemos. Preséntate brevemente y conecta tu experiencia directamente con el puesto de {role} en {company}."
+    if lang == "portuguese":
+        return f"Olá{name_part_en}. Vamos começar. Apresente-se brevemente e conecte sua experiência diretamente à vaga de {role} na {company}."
+    if lang == "italian":
+        return f"Buongiorno{name_part_en}. Iniziamo. Presentati brevemente e collega il tuo percorso direttamente al ruolo di {role} presso {company}."
+    if lang == "hindi":
+        return f"Namaste{name_part_en}. Chaliye shuru karte hain. Apne background ka short introduction dijiye aur use {company} mein {role} role se directly connect kijiye."
+    if lang == "tamil":
+        return f"Vanakkam{name_part_en}. தொடங்கலாம். உங்கள் background-ஐ சுருக்கமாக சொல்லி, அதை {company}-இல் {role} role-க்கு நேரடியாக இணைக்கவும்."
+    return f"Hi{name_part_en}, welcome. To begin, give me a short introduction and connect your background directly to {role} at {company}."
+
+
+def _wz200_fallback_question(language, index, role, company):
+    lang = _wz200_clean_text(language, "English").lower()
+    role = _wz200_clean_text(role, "this role")
+    company = _wz200_clean_text(company, "the company")
+    if lang == "german":
+        qs = [
+            f"Nennen Sie mir ein konkretes Beispiel, das zeigt, dass Sie für {role} geeignet sind.",
+            "Was war Ihr messbares Ergebnis oder konkreter Beitrag?",
+            "Wie würden frühere Kolleginnen oder Kollegen Ihre Arbeitsweise beschreiben?",
+            f"Warum passt Ihr Profil zu {company}?",
+            "Welche Schwäche könnte in diesem Interview Zweifel auslösen, und wie gehen Sie damit um?",
+        ]
+    elif lang == "french":
+        qs = [
+            f"Donnez-moi un exemple concret qui prouve votre adéquation pour le poste {role}.",
+            "Quel résultat mesurable avez-vous obtenu ?",
+            "Comment vos collègues décriraient-ils votre façon de travailler ?",
+            f"Pourquoi votre profil correspond-il à {company} ?",
+            "Quel point faible pourrait inquiéter le recruteur et comment le gérez-vous ?",
+        ]
+    elif lang == "spanish":
+        qs = [
+            f"Dame un ejemplo concreto que demuestre que encajas en el puesto de {role}.",
+            "¿Cuál fue el resultado medible de tu trabajo?",
+            "¿Cómo describirían tus compañeros tu forma de trabajar?",
+            f"¿Por qué encaja tu perfil con {company}?",
+            "¿Qué debilidad podría preocupar al reclutador y cómo la manejarías?",
+        ]
+    else:
+        qs = [
+            f"Give me one specific example that proves you can succeed in {role}.",
+            "What was the measurable outcome of your work?",
+            "How would previous colleagues describe your working style?",
+            f"Why does your profile fit {company}?",
+            "What weakness might make a recruiter doubt you, and how would you handle it?",
+        ]
+    return qs[(max(1, int(index)) - 1) % len(qs)]
+
+
+# Let dashboard v199 use these if it initializes questions before calling 09.
+def _wz_voice_first_build_opening_question(cv_text, jd, role, company, language):
+    recruiter = _wz200_latest_recruiter()
+    candidate = _wz200_clean_text(st.session_state.get("candidate_name") or st.session_state.get("user_name"), "")
+    return _wz200_opening_question(language, recruiter, role, company, candidate)
+
+
+def _wz_voice_first_next_question(cv_text, jd, role, company, language, answers, index):
+    return _wz200_fallback_question(language, index, role, company)
+
+
+def _wz200_apply_selection_lock(reset_stale_questions=True):
+    """Force 09_interview_assistant to respect latest dashboard recruiter/language values."""
+    try:
+        language = _wz200_latest_language()
+        recruiter = _wz200_latest_recruiter()
+        personality = _wz200_map_recruiter_to_personality(recruiter)
+        display = _wz200_recruiter_display_name(recruiter)
+
+        # Lock language everywhere old/new modules read it.
+        st.session_state["wz_ri_interview_language"] = language
+        st.session_state["preferred_language"] = language
+        st.session_state["language"] = language
+        st.session_state["response_language"] = language
+        st.session_state["ui_language"] = language
+        st.session_state["wz_ri_answer_language"] = "Same as interview"
+        st.session_state["wz_ri_answer_language_v150"] = "Same as interview"
+        # Old setup selectbox uses this key. Setting before render prevents stale Auto/English.
+        st.session_state["wz_ri_language_choice_v150"] = language
+
+        # Lock recruiter everywhere old/new modules read it.
+        st.session_state["wz_ri_recruiter_personality_v181"] = display
+        st.session_state["wz_ri_recruiter_personality"] = display
+        st.session_state["wz_voice_recruiter_name"] = display
+        st.session_state["wz_voice_recruiter_gender"] = _wz200_voice_gender(display)
+        st.session_state["wz_ri_personality"] = personality
+
+        role = _wz200_clean_text(st.session_state.get("wz_ri_role") or st.session_state.get("target_role") or st.session_state.get("target_job_title"), "the role")
+        company = _wz200_clean_text(st.session_state.get("wz_ri_company") or st.session_state.get("target_company"), "the company")
+        st.session_state["wz_ri_role"] = role
+        st.session_state["target_role"] = role
+        st.session_state["target_job_title"] = role
+        st.session_state["wz_ri_company"] = company
+        st.session_state["target_company"] = company
+
+        lock = {"language": language, "recruiter": display, "personality": personality, "role": role, "company": company}
+        previous = st.session_state.get("wz_ri_selection_lock")
+        changed = previous != lock
+        st.session_state["wz_ri_selection_lock"] = lock
+
+        if reset_stale_questions and changed:
+            # User changed recruiter/language. Rebuild only if an interview has started or questions exist.
+            if st.session_state.get("wz_ri_started") or isinstance(st.session_state.get("wz_ri_questions"), list):
+                qs = [_wz200_opening_question(language, display, role, company)]
+                for i in range(1, 6):
+                    qs.append(_wz200_fallback_question(language, i, role, company))
+                st.session_state["wz_ri_questions"] = qs
+                st.session_state["wz_ri_current_index"] = 0
+                st.session_state["wz_ri_answers"] = []
+                st.session_state["wz_ri_live_reactions"] = []
+                st.session_state["wz_ri_final_score"] = {}
+                st.session_state["wz_ri_closing_reached"] = False
+                st.session_state["wz_ri_audio_nonce"] = int(st.session_state.get("wz_ri_audio_nonce", 0) or 0) + 1
+                try:
+                    import time as _time
+                    st.session_state["wz_ri_question_started_at"] = _time.time()
+                except Exception:
+                    pass
+        return lock
+    except Exception:
+        return {}
+
+
+try:
+    _wz200_original_render_real_interview_simulation = render_real_interview_simulation
+except Exception:
+    _wz200_original_render_real_interview_simulation = None
+
+
+def render_real_interview_simulation():
+    """Wrapper: sync latest recruiter and language before rendering the voice interview."""
+    _wz200_apply_selection_lock(reset_stale_questions=True)
+    if callable(_wz200_original_render_real_interview_simulation):
+        return _wz200_original_render_real_interview_simulation()
+    st.error("Interview renderer is unavailable.")
+
+
+# =========================================================
+# WorkZo v201 - ALL supported languages sync + voice intent fix
+# Purpose:
+# - The recruiter/language lock must work for every supported interview language,
+#   not only German.
+# - If the user selects Daniel/Priya/Sarah/any recruiter and any language,
+#   the first question, fallbacks, timer/interruption phrases, and browser TTS
+#   intent should all follow that selection.
+# - This remains Streamlit/browser-speech beta; stronger native voice can replace it later.
+# =========================================================
+
+_WZ201_SUPPORTED_LANGUAGES = [
+    "English", "German", "Dutch", "French", "Spanish", "Portuguese", "Italian", "Arabic",
+    "Hindi", "Tamil", "Polish", "Turkish", "Swedish", "Danish", "Norwegian", "Finnish",
+    "Czech", "Greek", "Japanese", "Korean", "Chinese"
+]
+
+_WZ201_LANG_ALIASES = {
+    "auto-detect / user preference": "English",
+    "auto-detect": "English",
+    "auto": "English",
+    "same as interview": "English",
+    "deutsch": "German",
+    "german": "German",
+    "english": "English",
+    "eng": "English",
+    "dutch": "Dutch",
+    "nederlands": "Dutch",
+    "french": "French",
+    "français": "French",
+    "francais": "French",
+    "spanish": "Spanish",
+    "español": "Spanish",
+    "espanol": "Spanish",
+    "portuguese": "Portuguese",
+    "português": "Portuguese",
+    "portugues": "Portuguese",
+    "italian": "Italian",
+    "italiano": "Italian",
+    "arabic": "Arabic",
+    "العربية": "Arabic",
+    "hindi": "Hindi",
+    "हिंदी": "Hindi",
+    "tamil": "Tamil",
+    "தமிழ்": "Tamil",
+    "polish": "Polish",
+    "polski": "Polish",
+    "turkish": "Turkish",
+    "türkçe": "Turkish",
+    "turkce": "Turkish",
+    "swedish": "Swedish",
+    "svenska": "Swedish",
+    "danish": "Danish",
+    "dansk": "Danish",
+    "norwegian": "Norwegian",
+    "norsk": "Norwegian",
+    "finnish": "Finnish",
+    "suomi": "Finnish",
+    "czech": "Czech",
+    "čeština": "Czech",
+    "cestina": "Czech",
+    "greek": "Greek",
+    "ελληνικά": "Greek",
+    "japanese": "Japanese",
+    "日本語": "Japanese",
+    "korean": "Korean",
+    "한국어": "Korean",
+    "chinese": "Chinese",
+    "中文": "Chinese",
+    "mandarin": "Chinese",
+}
+
+_WZ201_SPEECH_LANG_CODES = {
+    "English": "en-US",
+    "German": "de-DE",
+    "Dutch": "nl-NL",
+    "French": "fr-FR",
+    "Spanish": "es-ES",
+    "Portuguese": "pt-PT",
+    "Italian": "it-IT",
+    "Arabic": "ar-SA",
+    "Hindi": "hi-IN",
+    "Tamil": "ta-IN",
+    "Polish": "pl-PL",
+    "Turkish": "tr-TR",
+    "Swedish": "sv-SE",
+    "Danish": "da-DK",
+    "Norwegian": "nb-NO",
+    "Finnish": "fi-FI",
+    "Czech": "cs-CZ",
+    "Greek": "el-GR",
+    "Japanese": "ja-JP",
+    "Korean": "ko-KR",
+    "Chinese": "zh-CN",
+}
+
+_WZ201_TRANSLATIONS = {
+    "English": {
+        "intro": "Let’s begin. Give me a brief introduction based on your CV, and connect it to this job.",
+        "timer_left": "⏱ {seconds}s left. Keep it concise and structured.",
+        "interrupt_time": "Hmm, let me stop you there. In a real interview I need a sharper answer: direct point, one example, and the result.",
+        "too_short": "Hmm, that’s too short. Give me a real example — what happened, what you did, and what changed?",
+        "too_long": "I’ll stop you there — you’re losing the main point. Give me the same answer in 45 seconds with one clear result.",
+        "missing_impact": "Okay, interesting — but I’m missing the impact. What was the measurable outcome?",
+        "followups": [
+            "Give me one specific example that proves you can succeed in {role}.",
+            "What was the measurable outcome of your work?",
+            "How would previous colleagues describe your working style?",
+            "Why does your profile fit {company}?",
+            "What weakness might make a recruiter doubt you, and how would you handle it?",
+        ],
+    },
+    "German": {
+        "intro": "Lassen Sie uns beginnen. Stellen Sie sich kurz anhand Ihres Lebenslaufs vor und verbinden Sie es mit dieser Stelle.",
+        "timer_left": "⏱ Noch {seconds}s. Antworten Sie kurz und strukturiert.",
+        "interrupt_time": "Hm, ich unterbreche Sie kurz. In einem echten Interview brauche ich eine klarere Antwort: Punkt, Beispiel und Ergebnis.",
+        "too_short": "Hm, das ist zu kurz. Geben Sie mir ein konkretes Beispiel: Was ist passiert, was haben Sie getan, und was hat sich verändert?",
+        "too_long": "Ich stoppe Sie kurz — der Hauptpunkt geht verloren. Sagen Sie es in 45 Sekunden mit einem klaren Ergebnis.",
+        "missing_impact": "Okay, interessant — aber mir fehlt die Wirkung. Was war das messbare Ergebnis?",
+        "followups": [
+            "Nennen Sie mir ein konkretes Beispiel, das zeigt, dass Sie für {role} geeignet sind.",
+            "Was war Ihr messbares Ergebnis oder konkreter Beitrag?",
+            "Wie würden frühere Kolleginnen oder Kollegen Ihre Arbeitsweise beschreiben?",
+            "Warum passt Ihr Profil zu {company}?",
+            "Welche Schwäche könnte in diesem Interview Zweifel auslösen, und wie gehen Sie damit um?",
+        ],
+    },
+    "Dutch": {
+        "intro": "Laten we beginnen. Geef een korte introductie op basis van je cv en koppel die aan deze functie.",
+        "timer_left": "⏱ Nog {seconds}s. Houd het kort en gestructureerd.",
+        "interrupt_time": "Hmm, ik onderbreek je even. In een echt interview heb ik een scherper antwoord nodig: punt, voorbeeld en resultaat.",
+        "too_short": "Hmm, dat is te kort. Geef een concreet voorbeeld: wat gebeurde er, wat deed jij, en wat veranderde er?",
+        "too_long": "Ik stop je even — je verliest de kern. Geef hetzelfde antwoord in 45 seconden met één duidelijk resultaat.",
+        "missing_impact": "Oké, interessant — maar ik mis de impact. Wat was het meetbare resultaat?",
+        "followups": [
+            "Geef één concreet voorbeeld dat bewijst dat je kunt slagen in {role}.",
+            "Wat was het meetbare resultaat van je werk?",
+            "Hoe zouden voormalige collega’s jouw werkstijl beschrijven?",
+            "Waarom past jouw profiel bij {company}?",
+            "Welke zwakte kan een recruiter laten twijfelen, en hoe ga je daarmee om?",
+        ],
+    },
+    "French": {
+        "intro": "Commençons. Présentez-vous brièvement à partir de votre CV et reliez votre profil à ce poste.",
+        "timer_left": "⏱ Encore {seconds}s. Répondez de façon concise et structurée.",
+        "interrupt_time": "Hmm, je vous interromps ici. Dans un vrai entretien, il faut une réponse plus claire : l’idée, un exemple et le résultat.",
+        "too_short": "Hmm, c’est trop court. Donnez-moi un exemple concret : que s’est-il passé, qu’avez-vous fait, et quel a été le résultat ?",
+        "too_long": "Je vous arrête ici — le point principal se perd. Répondez en 45 secondes avec un résultat clair.",
+        "missing_impact": "D’accord, intéressant — mais il manque l’impact. Quel était le résultat mesurable ?",
+        "followups": [
+            "Donnez-moi un exemple concret qui prouve votre adéquation pour le poste {role}.",
+            "Quel résultat mesurable avez-vous obtenu ?",
+            "Comment vos collègues décriraient-ils votre façon de travailler ?",
+            "Pourquoi votre profil correspond-il à {company} ?",
+            "Quel point faible pourrait inquiéter le recruteur et comment le gérez-vous ?",
+        ],
+    },
+    "Spanish": {
+        "intro": "Empecemos. Preséntate brevemente usando tu CV y conecta tu experiencia con este puesto.",
+        "timer_left": "⏱ Quedan {seconds}s. Responde de forma breve y estructurada.",
+        "interrupt_time": "Hmm, te interrumpo aquí. En una entrevista real necesito una respuesta más clara: punto principal, ejemplo y resultado.",
+        "too_short": "Hmm, eso es demasiado corto. Dame un ejemplo real: qué pasó, qué hiciste y qué cambió.",
+        "too_long": "Te interrumpo — se está perdiendo el punto principal. Respóndelo en 45 segundos con un resultado claro.",
+        "missing_impact": "Bien, interesante — pero falta el impacto. ¿Cuál fue el resultado medible?",
+        "followups": [
+            "Dame un ejemplo concreto que demuestre que encajas en el puesto de {role}.",
+            "¿Cuál fue el resultado medible de tu trabajo?",
+            "¿Cómo describirían tus compañeros tu forma de trabajar?",
+            "¿Por qué encaja tu perfil con {company}?",
+            "¿Qué debilidad podría preocupar al reclutador y cómo la manejarías?",
+        ],
+    },
+    "Portuguese": {
+        "intro": "Vamos começar. Apresente-se brevemente com base no seu CV e conecte sua experiência a esta vaga.",
+        "timer_left": "⏱ Faltam {seconds}s. Seja breve e estruturado.",
+        "interrupt_time": "Hmm, vou interromper aqui. Em uma entrevista real, preciso de uma resposta mais objetiva: ponto principal, exemplo e resultado.",
+        "too_short": "Hmm, isso está curto demais. Dê um exemplo real: o que aconteceu, o que você fez e o que mudou?",
+        "too_long": "Vou interromper — você está perdendo o ponto principal. Responda em 45 segundos com um resultado claro.",
+        "missing_impact": "Certo, interessante — mas falta o impacto. Qual foi o resultado mensurável?",
+        "followups": [
+            "Dê um exemplo concreto que prove que você pode ter sucesso em {role}.",
+            "Qual foi o resultado mensurável do seu trabalho?",
+            "Como ex-colegas descreveriam seu estilo de trabalho?",
+            "Por que seu perfil combina com {company}?",
+            "Que ponto fraco poderia fazer um recrutador duvidar de você, e como você lidaria com isso?",
+        ],
+    },
+    "Italian": {
+        "intro": "Iniziamo. Presentati brevemente usando il tuo CV e collega la tua esperienza a questa posizione.",
+        "timer_left": "⏱ Restano {seconds}s. Rispondi in modo breve e strutturato.",
+        "interrupt_time": "Hmm, ti interrompo qui. In un vero colloquio ho bisogno di una risposta più chiara: punto principale, esempio e risultato.",
+        "too_short": "Hmm, è troppo breve. Dammi un esempio concreto: cosa è successo, cosa hai fatto e cosa è cambiato?",
+        "too_long": "Ti interrompo — stai perdendo il punto principale. Rispondi in 45 secondi con un risultato chiaro.",
+        "missing_impact": "Ok, interessante — ma manca l’impatto. Qual è stato il risultato misurabile?",
+        "followups": [
+            "Fammi un esempio concreto che dimostri che puoi avere successo nel ruolo {role}.",
+            "Qual è stato il risultato misurabile del tuo lavoro?",
+            "Come descriverebbero il tuo stile di lavoro i tuoi ex colleghi?",
+            "Perché il tuo profilo è adatto a {company}?",
+            "Quale debolezza potrebbe far dubitare un recruiter e come la gestiresti?",
+        ],
+    },
+    "Arabic": {
+        "intro": "لنبدأ. قدّم نفسك باختصار بناءً على سيرتك الذاتية واربط خبرتك بهذه الوظيفة.",
+        "timer_left": "⏱ بقي {seconds} ثانية. اجعل إجابتك مختصرة ومنظمة.",
+        "interrupt_time": "دعني أوقفك هنا. في مقابلة حقيقية أحتاج إلى إجابة أوضح: النقطة الرئيسية، مثال، والنتيجة.",
+        "too_short": "هذه الإجابة قصيرة جداً. أعطني مثالاً حقيقياً: ماذا حدث، ماذا فعلت، وما النتيجة؟",
+        "too_long": "سأوقفك هنا — الفكرة الأساسية تضيع. أعطني الإجابة خلال 45 ثانية مع نتيجة واضحة.",
+        "missing_impact": "مثير للاهتمام، لكن ينقصني الأثر. ما النتيجة القابلة للقياس؟",
+        "followups": [
+            "أعطني مثالاً محدداً يثبت أنك مناسب لدور {role}.",
+            "ما النتيجة القابلة للقياس من عملك؟",
+            "كيف سيصف زملاؤك السابقون أسلوب عملك؟",
+            "لماذا يناسب ملفك شركة {company}؟",
+            "ما نقطة الضعف التي قد تجعل مسؤول التوظيف يتردد، وكيف ستتعامل معها؟",
+        ],
+    },
+    "Hindi": {
+        "intro": "चलिए शुरू करते हैं। अपने CV के आधार पर अपना छोटा introduction दीजिए और इसे इस job से जोड़िए।",
+        "timer_left": "⏱ {seconds}s बाकी हैं। जवाब छोटा और structured रखें।",
+        "interrupt_time": "Hmm, मैं आपको यहीं रोकूंगा। Real interview में मुझे साफ जवाब चाहिए: main point, example और result.",
+        "too_short": "Hmm, यह बहुत छोटा है। एक real example दीजिए: क्या हुआ, आपने क्या किया, और क्या बदला?",
+        "too_long": "मैं आपको रोकता हूँ — main point खो रहा है। यही answer 45 seconds में एक clear result के साथ दीजिए।",
+        "missing_impact": "Okay, interesting — लेकिन impact missing है। measurable outcome क्या था?",
+        "followups": [
+            "अपने CV के आधार पर बताइए कि आप {role} role के लिए क्यों fit हैं?",
+            "आपके काम का measurable outcome क्या था?",
+            "आपके पुराने colleagues आपकी working style को कैसे describe करेंगे?",
+            "आपका profile {company} के लिए क्यों fit है?",
+            "कौन सी weakness recruiter को doubt दे सकती है, और आप उसे कैसे handle करेंगे?",
+        ],
+    },
+    "Tamil": {
+        "intro": "தொடங்கலாம். உங்கள் CV அடிப்படையில் சிறிய அறிமுகம் சொல்லி, அதை இந்த job-க்கு இணைக்கவும்.",
+        "timer_left": "⏱ இன்னும் {seconds}s. சுருக்கமாகவும் கட்டமைப்புடனும் பதிலளிக்கவும்.",
+        "interrupt_time": "Hmm, இங்கே நான் நிறுத்துகிறேன். உண்மையான interview-ல் தெளிவான பதில் வேண்டும்: முக்கிய point, example, result.",
+        "too_short": "Hmm, இது மிகவும் short. ஒரு real example சொல்லுங்கள்: என்ன நடந்தது, நீங்கள் என்ன செய்தீர்கள், என்ன result?",
+        "too_long": "நான் இங்கே நிறுத்துகிறேன் — முக்கிய point தெளிவாக இல்லை. இதே பதிலை 45 seconds-ல் ஒரு தெளிவான result உடன் சொல்லுங்கள்.",
+        "missing_impact": "சரி, interesting — ஆனால் impact missing. measurable outcome என்ன?",
+        "followups": [
+            "உங்கள் CV அடிப்படையில், {role} role-க்கு நீங்கள் ஏன் பொருத்தமானவர்?",
+            "உங்கள் வேலைக்கான measurable result என்ன?",
+            "முந்தைய colleagues உங்கள் working style-ஐ எப்படி describe செய்வார்கள்?",
+            "உங்கள் profile {company}-க்கு ஏன் fit?",
+            "எந்த weakness recruiter-க்கு doubt தரலாம், அதை எப்படி handle செய்வீர்கள்?",
+        ],
+    },
+}
+
+# Compact translated packs for additional languages. If a phrase is not included, WorkZo still asks the AI to generate in the selected language.
+_WZ201_TRANSLATIONS.update({
+    "Polish": {
+        "intro": "Zacznijmy. Krótko przedstaw się na podstawie CV i połącz swoje doświadczenie z tym stanowiskiem.",
+        "timer_left": "⏱ Zostało {seconds}s. Odpowiedz krótko i konkretnie.",
+        "interrupt_time": "Przerwę tutaj. W prawdziwej rozmowie potrzebuję jaśniejszej odpowiedzi: punkt, przykład i wynik.",
+        "too_short": "To zbyt krótko. Podaj konkretny przykład: co się stało, co zrobiłeś/zrobiłaś i jaki był wynik?",
+        "too_long": "Przerwę — gubisz główny punkt. Odpowiedz w 45 sekund z jednym jasnym wynikiem.",
+        "missing_impact": "Interesujące, ale brakuje wpływu. Jaki był mierzalny rezultat?",
+        "followups": ["Podaj konkretny przykład, który pokazuje, że pasujesz do roli {role}.", "Jaki był mierzalny wynik Twojej pracy?", "Jak byli współpracownicy opisaliby Twój styl pracy?", "Dlaczego Twój profil pasuje do {company}?", "Jaka słabość może wzbudzić wątpliwości rekrutera i jak sobie z nią poradzisz?"],
+    },
+    "Turkish": {
+        "intro": "Başlayalım. CV’ne dayanarak kendini kısaca tanıt ve deneyimini bu rolle ilişkilendir.",
+        "timer_left": "⏱ {seconds}s kaldı. Kısa ve yapılandırılmış cevap ver.",
+        "interrupt_time": "Burada durdurayım. Gerçek bir mülakatta daha net bir cevap isterim: ana nokta, örnek ve sonuç.",
+        "too_short": "Bu çok kısa. Gerçek bir örnek ver: ne oldu, sen ne yaptın ve ne değişti?",
+        "too_long": "Seni burada durduruyorum — ana noktayı kaybediyorsun. Aynı cevabı 45 saniyede net bir sonuçla ver.",
+        "missing_impact": "İlginç, ama etkiyi göremiyorum. Ölçülebilir sonuç neydi?",
+        "followups": ["{role} rolünde başarılı olabileceğini kanıtlayan somut bir örnek ver.", "Çalışmanın ölçülebilir sonucu neydi?", "Eski ekip arkadaşların çalışma tarzını nasıl tarif ederdi?", "Profilin neden {company} için uygun?", "Hangi zayıflığın işe alımcıda şüphe yaratabilir ve bunu nasıl yönetirsin?"],
+    },
+    "Swedish": {"intro":"Låt oss börja. Presentera dig kort utifrån ditt CV och koppla din bakgrund till den här rollen.","timer_left":"⏱ {seconds}s kvar. Håll det kort och strukturerat.","interrupt_time":"Jag avbryter dig där. I en riktig intervju behöver jag ett tydligare svar: poäng, exempel och resultat.","too_short":"Det är för kort. Ge ett konkret exempel: vad hände, vad gjorde du och vad förändrades?","too_long":"Jag stoppar dig där — huvudpoängen försvinner. Svara på 45 sekunder med ett tydligt resultat.","missing_impact":"Intressant, men jag saknar påverkan. Vad var det mätbara resultatet?","followups":["Ge ett konkret exempel som visar att du kan lyckas i rollen {role}.","Vad var det mätbara resultatet av ditt arbete?","Hur skulle tidigare kollegor beskriva din arbetsstil?","Varför passar din profil {company}?","Vilken svaghet kan få en rekryterare att tveka och hur hanterar du den?"]},
+    "Danish": {"intro":"Lad os begynde. Præsentér dig kort ud fra dit CV og forbind din baggrund med denne rolle.","timer_left":"⏱ {seconds}s tilbage. Hold det kort og struktureret.","interrupt_time":"Jeg stopper dig lige her. I en rigtig samtale har jeg brug for et skarpere svar: pointe, eksempel og resultat.","too_short":"Det er for kort. Giv et konkret eksempel: hvad skete der, hvad gjorde du, og hvad ændrede sig?","too_long":"Jeg stopper dig her — hovedpointen forsvinder. Giv svaret på 45 sekunder med ét klart resultat.","missing_impact":"Interessant, men jeg mangler effekten. Hvad var det målbare resultat?","followups":["Giv et konkret eksempel, der viser, at du kan lykkes i rollen {role}.","Hvad var det målbare resultat af dit arbejde?","Hvordan ville tidligere kolleger beskrive din arbejdsstil?","Hvorfor passer din profil til {company}?","Hvilken svaghed kan få en recruiter til at tvivle, og hvordan håndterer du den?"]},
+    "Norwegian": {"intro":"La oss begynne. Presenter deg kort basert på CV-en din og knytt bakgrunnen din til denne rollen.","timer_left":"⏱ {seconds}s igjen. Hold det kort og strukturert.","interrupt_time":"Jeg stopper deg der. I et ekte intervju trenger jeg et tydeligere svar: poeng, eksempel og resultat.","too_short":"Det er for kort. Gi et konkret eksempel: hva skjedde, hva gjorde du, og hva endret seg?","too_long":"Jeg stopper deg der — hovedpoenget forsvinner. Svar på 45 sekunder med ett tydelig resultat.","missing_impact":"Interessant, men jeg mangler effekten. Hva var det målbare resultatet?","followups":["Gi et konkret eksempel som viser at du kan lykkes i rollen {role}.","Hva var det målbare resultatet av arbeidet ditt?","Hvordan ville tidligere kolleger beskrevet arbeidsstilen din?","Hvorfor passer profilen din til {company}?","Hvilken svakhet kan få en rekrutterer til å tvile, og hvordan håndterer du den?"]},
+    "Finnish": {"intro":"Aloitetaan. Esittele itsesi lyhyesti CV:si perusteella ja yhdistä taustasi tähän rooliin.","timer_left":"⏱ {seconds}s jäljellä. Vastaa lyhyesti ja jäsennellysti.","interrupt_time":"Keskeytän tähän. Oikeassa haastattelussa tarvitsen selkeämmän vastauksen: pääkohta, esimerkki ja tulos.","too_short":"Tämä on liian lyhyt. Anna konkreettinen esimerkki: mitä tapahtui, mitä teit ja mikä muuttui?","too_long":"Keskeytän — pääasia katoaa. Vastaa 45 sekunnissa yhdellä selkeällä tuloksella.","missing_impact":"Kiinnostavaa, mutta vaikutus puuttuu. Mikä oli mitattava tulos?","followups":["Anna konkreettinen esimerkki, joka osoittaa, että voit onnistua roolissa {role}.","Mikä oli työsi mitattava tulos?","Miten aiemmat kollegasi kuvailisivat työskentelytyyliäsi?","Miksi profiilisi sopii yritykseen {company}?","Mikä heikkous voi herättää rekrytoijan epäilyksen ja miten käsittelet sen?"]},
+    "Czech": {"intro":"Začněme. Stručně se představte podle svého CV a propojte své zkušenosti s touto rolí.","timer_left":"⏱ Zbývá {seconds}s. Odpovězte stručně a strukturovaně.","interrupt_time":"Tady vás zastavím. V reálném pohovoru potřebuji jasnější odpověď: bod, příklad a výsledek.","too_short":"To je příliš krátké. Dejte konkrétní příklad: co se stalo, co jste udělal(a) a co se změnilo?","too_long":"Zastavím vás — hlavní pointa se ztrácí. Odpovězte do 45 sekund s jedním jasným výsledkem.","missing_impact":"Zajímavé, ale chybí mi dopad. Jaký byl měřitelný výsledek?","followups":["Uveďte konkrétní příklad, který dokazuje, že uspějete v roli {role}.","Jaký byl měřitelný výsledek vaší práce?","Jak by bývalí kolegové popsali váš pracovní styl?","Proč se váš profil hodí pro {company}?","Jaká slabina by mohla vyvolat pochybnosti a jak ji zvládnete?"]},
+    "Greek": {"intro":"Ας ξεκινήσουμε. Παρουσιάστε σύντομα τον εαυτό σας με βάση το CV σας και συνδέστε την εμπειρία σας με αυτόν τον ρόλο.","timer_left":"⏱ Απομένουν {seconds}s. Απαντήστε σύντομα και δομημένα.","interrupt_time":"Θα σας σταματήσω εδώ. Σε μια πραγματική συνέντευξη χρειάζομαι πιο καθαρή απάντηση: σημείο, παράδειγμα και αποτέλεσμα.","too_short":"Αυτό είναι πολύ σύντομο. Δώστε ένα συγκεκριμένο παράδειγμα: τι έγινε, τι κάνατε και τι άλλαξε;","too_long":"Σας σταματώ — χάνεται το βασικό σημείο. Απαντήστε σε 45 δευτερόλεπτα με ένα σαφές αποτέλεσμα.","missing_impact":"Ενδιαφέρον, αλλά λείπει ο αντίκτυπος. Ποιο ήταν το μετρήσιμο αποτέλεσμα;","followups":["Δώστε ένα συγκεκριμένο παράδειγμα που δείχνει ότι μπορείτε να πετύχετε στον ρόλο {role}.","Ποιο ήταν το μετρήσιμο αποτέλεσμα της δουλειάς σας;","Πώς θα περιέγραφαν οι προηγούμενοι συνάδελφοι το στυλ εργασίας σας;","Γιατί το προφίλ σας ταιριάζει στην {company};","Ποια αδυναμία μπορεί να δημιουργήσει αμφιβολία και πώς θα τη διαχειριστείτε;"]},
+    "Japanese": {"intro":"始めましょう。履歴書をもとに簡潔に自己紹介し、この職種との関連を説明してください。","timer_left":"⏱ 残り{seconds}秒です。簡潔で構造的に答えてください。","interrupt_time":"ここで止めます。実際の面接では、要点、具体例、結果がより明確な回答が必要です。","too_short":"少し短すぎます。何が起きたか、何をしたか、何が変わったかを具体例で教えてください。","too_long":"ここで止めます。要点が見えにくくなっています。45秒で明確な結果を含めて答えてください。","missing_impact":"興味深いですが、成果が見えません。測定可能な結果は何でしたか？","followups":["{role}で成功できることを示す具体例を一つ教えてください。","あなたの仕事の測定可能な成果は何でしたか？","以前の同僚はあなたの働き方をどう説明しますか？","あなたのプロフィールはなぜ{company}に合っていますか？","採用担当者が不安に思う弱点は何で、どう対応しますか？"]},
+    "Korean": {"intro":"시작하겠습니다. 이력서를 바탕으로 짧게 자기소개하고 이 직무와 어떻게 연결되는지 설명해 주세요.","timer_left":"⏱ {seconds}초 남았습니다. 간결하고 구조적으로 답변해 주세요.","interrupt_time":"여기서 잠시 끊겠습니다. 실제 면접에서는 핵심, 예시, 결과가 더 명확한 답변이 필요합니다.","too_short":"너무 짧습니다. 실제 예시를 들어 주세요: 어떤 상황이었고, 무엇을 했고, 무엇이 달라졌나요?","too_long":"여기서 멈추겠습니다 — 핵심이 흐려지고 있습니다. 명확한 결과를 포함해 45초 안에 답변해 주세요.","missing_impact":"흥미롭지만 영향이 부족합니다. 측정 가능한 결과는 무엇이었나요?","followups":["{role} 역할에 적합하다는 것을 보여주는 구체적인 예를 하나 말해 주세요.","업무의 측정 가능한 결과는 무엇이었나요?","이전 동료들은 당신의 업무 스타일을 어떻게 설명할까요?","당신의 프로필이 왜 {company}에 적합한가요?","채용 담당자가 의심할 수 있는 약점은 무엇이며 어떻게 대응하겠습니까?"]},
+    "Chinese": {"intro":"我们开始吧。请根据你的简历做一个简短自我介绍，并说明它如何匹配这个岗位。","timer_left":"⏱ 还剩 {seconds} 秒。请简洁、有结构地回答。","interrupt_time":"我先打断一下。真实面试中，我需要更清晰的回答：重点、例子和结果。","too_short":"这个回答太短了。请给一个真实例子：发生了什么，你做了什么，结果有什么变化？","too_long":"我先打断一下——你的重点有点散。请用45秒给出一个带明确结果的回答。","missing_impact":"有意思，但我还没听到影响。可衡量的结果是什么？","followups":["请给一个具体例子，证明你能胜任 {role}。","你的工作产生了什么可衡量的结果？","以前的同事会如何描述你的工作方式？","为什么你的背景适合 {company}？","哪个弱点可能让招聘者犹豫，你会如何处理？"]},
+})
+
+
+def _wz201_normalize_language(language):
+    raw = _wz200_clean_text(language, "English") if callable(globals().get("_wz200_clean_text")) else str(language or "English").strip()
+    low = raw.lower().strip()
+    return _WZ201_LANG_ALIASES.get(low) or (raw if raw in _WZ201_SUPPORTED_LANGUAGES else "English")
+
+
+def _wz151_lang_code(language: str) -> str:
+    # Override older helper but keep same function name used by earlier code.
+    return _wz201_normalize_language(language).lower()
+
+
+def _wz151_phrase(key: str, language: str = "English", **kwargs) -> str:
+    lang = _wz201_normalize_language(language)
+    pack = _WZ201_TRANSLATIONS.get(lang) or _WZ201_TRANSLATIONS["English"]
+    template = pack.get(key) or _WZ201_TRANSLATIONS["English"].get(key, "")
+    try:
+        return template.format(**kwargs)
+    except Exception:
+        return template
+
+
+def _wz151_question_fallbacks(cv_text: str, jd: str, role: str, language: str) -> list:
+    role_text = str(role or st.session_state.get("target_role", "this role") or "this role")
+    company_text = str(st.session_state.get("wz_ri_company") or st.session_state.get("target_company") or "the company")
+    lang = _wz201_normalize_language(language)
+    pack = _WZ201_TRANSLATIONS.get(lang) or _WZ201_TRANSLATIONS["English"]
+    qs = pack.get("followups") or _WZ201_TRANSLATIONS["English"]["followups"]
+    return [q.format(role=role_text, company=company_text) for q in qs]
+
+
+def _wz200_latest_language():
+    """Read the newest interview language from every known dashboard/interview key, for every supported language."""
+    candidates = [
+        st.session_state.get("interview_language"),
+        st.session_state.get("selected_interview_language"),
+        st.session_state.get("wz_interview_language"),
+        st.session_state.get("wz_ri_interview_language"),
+        st.session_state.get("wz_ri_language_choice_v150"),
+        st.session_state.get("preferred_language"),
+        st.session_state.get("language"),
+        st.session_state.get("response_language"),
+    ]
+    for lang in candidates:
+        raw = _wz200_clean_text(lang, "") if callable(globals().get("_wz200_clean_text")) else str(lang or "").strip()
+        if raw and raw.lower() not in ["auto", "auto-detect", "auto-detect / user preference", "same as interview", "user preference"]:
+            return _wz201_normalize_language(raw)
+    return "English"
+
+
+def _wz200_opening_question(language, recruiter, role, company, candidate=""):
+    role = _wz200_clean_text(role, "this role") if callable(globals().get("_wz200_clean_text")) else str(role or "this role")
+    company = _wz200_clean_text(company, "the company") if callable(globals().get("_wz200_clean_text")) else str(company or "the company")
+    candidate = _wz200_clean_text(candidate, "") if callable(globals().get("_wz200_clean_text")) else str(candidate or "")
+    intro = _wz151_phrase("intro", language)
+    if candidate:
+        intro = intro.replace("Let’s begin.", f"Hi {candidate}, let’s begin.")
+    return intro.replace("this job", f"{role} at {company}").replace("this role", f"{role} at {company}")
+
+
+def _wz200_fallback_question(language, index, role, company):
+    qs = _wz151_question_fallbacks("", "", role, language)
+    try:
+        return qs[(max(1, int(index)) - 1) % len(qs)]
+    except Exception:
+        return qs[0]
+
+
+def _wz201_voice_js_lang(language):
+    return _WZ201_SPEECH_LANG_CODES.get(_wz201_normalize_language(language), "en-US")
+
+# Patch browser speech, if present, to prefer the selected interview language instead of always English.
+try:
+    _wz201_prev_browser_speak = globals().get("_wz_voice_first_browser_speak")
+    def _wz_voice_first_browser_speak(text, key=None, auto=True, language=None, recruiter=None):
+        language = _wz201_normalize_language(language or st.session_state.get("wz_ri_interview_language") or st.session_state.get("preferred_language") or "English")
+        lang_code = _wz201_voice_js_lang(language)
+        safe_text = html.escape(str(text or ""))
+        safe_key = html.escape(str(key or "wz_voice"))
+        auto_flag = "true" if auto else "false"
+        gender = str(st.session_state.get("wz_voice_recruiter_gender") or "").lower()
+        gender_hint = "male" if gender == "male" else "female"
+        st.components.v1.html(f"""
+        <div id="{safe_key}" style="display:none"></div>
+        <script>
+        (function() {{
+          const text = `{safe_text}`;
+          const lang = `{lang_code}`;
+          const genderHint = `{gender_hint}`;
+          const autoplay = {auto_flag};
+          function pickVoice() {{
+            const voices = window.speechSynthesis ? (window.speechSynthesis.getVoices() || []) : [];
+            let sameLang = voices.filter(v => (v.lang || '').toLowerCase().startsWith(lang.toLowerCase().slice(0,2)));
+            if (!sameLang.length) sameLang = voices;
+            const natural = sameLang.find(v => /natural|premium|enhanced|neural|google|microsoft|samantha|daniel|mark|zira|helena|anna|paulina|amelie|thomas|luciana|carlos|lekha|veena|ting/i.test(v.name || ''));
+            return natural || sameLang[0] || voices[0] || null;
+          }}
+          function speak() {{
+            if (!window.speechSynthesis) return;
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = lang;
+            msg.rate = genderHint === 'male' ? 0.90 : 0.94;
+            msg.pitch = genderHint === 'male' ? 0.86 : 1.05;
+            const voice = pickVoice();
+            if (voice) msg.voice = voice;
+            setTimeout(() => window.speechSynthesis.speak(msg), 160);
+          }}
+          window.workzoSpeakRecruiter = speak;
+          if (autoplay) {{
+             if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = speak;
+             speak();
+          }}
+        }})();
+        </script>
+        """, height=0)
+except Exception:
+    pass
+
+# Re-apply selection lock so old and new modules read the selected language consistently.
+try:
+    _wz201_prev_apply_selection_lock = globals().get("_wz200_apply_selection_lock")
+    def _wz200_apply_selection_lock(reset_stale_questions=True):
+        try:
+            language = _wz200_latest_language()
+            recruiter = _wz200_latest_recruiter() if callable(globals().get("_wz200_latest_recruiter")) else "👩 Sarah — Friendly HR"
+            personality = _wz200_map_recruiter_to_personality(recruiter) if callable(globals().get("_wz200_map_recruiter_to_personality")) else "Friendly"
+            display = _wz200_recruiter_display_name(recruiter) if callable(globals().get("_wz200_recruiter_display_name")) else str(recruiter)
+            for key in ["wz_ri_interview_language", "preferred_language", "language", "response_language", "ui_language", "interview_language", "selected_interview_language"]:
+                st.session_state[key] = language
+            st.session_state["wz_ri_answer_language"] = "Same as interview"
+            st.session_state["wz_ri_answer_language_v150"] = "Same as interview"
+            st.session_state["wz_ri_language_choice_v150"] = language
+            st.session_state["wz_speech_lang_code"] = _wz201_voice_js_lang(language)
+            st.session_state["wz_ri_recruiter_personality_v181"] = display
+            st.session_state["wz_ri_recruiter_personality"] = display
+            st.session_state["wz_voice_recruiter_name"] = display
+            st.session_state["wz_voice_recruiter_gender"] = _wz200_voice_gender(display) if callable(globals().get("_wz200_voice_gender")) else "female"
+            st.session_state["wz_ri_personality"] = personality
+            role = _wz200_clean_text(st.session_state.get("wz_ri_role") or st.session_state.get("target_role") or st.session_state.get("target_job_title"), "the role")
+            company = _wz200_clean_text(st.session_state.get("wz_ri_company") or st.session_state.get("target_company"), "the company")
+            st.session_state["wz_ri_role"] = role
+            st.session_state["target_role"] = role
+            st.session_state["target_job_title"] = role
+            st.session_state["wz_ri_company"] = company
+            st.session_state["target_company"] = company
+            lock = {"language": language, "recruiter": display, "personality": personality, "role": role, "company": company}
+            changed = st.session_state.get("wz_ri_selection_lock") != lock
+            st.session_state["wz_ri_selection_lock"] = lock
+            if reset_stale_questions and changed and (st.session_state.get("wz_ri_started") or isinstance(st.session_state.get("wz_ri_questions"), list)):
+                candidate = st.session_state.get("candidate_name") or st.session_state.get("user_name") or ""
+                qs = [_wz200_opening_question(language, display, role, company, candidate)]
+                for i in range(1, 6):
+                    qs.append(_wz200_fallback_question(language, i, role, company))
+                st.session_state["wz_ri_questions"] = qs
+                st.session_state["wz_ri_current_index"] = 0
+                st.session_state["wz_ri_answers"] = []
+                st.session_state["wz_ri_live_reactions"] = []
+                st.session_state["wz_ri_final_score"] = {}
+                st.session_state["wz_ri_closing_reached"] = False
+                st.session_state["wz_ri_audio_nonce"] = int(st.session_state.get("wz_ri_audio_nonce", 0) or 0) + 1
+            return lock
+        except Exception:
+            return {}
+except Exception:
+    pass

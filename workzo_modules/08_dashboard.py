@@ -34866,3 +34866,256 @@ def show_dashboard():
         except Exception:
             pass
 
+
+# =========================================================
+# WorkZo FINAL SYNC FIX - recruiter/language selection + logo home
+# Fixes: stale Sarah/English in interview room + logo home routing.
+# =========================================================
+
+_WZ202_LANGUAGES = ["English", "German", "Dutch", "French", "Spanish", "Portuguese", "Italian", "Arabic", "Hindi", "Tamil", "Polish", "Turkish", "Swedish", "Danish", "Norwegian", "Finnish", "Czech", "Greek", "Japanese", "Korean", "Chinese"]
+_WZ202_ALIAS = {"deutsch":"German", "german":"German", "english":"English", "englisch":"English", "dutch":"Dutch", "nederlands":"Dutch", "french":"French", "français":"French", "spanish":"Spanish", "español":"Spanish", "portuguese":"Portuguese", "português":"Portuguese", "italian":"Italian", "arabic":"Arabic", "hindi":"Hindi", "tamil":"Tamil", "polish":"Polish", "turkish":"Turkish", "swedish":"Swedish", "danish":"Danish", "norwegian":"Norwegian", "finnish":"Finnish", "czech":"Czech", "greek":"Greek", "japanese":"Japanese", "korean":"Korean", "chinese":"Chinese"}
+_WZ202_SPEECH = {"English":"en-US", "German":"de-DE", "Dutch":"nl-NL", "French":"fr-FR", "Spanish":"es-ES", "Portuguese":"pt-PT", "Italian":"it-IT", "Arabic":"ar-SA", "Hindi":"hi-IN", "Tamil":"ta-IN", "Polish":"pl-PL", "Turkish":"tr-TR", "Swedish":"sv-SE", "Danish":"da-DK", "Norwegian":"nb-NO", "Finnish":"fi-FI", "Czech":"cs-CZ", "Greek":"el-GR", "Japanese":"ja-JP", "Korean":"ko-KR", "Chinese":"zh-CN"}
+
+def _wz202_clean(value, fallback=""):
+    try:
+        text = str(value or "").strip()
+        return text if text else fallback
+    except Exception:
+        return fallback
+
+def _wz202_norm_lang(value):
+    raw = _wz202_clean(value, "")
+    if not raw or raw.lower() in {"auto", "auto-detect", "auto-detect / user preference", "same as interview", "user preference"}:
+        return "English"
+    if raw in _WZ202_LANGUAGES:
+        return raw
+    return _WZ202_ALIAS.get(raw.lower().strip(), "English")
+
+def _wz202_latest_language():
+    # Explicit dashboard selection first; old wz_ri_interview_language can be stale.
+    for key in ["interview_language", "selected_interview_language", "wz_interview_language", "wz_ri_language_choice_v150", "wz_ri_interview_language", "preferred_language", "response_language", "language", "ui_language"]:
+        raw = _wz202_clean(st.session_state.get(key), "")
+        if raw and raw.lower() not in {"auto", "auto-detect", "auto-detect / user preference", "same as interview", "user preference"}:
+            return _wz202_norm_lang(raw)
+    return "English"
+
+def _wz202_recruiter_name(value=""):
+    txt = _wz202_clean(value, "")
+    if not txt:
+        for key in ["wz_ri_recruiter_personality_v181", "wz_ri_recruiter_personality", "selected_recruiter_personality", "wz_voice_recruiter_name", "recruiter_personality", "interviewer_personality"]:
+            txt = _wz202_clean(st.session_state.get(key), "")
+            if txt and txt.lower() not in {"strict", "friendly", "fast-paced", "technical recruiter", "senior hiring manager"}:
+                break
+    txt = _wz202_clean(txt, "Sarah — Friendly HR").replace("👩", "").replace("👨", "").strip()
+    return txt or "Sarah — Friendly HR"
+
+def _wz202_gender(recruiter):
+    name = _wz202_recruiter_name(recruiter).lower()
+    return "male" if any(x in name for x in ["daniel", "markus", "james", "alex", "hans", "carlos", "thomas", "ahmed"]) else "female"
+
+def _wz202_personality(recruiter):
+    name = _wz202_recruiter_name(recruiter).lower()
+    if "daniel" in name or "technical" in name: return "Technical recruiter"
+    if "priya" in name or "startup" in name or "fast" in name: return "Fast-paced"
+    if "markus" in name or "corporate" in name or "structured" in name: return "Strict"
+    return "Friendly"
+
+def _wz202_role_company_country():
+    role = _wz202_clean(st.session_state.get("wz183_target_role") or st.session_state.get("wz_ri_role") or st.session_state.get("target_role") or st.session_state.get("target_job_title") or st.session_state.get("real_interview_target_role"), "the role")
+    company = _wz202_clean(st.session_state.get("wz183_target_company") or st.session_state.get("wz_ri_company") or st.session_state.get("target_company") or st.session_state.get("real_interview_company"), "the company")
+    country = _wz202_clean(st.session_state.get("wz_ri_country_adaptation_v181") or st.session_state.get("wz_ri_country_adaptation_secondary_v191") or st.session_state.get("selected_country") or st.session_state.get("target_country") or st.session_state.get("country"), "Global / Remote")
+    return role, company, country
+
+def _wz202_apply_selection_lock(reset_questions=False):
+    language = _wz202_latest_language()
+    recruiter = _wz202_recruiter_name()
+    role, company, country = _wz202_role_company_country()
+    lock = {"language": language, "recruiter": recruiter, "role": role, "company": company, "country": country}
+    changed = st.session_state.get("wz_ri_selection_lock") != lock
+
+    for key in ["interview_language", "selected_interview_language", "wz_ri_interview_language", "preferred_language", "language", "response_language", "ui_language"]:
+        st.session_state[key] = language
+    st.session_state["wz_ri_language_choice_v150"] = language
+    st.session_state["wz_ri_answer_language"] = "Same as interview"
+    st.session_state["wz_ri_answer_language_v150"] = "Same as interview"
+    st.session_state["wz_speech_lang_code"] = _WZ202_SPEECH.get(language, "en-US")
+
+    for key in ["wz_ri_recruiter_personality_v181", "wz_ri_recruiter_personality", "selected_recruiter_personality", "wz_voice_recruiter_name"]:
+        st.session_state[key] = recruiter
+    st.session_state["wz_voice_recruiter_gender"] = _wz202_gender(recruiter)
+    st.session_state["wz_voice_recruiter_style"] = _wz202_personality(recruiter)
+    st.session_state["wz_ri_personality"] = _wz202_personality(recruiter)
+
+    st.session_state["wz_ri_role"] = role
+    st.session_state["target_role"] = role
+    st.session_state["target_job_title"] = role
+    st.session_state["wz_ri_company"] = company
+    st.session_state["target_company"] = company
+    st.session_state["selected_country"] = country
+    st.session_state["target_country"] = country
+    st.session_state["wz_ri_selection_lock"] = lock
+
+    if reset_questions and changed:
+        for key, value in {
+            "wz_ri_questions": [], "wz_ri_current_index": 0, "wz_ri_answers": [], "wz_ri_live_reactions": [],
+            "wz_ri_final_score": {}, "wz_ri_closing_reached": False
+        }.items():
+            st.session_state[key] = value
+        st.session_state["wz_ri_audio_nonce"] = int(st.session_state.get("wz_ri_audio_nonce", 0) or 0) + 1
+    return lock
+
+def _wz202_opening_question(language, role, company):
+    role = _wz202_clean(role, "this role"); company = _wz202_clean(company, "the company")
+    options = {
+        "English": f"Tell me about yourself and keep it relevant to {role} at {company}.",
+        "German": f"Erzählen Sie mir bitte kurz etwas über sich und verbinden Sie Ihren Hintergrund mit der Position {role} bei {company}.",
+        "Dutch": f"Vertel kort iets over jezelf en koppel je achtergrond aan de functie {role} bij {company}.",
+        "French": f"Présentez-vous brièvement et reliez votre parcours au poste de {role} chez {company}.",
+        "Spanish": f"Preséntate brevemente y conecta tu experiencia con el puesto de {role} en {company}.",
+        "Portuguese": f"Apresente-se brevemente e conecte sua experiência à vaga de {role} na {company}.",
+        "Italian": f"Presentati brevemente e collega la tua esperienza al ruolo di {role} presso {company}.",
+        "Hindi": f"कृपया अपना संक्षिप्त परिचय दीजिए और अपने अनुभव को {company} में {role} role से जोड़िए.",
+        "Tamil": f"தயவு செய்து உங்களைச் சுருக்கமாக அறிமுகப்படுத்தி, உங்கள் அனுபவத்தை {company} நிறுவனத்தின் {role} பணியுடன் இணைக்கவும்.",
+        "Arabic": f"قدّم نفسك باختصار واربط خبرتك بدور {role} في {company}.",
+        "Japanese": f"簡潔に自己紹介し、あなたの経験を{company}の{role}職に結びつけて説明してください。",
+        "Korean": f"간단히 자기소개를 하고, 본인의 경험을 {company}의 {role} 직무와 연결해서 설명해 주세요.",
+        "Chinese": f"请简短介绍自己，并说明你的经历如何匹配 {company} 的 {role} 岗位。",
+    }
+    return options.get(language, options["English"])
+
+def _wz202_next_question(language, idx, role, company):
+    role = _wz202_clean(role, "this role"); company = _wz202_clean(company, "the company")
+    en = [f"Give me one specific example that proves you can succeed in {role}.", "What measurable result did your work create?", "Tell me about a challenge where you had to take ownership.", f"Why should {company} trust you for this role?", "What weakness could make a recruiter hesitate, and how are you improving it?"]
+    langmap = {
+        "German": [f"Nennen Sie mir ein konkretes Beispiel, das zeigt, dass Sie in der Position {role} erfolgreich sein können.", "Welches messbare Ergebnis hat Ihre Arbeit erzielt?", "Beschreiben Sie eine Herausforderung, bei der Sie Verantwortung übernommen haben.", f"Warum sollte {company} Ihnen diese Rolle zutrauen?", "Welche Schwäche könnte einen Recruiter zweifeln lassen, und wie verbessern Sie sie?"],
+        "French": [f"Donnez-moi un exemple concret prouvant votre adéquation pour le poste {role}.", "Quel résultat mesurable avez-vous obtenu ?", "Parlez-moi d’un défi où vous avez pris la responsabilité.", f"Pourquoi {company} devrait-elle vous faire confiance pour ce poste ?", "Quel point faible pourrait inquiéter un recruteur et comment l’améliorez-vous ?"],
+        "Spanish": [f"Dame un ejemplo concreto que demuestre que puedes tener éxito en {role}.", "¿Qué resultado medible generó tu trabajo?", "Cuéntame un desafío en el que asumiste responsabilidad.", f"¿Por qué {company} debería confiar en ti para este puesto?", "¿Qué debilidad podría preocupar a un reclutador y cómo la estás mejorando?"],
+        "Dutch": [f"Geef een concreet voorbeeld dat laat zien dat je succesvol kunt zijn in {role}.", "Welk meetbaar resultaat heeft je werk opgeleverd?", "Vertel over een uitdaging waarbij je verantwoordelijkheid nam.", f"Waarom zou {company} jou deze rol toevertrouwen?", "Welke zwakte kan een recruiter laten twijfelen en hoe verbeter je die?"],
+        "Hindi": [f"एक ठोस उदाहरण दीजिए जो साबित करे कि आप {role} role में सफल हो सकते हैं.", "आपके काम का measurable result क्या था?", "ऐसी चुनौती बताइए जहाँ आपने ownership ली.", f"{company} आपको इस role के लिए क्यों trust करे?", "कौन सी weakness recruiter को doubt दे सकती है और आप उसे कैसे improve कर रहे हैं?"],
+        "Tamil": [f"{role} பணியில் நீங்கள் வெற்றி பெற முடியும் என்பதை நிரூபிக்கும் ஒரு குறிப்பிட்ட எடுத்துக்காட்டு சொல்லுங்கள்.", "உங்கள் பணியின் அளவிடக்கூடிய முடிவு என்ன?", "நீங்கள் ownership எடுத்த ஒரு சவாலைப் பற்றி சொல்லுங்கள்.", f"{company} இந்த role-க்கு உங்களை ஏன் நம்ப வேண்டும்?", "Recruiter-க்கு சந்தேகம் தரக்கூடிய பலவீனம் என்ன, அதை எப்படி மேம்படுத்துகிறீர்கள்?"],
+    }
+    arr = langmap.get(language, en)
+    return arr[(max(1, int(idx)) - 1) % len(arr)]
+
+def _wz199_voice_profile_from_recruiter(recruiter=""):
+    name = _wz202_recruiter_name(recruiter)
+    return {"name": name, "gender": _wz202_gender(name), "style": _wz202_personality(name)}
+
+def _wz199_apply_voice_profile():
+    profile = _wz199_voice_profile_from_recruiter()
+    st.session_state["wz_voice_recruiter_name"] = profile["name"]
+    st.session_state["wz_voice_recruiter_gender"] = profile["gender"]
+    st.session_state["wz_voice_recruiter_style"] = profile["style"]
+    st.session_state["wz_ri_recruiter_personality"] = profile["name"]
+    st.session_state["wz_ri_recruiter_personality_v181"] = profile["name"]
+    st.session_state["wz_ri_personality"] = profile["style"]
+    return profile
+
+def _wz199_initialize_voice_interview_if_needed():
+    try:
+        lock = _wz202_apply_selection_lock(reset_questions=False)
+        _wz199_apply_voice_profile()
+        cv_text = _wz199_get_cv_text()
+        jd = _wz199_get_jd_text()
+        role, company, country = _wz202_role_company_country()
+        language = lock["language"]
+        recruiter = lock["recruiter"]
+        for key, value in {"wz_ri_role": role, "wz_ri_company": company, "wz_ri_jd": jd, "target_role": role, "target_company": company, "selected_job_description": jd, "real_interview_jd_saved": jd, "wz_ri_interview_language": language, "interview_language": language, "preferred_language": language}.items():
+            st.session_state[key] = value
+        questions = st.session_state.get("wz_ri_questions")
+        wanted_lock = {"language": language, "recruiter": recruiter, "role": role, "company": company, "country": country}
+        if not isinstance(questions, list) or not questions or st.session_state.get("wz_ri_questions_lock") != wanted_lock:
+            built = [_wz202_opening_question(language, role, company)] + [_wz202_next_question(language, i, role, company) for i in range(1, 6)]
+            st.session_state["wz_ri_questions"] = built
+            st.session_state["wz_ri_questions_lock"] = wanted_lock
+            st.session_state["wz_ri_current_index"] = 0
+            st.session_state["wz_ri_answers"] = []
+            st.session_state["wz_ri_live_reactions"] = []
+            st.session_state["wz_ri_final_score"] = {}
+            st.session_state["wz_ri_closing_reached"] = False
+            st.session_state["wz_ri_audio_nonce"] = int(st.session_state.get("wz_ri_audio_nonce", 0) or 0) + 1
+            try: st.session_state["wz_ri_question_started_at"] = __import__("time").time()
+            except Exception: pass
+        st.session_state["wz_ri_started"] = True
+        st.session_state["wz_active_interview_room"] = True
+        st.session_state["wz197_active_interview_mode"] = True
+        st.session_state["wz199_voice_room_active"] = True
+        return True
+    except Exception as exc:
+        try: st.warning(f"Voice interview setup could not initialize fully: {exc}")
+        except Exception: pass
+        return False
+
+try:
+    _wz202_prev_start_real_interview = globals().get("start_real_interview")
+    def start_real_interview():
+        _wz202_apply_selection_lock(reset_questions=True)
+        st.session_state["wz_ri_started"] = True
+        st.session_state["wz_active_interview_room"] = True
+        st.session_state["wz197_active_interview_mode"] = True
+        st.session_state["wz199_voice_room_active"] = True
+        st.session_state["page"] = "real_interview"; st.session_state["nav_page"] = "real_interview"; st.session_state["current_page"] = "real_interview"
+        try:
+            if callable(_wz202_prev_start_real_interview): _wz202_prev_start_real_interview()
+        except Exception: pass
+except Exception: pass
+
+def _wz202_go_home():
+    for key in ["wz_ri_started", "wz_active_interview_room", "wz197_active_interview_mode", "wz199_voice_room_active", "wz_ri_closing_reached"]:
+        st.session_state[key] = False
+    for key in ["page", "nav_page", "current_page", "active_page"]:
+        st.session_state[key] = "dashboard"
+    try:
+        if callable(globals().get("_wz182_route")): _wz182_route("dashboard")
+    except Exception: pass
+
+try:
+    _wz202_prev_topbar = globals().get("_wz182_topbar")
+    def _wz182_topbar():
+        logo = globals().get("_WZ181_LOGO_DATA_URI", "") or globals().get("_WZ146_LOGO_DATA_URI", "")
+        with st.container(key="wz202_topbar_native"):
+            c_logo, c_dash, c_sessions, c_progress, c_spacer, c_tools, c_settings = st.columns([3.2, 1.12, 1.08, 1.05, 1.35, 1.55, .85], vertical_alignment="center")
+            with c_logo:
+                if st.button("", key="wz202_logo_home_invisible", help="Go to WorkZo home"):
+                    _wz202_go_home(); st.rerun()
+                st.markdown(f"""
+                <style>.st-key-wz202_logo_home_invisible button{{position:absolute!important;width:250px!important;height:64px!important;opacity:0!important;z-index:20!important;}}</style>
+                <div class="wz182-brand-inline" style="pointer-events:none;">
+                  <img class="wz182-logo" src="{logo}" alt="WorkZo AI logo" />
+                  <div><div class="wz182-name">WorkZo AI</div><div class="wz182-sub">AI Interview Simulator</div></div>
+                </div>
+                """, unsafe_allow_html=True)
+            with c_dash:
+                if st.button("▦ Dashboard", key="wz202_nav_dashboard", use_container_width=True): _wz202_go_home(); st.rerun()
+            with c_sessions:
+                if st.button("▣ Sessions", key="wz202_nav_sessions", use_container_width=True): st.session_state["wz182_session_panel"] = True; _wz202_go_home(); st.rerun()
+            with c_progress:
+                if st.button("▰ Progress", key="wz202_nav_progress", use_container_width=True): st.session_state["wz182_progress_panel"] = True; _wz202_go_home(); st.rerun()
+            with c_tools:
+                if hasattr(st, "popover"):
+                    with st.popover("▧ Toolbox", use_container_width=True):
+                        if st.button("✨ Improve Resume for This Role", key="wz202_tool_improve_cv", use_container_width=True): _wz182_route("improve_cv")
+                        if st.button("🧠 Decode Recruiter Expectations", key="wz202_tool_understand", use_container_width=True): _wz182_route("understand_job")
+                        if st.button("🔎 Find Jobs", key="wz202_tool_find", use_container_width=True): _wz182_route("find_jobs")
+                        if st.button("🎯 Prepare for This Interview", key="wz202_tool_prepare", use_container_width=True): _wz182_route("prepare_job")
+                        if st.button("📝 Cover Letter", key="wz202_tool_cover", use_container_width=True): _wz182_route("cover_letter")
+                        if st.button("☻ Ask Work-O-Bot", key="wz202_tool_bot", use_container_width=True): _wz182_route("workobot")
+                else:
+                    if st.button("▧ Toolbox", key="wz202_toolbox_toggle", use_container_width=True): st.session_state["wz182_toolbox_open"] = not bool(st.session_state.get("wz182_toolbox_open"))
+            with c_settings:
+                if hasattr(st, "popover"):
+                    with st.popover("⋯", use_container_width=True):
+                        if st.button("Founder dashboard", key="wz202_more_founder", use_container_width=True): _wz182_route("founder_dashboard")
+                        if st.button("Exit", key="wz202_more_exit", use_container_width=True): _wz182_exit_to_landing()
+        try: _wz191_apply_final_css()
+        except Exception: pass
+except Exception: pass
+
+try:
+    _wz202_prev_render_voice_enabled_room = globals().get("_wz199_render_voice_enabled_room")
+    def _wz199_render_voice_enabled_room():
+        _wz202_apply_selection_lock(reset_questions=False)
+        _wz199_initialize_voice_interview_if_needed()
+        if callable(_wz202_prev_render_voice_enabled_room):
+            return _wz202_prev_render_voice_enabled_room()
+except Exception: pass
