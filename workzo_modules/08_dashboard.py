@@ -35127,3 +35127,160 @@ try:
         if callable(_wz202_prev_render_voice_enabled_room):
             return _wz202_prev_render_voice_enabled_room()
 except Exception: pass
+
+
+# WorkZo v203 - clean header card + logo home fix
+# Fixes: header looked shattered after making logo clickable. This topbar keeps the logo/name,
+# navigation, toolbox and more menu inside one premium card. The logo/name is a home link.
+try:
+    def _wz203_home_url():
+        return "?page=dashboard"
+
+    def _wz182_topbar():
+        logo = globals().get("_WZ181_LOGO_DATA_URI", "") or globals().get("_WZ146_LOGO_DATA_URI", "") or globals().get("_WZ_LOGO_DATA_URI", "")
+        if not logo:
+            try:
+                logo = image_to_data_uri(ICON_PATH) or image_to_data_uri(LOGO_PATH)
+            except Exception:
+                logo = ""
+        with st.container(key="wz203_topbar_card"):
+            st.markdown(f"""
+            <style>
+            .st-key-wz203_topbar_card {{
+                max-width: 1660px !important;
+                margin: 18px auto 22px auto !important;
+                padding: 10px 14px !important;
+                border-radius: 24px !important;
+                border: 1px solid rgba(148,163,184,.20) !important;
+                background: linear-gradient(135deg, rgba(2,6,23,.86), rgba(15,23,42,.76)) !important;
+                box-shadow: 0 18px 44px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.04) !important;
+                overflow: visible !important;
+            }}
+            .st-key-wz203_topbar_card [data-testid="stHorizontalBlock"] {{
+                align-items: center !important;
+                gap: 10px !important;
+            }}
+            .wz203-brand-link {{
+                display:flex !important;
+                align-items:center !important;
+                gap:12px !important;
+                text-decoration:none !important;
+                min-height:58px !important;
+                width:fit-content !important;
+                max-width:290px !important;
+            }}
+            .wz203-logo {{
+                width:56px !important;
+                height:56px !important;
+                max-width:56px !important;
+                max-height:56px !important;
+                object-fit:contain !important;
+                border-radius:15px !important;
+                display:block !important;
+                box-shadow:0 8px 24px rgba(14,165,233,.25) !important;
+                flex:0 0 auto !important;
+            }}
+            .wz203-name {{
+                color:#fff !important;
+                font-weight:950 !important;
+                font-size:1.08rem !important;
+                line-height:1.05 !important;
+                letter-spacing:-.02em !important;
+                white-space:nowrap !important;
+            }}
+            .wz203-sub {{
+                color:#67e8f9 !important;
+                font-size:.78rem !important;
+                font-weight:850 !important;
+                margin-top:5px !important;
+                white-space:nowrap !important;
+            }}
+            .st-key-wz203_topbar_card button {{
+                min-height:42px !important;
+                border-radius:14px !important;
+                background:rgba(15,23,42,.62) !important;
+                border:1px solid rgba(148,163,184,.22) !important;
+                color:#f8fafc !important;
+                font-weight:850 !important;
+                box-shadow:none !important;
+            }}
+            .st-key-wz203_topbar_card button:hover {{
+                border-color:rgba(103,232,249,.45) !important;
+                background:rgba(15,23,42,.88) !important;
+                transform:translateY(-1px);
+            }}
+            @media(max-width: 820px) {{
+                .st-key-wz203_topbar_card {{
+                    margin: 8px 8px 14px 8px !important;
+                    padding: 9px 10px !important;
+                    border-radius: 20px !important;
+                }}
+                .st-key-wz203_topbar_card [data-testid="stHorizontalBlock"] {{
+                    gap: 6px !important;
+                }}
+                .wz203-brand-link {{min-height:48px !important; gap:8px !important;}}
+                .wz203-logo {{width:44px !important;height:44px !important;max-width:44px !important;max-height:44px !important;border-radius:12px !important;}}
+                .wz203-name {{font-size:.94rem !important;}}
+                .wz203-sub {{font-size:.66rem !important;}}
+                .st-key-wz203_topbar_card button {{min-height:38px !important;font-size:.82rem !important;padding-left:8px !important;padding-right:8px !important;}}
+            }}
+            </style>
+            """, unsafe_allow_html=True)
+            c_logo, c_dash, c_sessions, c_progress, c_spacer, c_tools, c_settings = st.columns([3.2, 1.05, 1.0, 1.0, 1.25, 1.55, .82], vertical_alignment="center")
+            with c_logo:
+                if logo:
+                    st.markdown(f"""
+                    <a class="wz203-brand-link" href="{_wz203_home_url()}" target="_self" title="Go to WorkZo home">
+                      <img class="wz203-logo" src="{logo}" alt="WorkZo AI logo" />
+                      <div><div class="wz203-name">WorkZo AI</div><div class="wz203-sub">AI Interview Simulator</div></div>
+                    </a>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <a class="wz203-brand-link" href="{_wz203_home_url()}" target="_self" title="Go to WorkZo home">
+                      <div class="wz203-logo" style="background:linear-gradient(135deg,#06b6d4,#2563eb);display:grid!important;place-items:center!important;color:#fff;font-weight:950;">WZ</div>
+                      <div><div class="wz203-name">WorkZo AI</div><div class="wz203-sub">AI Interview Simulator</div></div>
+                    </a>
+                    """, unsafe_allow_html=True)
+            with c_dash:
+                if st.button("▦ Dashboard", key="wz203_nav_dashboard", use_container_width=True):
+                    for k in ["wz_ri_started", "wz_active_interview_room", "wz197_active_interview_mode", "wz199_voice_room_active", "wz_ri_closing_reached"]:
+                        st.session_state[k] = False
+                    try: _wz182_route("dashboard")
+                    except Exception: st.session_state["page"] = "dashboard"
+                    st.rerun()
+            with c_sessions:
+                if st.button("▣ Sessions", key="wz203_nav_sessions", use_container_width=True):
+                    st.session_state["wz182_session_panel"] = True
+                    try: _wz182_route("dashboard")
+                    except Exception: st.session_state["page"] = "dashboard"
+                    st.rerun()
+            with c_progress:
+                if st.button("▰ Progress", key="wz203_nav_progress", use_container_width=True):
+                    st.session_state["wz182_progress_panel"] = True
+                    try: _wz182_route("dashboard")
+                    except Exception: st.session_state["page"] = "dashboard"
+                    st.rerun()
+            with c_tools:
+                if hasattr(st, "popover"):
+                    with st.popover("▧ Toolbox", use_container_width=True):
+                        if st.button("✨ Improve Resume for This Role", key="wz203_tool_improve_cv", use_container_width=True): _wz182_route("improve_cv")
+                        if st.button("🧠 Decode Recruiter Expectations", key="wz203_tool_understand", use_container_width=True): _wz182_route("understand_job")
+                        if st.button("🔎 Find Jobs", key="wz203_tool_find", use_container_width=True): _wz182_route("find_jobs")
+                        if st.button("🎯 Prepare for This Interview", key="wz203_tool_prepare", use_container_width=True): _wz182_route("prepare_job")
+                        if st.button("📝 Cover Letter", key="wz203_tool_cover", use_container_width=True): _wz182_route("cover_letter")
+                        if st.button("☻ Ask Work-O-Bot", key="wz203_tool_bot", use_container_width=True): _wz182_route("workobot")
+                else:
+                    if st.button("▧ Toolbox", key="wz203_toolbox_toggle", use_container_width=True):
+                        st.session_state["wz182_toolbox_open"] = not bool(st.session_state.get("wz182_toolbox_open"))
+            with c_settings:
+                if hasattr(st, "popover"):
+                    with st.popover("⋯", use_container_width=True):
+                        if st.button("Founder dashboard", key="wz203_more_founder", use_container_width=True): _wz182_route("founder_dashboard")
+                        if st.button("Exit", key="wz203_more_exit", use_container_width=True):
+                            try: _wz182_exit_to_landing()
+                            except Exception: st.session_state["page"] = "landing"
+                else:
+                    st.button("⋯", key="wz203_more_disabled", use_container_width=True)
+except Exception:
+    pass

@@ -7592,3 +7592,132 @@ try:
         return _wz202_prev_render_real_interview_simulation()
 except Exception:
     pass
+
+
+# WorkZo v203 - selected recruiter gender + more natural browser voice
+# Fixes: Daniel/Markus should prefer male-sounding browser voices; Sarah/Priya should prefer female.
+# Note: browser SpeechSynthesis can only use voices installed/provided by the user's device/browser.
+# This patch strongly prefers matching gender/language and falls back gracefully.
+try:
+    import json as _wz203_json
+    import re as _wz203_re
+    import streamlit.components.v1 as _wz203_components
+
+    _WZ203_LANG_CODES = {
+        "English":"en-US", "German":"de-DE", "French":"fr-FR", "Dutch":"nl-NL", "Spanish":"es-ES",
+        "Portuguese":"pt-PT", "Italian":"it-IT", "Hindi":"hi-IN", "Tamil":"ta-IN", "Arabic":"ar-SA",
+        "Japanese":"ja-JP", "Korean":"ko-KR", "Chinese":"zh-CN"
+    }
+
+    def _wz203_norm_lang(x=None):
+        raw = str(x or st.session_state.get("wz_ri_interview_language") or st.session_state.get("selected_interview_language") or st.session_state.get("preferred_language") or "English").strip()
+        aliases = {"auto-detect / user preference":"English", "auto":"English", "deutsch":"German", "german":"German", "english":"English", "français":"French", "french":"French", "dutch":"Dutch", "spanish":"Spanish", "portuguese":"Portuguese", "italian":"Italian", "hindi":"Hindi", "tamil":"Tamil", "arabic":"Arabic", "japanese":"Japanese", "korean":"Korean", "chinese":"Chinese"}
+        return aliases.get(raw.lower(), raw if raw in _WZ203_LANG_CODES else "English")
+
+    def _wz203_current_recruiter(x=None):
+        candidates = [x, st.session_state.get("wz_voice_recruiter_name"), st.session_state.get("wz_ri_recruiter_personality_v181"), st.session_state.get("wz_ri_recruiter_personality"), st.session_state.get("selected_recruiter"), st.session_state.get("recruiter_personality")]
+        for c in candidates:
+            c = str(c or "").strip()
+            if c:
+                return c
+        return "Sarah — Friendly HR"
+
+    def _wz203_gender(recruiter=None):
+        low = _wz203_current_recruiter(recruiter).lower()
+        if any(x in low for x in ["daniel", "markus", "male", "technical hiring manager", "corporate interviewer"]):
+            return "male"
+        if any(x in low for x in ["sarah", "priya", "female", "friendly hr", "startup recruiter"]):
+            return "female"
+        return str(st.session_state.get("wz_voice_recruiter_gender") or "female").lower()
+
+    def _wz203_voice_script(text, key, auto=True, language=None, recruiter=None, show_button=True):
+        lang = _wz203_norm_lang(language)
+        code = _WZ203_LANG_CODES.get(lang, "en-US")
+        gender = _wz203_gender(recruiter)
+        text_js = _wz203_json.dumps(str(text or ""))
+        key = _wz203_re.sub(r"[^a-zA-Z0-9_]+", "_", str(key or "wz203_voice"))
+        auto_js = "true" if auto else "false"
+        button_html = f"""<button id="wz203_btn_{key}" style="border:1px solid rgba(148,163,184,.42);border-radius:12px;padding:9px 14px;background:#0f172a;color:white;cursor:pointer;font-weight:850;font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:14px;">🔊 Replay interviewer voice</button>""" if show_button else ""
+        return f"""
+        <!doctype html><html><body style="margin:0;background:transparent;">{button_html}
+        <script>
+        (function(){{
+          const text = {text_js};
+          const lang = "{code}";
+          const gender = "{gender}";
+          const autoplay = {auto_js};
+          function cleanText(t){{
+            return String(t || '')
+              .replace(/WorkZo/gi, 'Work Zo')
+              .replace(/AI/gi, 'A I')
+              .replace(/CV/gi, 'C V')
+              .replace(/JD/gi, 'job description')
+              .replace(/—/g, ', ')
+              .replace(/:/g, '. ')
+              .replace(/\s+/g, ' ')
+              .trim();
+          }}
+          function scoreVoice(v){{
+            const name = (v.name || '').toLowerCase();
+            const voiceLang = (v.lang || '').toLowerCase();
+            let score = 0;
+            if(voiceLang.startsWith(lang.toLowerCase().slice(0,2))) score += 80;
+            if(/natural|neural|premium|enhanced|online|google|microsoft|apple/.test(name)) score += 30;
+            if(gender === 'male'){{
+              if(/daniel|markus|mark|george|guy|david|alex|thomas|stefan|conrad|pablo|carlos|diego|male|man/.test(name)) score += 60;
+              if(/sarah|samantha|zira|jenny|aria|susan|anna|helena|katja|female|woman/.test(name)) score -= 35;
+            }} else {{
+              if(/sarah|samantha|zira|jenny|aria|susan|anna|helena|katja|sonia|amelie|paulina|luciana|lekha|veena|female|woman/.test(name)) score += 60;
+              if(/daniel|markus|mark|george|guy|david|alex|thomas|stefan|conrad|male|man/.test(name)) score -= 25;
+            }}
+            return score;
+          }}
+          function pickVoice(){{
+            const voices = window.speechSynthesis ? (window.speechSynthesis.getVoices() || []) : [];
+            if(!voices.length) return null;
+            const sorted = voices.slice().sort((a,b) => scoreVoice(b) - scoreVoice(a));
+            return sorted[0] || voices[0];
+          }}
+          function speak(){{
+            if(!window.speechSynthesis || !text) return;
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(cleanText(text));
+            msg.lang = lang;
+            msg.volume = 1.0;
+            msg.rate = gender === 'male' ? 0.86 : 0.90;
+            msg.pitch = gender === 'male' ? 0.74 : 1.03;
+            const voice = pickVoice();
+            if(voice) msg.voice = voice;
+            setTimeout(() => window.speechSynthesis.speak(msg), 180);
+          }}
+          window.workzoSpeakRecruiter = speak;
+          const btn = document.getElementById("wz203_btn_{key}");
+          if(btn) btn.onclick = speak;
+          if(autoplay){{
+            if(window.speechSynthesis && speechSynthesis.onvoiceschanged !== undefined){{
+              speechSynthesis.onvoiceschanged = function(){{ setTimeout(speak, 100); }};
+            }}
+            setTimeout(speak, 350);
+          }}
+        }})();
+        </script></body></html>
+        """
+
+    def _wz_voice_first_browser_speak(text, key=None, auto=True, language=None, recruiter=None):
+        # Used by the newer voice-first room.
+        lang = _wz203_norm_lang(language)
+        rec = _wz203_current_recruiter(recruiter)
+        st.session_state["wz_ri_interview_language"] = lang
+        st.session_state["wz_voice_recruiter_gender"] = _wz203_gender(rec)
+        _wz203_components.html(_wz203_voice_script(text, key or "wz_voice_first", auto, lang, rec, show_button=False), height=0)
+
+    def _wz_ri_auto_speak(text: str, key_suffix: str = "question"):
+        # Used by the older voice-enabled interview room. Keep the replay button visible.
+        lang = _wz203_norm_lang()
+        rec = _wz203_current_recruiter()
+        st.session_state["wz_ri_interview_language"] = lang
+        st.session_state["wz_voice_recruiter_gender"] = _wz203_gender(rec)
+        _wz203_components.html(_wz203_voice_script(text, key_suffix, True, lang, rec, show_button=True), height=48)
+
+except Exception:
+    pass
