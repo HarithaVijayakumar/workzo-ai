@@ -7885,3 +7885,347 @@ try:
             _wz204_st.button('🔊 Ask question out loud', key=f'wz_voice_btn_{key}')
 except Exception:
     pass
+
+# =========================================================
+# WorkZo v126 - Best-possible Streamlit human voice beta
+# Purpose:
+# - Browser TTS voice selection by selected recruiter + selected interview language.
+# - More human pacing: slower rate, sentence pauses, softer pitch.
+# - Speaks short recruiter micro-reaction before the next question.
+# - Keeps Streamlit stable: no external TTS dependency, no WebRTC required.
+# Limitation:
+# - Browser voices depend on the user's device/browser. If the browser has no
+#   natural male/female voice for the selected language, it falls back safely.
+# =========================================================
+
+import re as _wz126_re
+import json as _wz126_json
+import html as _wz126_html
+import time as _wz126_time
+
+
+def _wz126_clean(value, limit=1800):
+    try:
+        txt = _wz126_html.unescape(str(value or ""))
+        txt = _wz126_re.sub(r"<[^>]+>", " ", txt)
+        txt = _wz126_re.sub(r"\s+", " ", txt).strip()
+        return txt[:limit]
+    except Exception:
+        return str(value or "")[:limit]
+
+
+def _wz126_selected_language():
+    for key in [
+        "wz_ri_interview_language",
+        "wz_voice_first_language",
+        "interview_language",
+        "selected_interview_language",
+        "wz_selected_interview_language",
+    ]:
+        try:
+            val = st.session_state.get(key)
+            if val:
+                return str(val)
+        except Exception:
+            pass
+    return "English"
+
+
+def _wz126_language_code(language=None):
+    lang = str(language or _wz126_selected_language() or "English").strip().lower()
+    mapping = {
+        "auto-detect / user preference": "en-US",
+        "auto detect / user preference": "en-US",
+        "english": "en-US",
+        "german": "de-DE",
+        "deutsch": "de-DE",
+        "french": "fr-FR",
+        "français": "fr-FR",
+        "dutch": "nl-NL",
+        "spanish": "es-ES",
+        "portuguese": "pt-PT",
+        "italian": "it-IT",
+        "hindi": "hi-IN",
+        "tamil": "ta-IN",
+        "malayalam": "ml-IN",
+        "arabic": "ar-SA",
+        "polish": "pl-PL",
+        "swedish": "sv-SE",
+        "danish": "da-DK",
+        "norwegian": "nb-NO",
+        "finnish": "fi-FI",
+        "turkish": "tr-TR",
+        "japanese": "ja-JP",
+        "korean": "ko-KR",
+        "chinese": "zh-CN",
+    }
+    return mapping.get(lang, "en-US")
+
+
+def _wz126_selected_recruiter():
+    for key in [
+        "wz_selected_recruiter",
+        "selected_recruiter",
+        "wz_ri_recruiter",
+        "wz_ri_personality",
+        "wz_interviewer_persona",
+        "interviewer_persona",
+        "recruiter_persona",
+    ]:
+        try:
+            val = st.session_state.get(key)
+            if val:
+                return str(val)
+        except Exception:
+            pass
+    return "Sarah — Friendly HR"
+
+
+def _wz126_voice_gender():
+    rec = _wz126_selected_recruiter().lower()
+    if any(x in rec for x in ["daniel", "markus", "male", "technical hiring manager", "corporate interviewer"]):
+        return "male"
+    if any(x in rec for x in ["sarah", "priya", "female", "friendly hr", "startup recruiter"]):
+        return "female"
+    return "neutral"
+
+
+def _wz126_recruiter_style_hint():
+    try:
+        return str(st.session_state.get("wz_ri_recruiter_style") or st.session_state.get("recruiter_style") or "Balanced")
+    except Exception:
+        return "Balanced"
+
+
+def _wz126_humanize_for_speech(text: str) -> str:
+    """Make browser TTS less robotic by adding natural commas and removing UI artifacts."""
+    t = _wz126_clean(text, 2000)
+    # Remove UI-only labels that sometimes leak into speech.
+    t = _wz126_re.sub(r"\b(AI Recruiter|Question \d+ of \d+|Looking for|Time left|Your answer)\b[:·-]?", " ", t, flags=_wz126_re.I)
+    t = _wz126_re.sub(r"\s+", " ", t).strip()
+    # Convert long dashes and colons to softer pauses.
+    t = t.replace("—", ", ").replace("–", ", ")
+    t = _wz126_re.sub(r"\s*:\s*", ", ", t)
+    # Shorten too-long whitespace-free chunks.
+    t = _wz126_re.sub(r"\bCV\b", "C V", t)
+    t = _wz126_re.sub(r"\bJD\b", "job description", t)
+    return t
+
+
+def _wz126_latest_reaction_for_next_question(key_suffix: str) -> str:
+    """Speak the most recent micro-reaction before the next question, once per question."""
+    try:
+        key_s = str(key_suffix or "")
+        if "voice_first_q_" not in key_s and "q_" not in key_s:
+            return ""
+        reactions = st.session_state.get("wz_ri_live_reactions", []) or []
+        if not reactions:
+            return ""
+        latest = reactions[-1]
+        reaction = latest.get("reaction") if isinstance(latest, dict) else str(latest)
+        reaction = _wz126_clean(reaction, 300)
+        if not reaction:
+            return ""
+        spoken_key = f"wz126_reaction_spoken_{key_s}_{len(reactions)}"
+        # Do not mark here; Streamlit reruns can happen. JS key uniqueness prevents repeats enough.
+        if st.session_state.get(spoken_key):
+            return ""
+        st.session_state[spoken_key] = True
+        return reaction
+    except Exception:
+        return ""
+
+
+def _wz126_micro_reaction(answer: str, reason: str = "", idx: int = 0) -> str:
+    answer_text = _wz126_clean(answer, 3000)
+    words = len(answer_text.split())
+    has_metric = bool(_wz126_re.search(r"\b\d+\b|%|percent|reduced|increased|improved|saved|faster|slower|more|less", answer_text, flags=_wz126_re.I))
+    has_ownership = bool(_wz126_re.search(r"\bI\b|\bmy\b|\bI\s+(built|created|handled|resolved|analyzed|analysed|improved|led|owned|designed|fixed|supported)", answer_text, flags=_wz126_re.I))
+    style = _wz126_recruiter_style_hint().lower()
+    tough = any(x in style for x in ["technical", "leadership", "fast", "pressure", "brutal"])
+    if words > 190:
+        return "Let me stop you there for a second. I need the shorter version with the result first."
+    if words < 25:
+        return "Hmm, that's too brief. I need one real example, not just a statement."
+    if not has_ownership:
+        return "Okay, interesting, but I still don't know what you personally did."
+    if not has_metric:
+        return "Okay, I follow you, but I'm missing the measurable result."
+    if tough:
+        return "Good. Now I want to test whether that example holds up under pressure."
+    return "Good, that's clearer. Let me ask the next one."
+
+
+# Preserve previous reaction function, then wrap it with stronger micro-reaction language.
+try:
+    _wz126_previous_react_to_answer = _wz_ri_react_to_answer
+except Exception:
+    _wz126_previous_react_to_answer = None
+
+
+def _wz_ri_react_to_answer(question: str, answer: str, cv_text: str, jd: str, qa_pairs: list, language: str, personality: str):
+    try:
+        data = _wz126_previous_react_to_answer(question, answer, cv_text, jd, qa_pairs, language, personality) if callable(_wz126_previous_react_to_answer) else {}
+        if not isinstance(data, dict):
+            data = {}
+    except Exception:
+        data = {}
+    idx = len(qa_pairs or [])
+    reason = str(data.get("interruption_reason") or "")
+    # Replace generic/robotic reactions with a more human recruiter micro-reaction.
+    reaction = _wz126_clean(data.get("reaction"), 300)
+    if not reaction or reaction.lower() in {"ok", "okay", "good", "interesting", "thanks"} or len(reaction.split()) < 4:
+        reaction = _wz126_micro_reaction(answer, reason, idx)
+    else:
+        # Add a short human opener only when it does not already sound conversational.
+        if not _wz126_re.match(r"^(hmm|okay|alright|interesting|good|let me|right|thanks|got it)", reaction.lower()):
+            opener = ["Hmm.", "Okay.", "Interesting.", "Right."][idx % 4]
+            reaction = f"{opener} {reaction}"
+    data["reaction"] = reaction
+    # More direct interruption phrases for the manual interrupt button / weak answers.
+    if data.get("needs_followup") and not data.get("followup_question"):
+        data["followup_question"] = "Can you answer that more directly, with one example and one result?"
+    return data
+
+
+def _wz_ri_auto_speak(text: str, key_suffix: str = "question"):
+    """Best Streamlit/browser version: language-aware, recruiter-gender-aware, warmer TTS.
+
+    Uses the browser SpeechSynthesis API. It cannot guarantee natural voices on every device,
+    but it chooses the best available voice and speaks a reaction + question when available.
+    """
+    try:
+        reaction = _wz126_latest_reaction_for_next_question(str(key_suffix))
+        spoken_text = f"{reaction} {text}" if reaction else str(text or "")
+        spoken_text = _wz126_humanize_for_speech(spoken_text)
+        safe_text = _wz126_json.dumps(spoken_text)
+        safe_key = _wz126_re.sub(r"[^a-zA-Z0-9_]+", "_", str(key_suffix or "question"))
+        lang_code = _wz126_language_code()
+        gender = _wz126_voice_gender()
+        # Slightly different pace by recruiter style.
+        style = _wz126_recruiter_style_hint().lower()
+        rate = 0.88
+        pitch = 0.96
+        if "fast" in style or "startup" in style:
+            rate = 0.95
+            pitch = 1.0
+        elif "corporate" in style or "structured" in style or "technical" in style:
+            rate = 0.84
+            pitch = 0.92 if gender == "male" else 0.98
+        elif "supportive" in style or "friendly" in style:
+            rate = 0.86
+            pitch = 1.02 if gender == "female" else 0.96
+        safe_lang = _wz126_json.dumps(lang_code)
+        safe_gender = _wz126_json.dumps(gender)
+        safe_rate = _wz126_json.dumps(rate)
+        safe_pitch = _wz126_json.dumps(pitch)
+        html_code = f"""
+        <!doctype html>
+        <html>
+        <body style="margin:0;background:transparent;">
+          <button id="wz_ri_speak_{safe_key}" style="
+              border:1px solid rgba(148,163,184,.45);
+              border-radius:12px;
+              padding:9px 14px;
+              background:#0f172a;
+              color:white;
+              cursor:pointer;
+              font-weight:800;
+              font-family:system-ui,-apple-system,Segoe UI,sans-serif;
+              font-size:14px;
+          ">🔊 Ask question out loud</button>
+          <script>
+          const WZ_TEXT = {safe_text};
+          const WZ_LANG = {safe_lang};
+          const WZ_GENDER = {safe_gender};
+          const WZ_RATE = {safe_rate};
+          const WZ_PITCH = {safe_pitch};
+
+          function normalizeLang(l) {{ return String(l || 'en-US').toLowerCase(); }}
+
+          function scoreVoice(v) {{
+              const name = String(v.name || '').toLowerCase();
+              const lang = String(v.lang || '').toLowerCase();
+              const target = normalizeLang(WZ_LANG);
+              let score = 0;
+              if (lang === target) score += 80;
+              else if (lang.split('-')[0] === target.split('-')[0]) score += 55;
+              if (v.localService) score += 8;
+              if (name.includes('premium') || name.includes('neural') || name.includes('natural')) score += 25;
+              if (name.includes('google')) score += 14;
+              if (name.includes('microsoft')) score += 14;
+              if (name.includes('apple')) score += 10;
+              if (name.includes('siri')) score += 10;
+              if (WZ_GENDER === 'male') {{
+                  if (/(daniel|mark|david|guy|george|thomas|alex|fred|bruce|ralf|stefan|paul|jorge|luca|male)/.test(name)) score += 35;
+                  if (/(samantha|jenny|aria|sonia|zira|susan|karen|female|anna|helena|monica|amelie|sabine)/.test(name)) score -= 18;
+              }} else if (WZ_GENDER === 'female') {{
+                  if (/(samantha|jenny|aria|sonia|zira|susan|karen|female|anna|helena|monica|amelie|sabine|paulina)/.test(name)) score += 35;
+                  if (/(daniel|mark|david|guy|george|thomas|fred|bruce|ralf|stefan|paul|male)/.test(name)) score -= 12;
+              }}
+              // Avoid very robotic legacy voices when alternatives exist.
+              if (name.includes('compact') || name.includes('novelty')) score -= 20;
+              return score;
+          }}
+
+          function pickVoice() {{
+              const voices = window.speechSynthesis.getVoices() || [];
+              if (!voices.length) return null;
+              voices.sort((a,b) => scoreVoice(b) - scoreVoice(a));
+              return voices[0];
+          }}
+
+          function splitForPauses(t) {{
+              return String(t || '')
+                .replace(/\s+/g, ' ')
+                .replace(/\s*,\s*/g, ', ')
+                .replace(/\s*\.\s*/g, '. ')
+                .trim();
+          }}
+
+          function speakNow() {{
+              if (!('speechSynthesis' in window)) return;
+              window.speechSynthesis.cancel();
+              const text = splitForPauses(WZ_TEXT);
+              const parts = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+              const voice = pickVoice();
+              let delay = 0;
+              parts.forEach((part, i) => {{
+                  setTimeout(() => {{
+                      const msg = new SpeechSynthesisUtterance(part);
+                      msg.lang = WZ_LANG;
+                      if (voice) msg.voice = voice;
+                      msg.rate = WZ_RATE;
+                      msg.pitch = WZ_PITCH;
+                      msg.volume = 1.0;
+                      window.speechSynthesis.speak(msg);
+                  }}, delay);
+                  delay += Math.min(2600, Math.max(900, part.length * 42));
+              }});
+          }}
+
+          const btn = document.getElementById('wz_ri_speak_{safe_key}');
+          if (btn) btn.onclick = speakNow;
+          if ('speechSynthesis' in window) {{
+              window.speechSynthesis.onvoiceschanged = function() {{}};
+              setTimeout(function() {{ try {{ speakNow(); }} catch(e) {{}} }}, 650);
+          }}
+          </script>
+        </body>
+        </html>
+        """
+        import streamlit.components.v1 as components
+        components.html(html_code, height=50)
+    except Exception:
+        try:
+            st.caption("Voice playback is unavailable in this browser. You can still read the question.")
+        except Exception:
+            pass
+
+
+def wz126_voice_beta_disclaimer():
+    try:
+        st.info("🧪 Streamlit voice beta: WorkZo now uses the best available browser voice for the selected recruiter/language and adds human recruiter micro-reactions. Voice quality depends on the browser/device; a more natural real-time voice engine can be added after moving beyond Streamlit.")
+    except Exception:
+        pass
+
