@@ -34082,3 +34082,485 @@ try:
     st.session_state.setdefault("wz_active_interview_room", bool(st.session_state.get("wz_ri_started", False)))
 except Exception:
     pass
+
+# =========================================================
+# WorkZo v197 - Active Interview Room Guard
+# =========================================================
+# Fix: Start Real Interview was opening old/final result sections because
+# previous result state + legacy renderers were still active. This patch keeps
+# Start Interview inside a clean active room until the user explicitly finishes.
+# =========================================================
+
+try:
+    _wz197_prev_show_dashboard = show_dashboard
+except Exception:
+    _wz197_prev_show_dashboard = None
+
+
+def _wz197_clear_result_state_for_new_interview():
+    """Clear stale result/report state so a new interview does not open results directly."""
+    stale_keys = [
+        'interview_result', 'interview_results', 'final_interview_result', 'final_interview_report',
+        'real_interview_result', 'real_interview_results', 'interview_summary', 'wz_interview_report',
+        'wz_final_report', 'wz189_post_interview_report', 'wz192_post_interview_report',
+        'wz194_result_mode', 'wz195_result_mode', 'wz_show_interview_result', 'show_interview_result',
+        'show_results', 'interview_finished', 'real_interview_finished', 'wz_interview_finished',
+        'wz_result_ready', 'wz194_result_ready', 'wz195_result_ready', 'wz187_finished',
+    ]
+    for k in stale_keys:
+        try:
+            st.session_state.pop(k, None)
+        except Exception:
+            pass
+    try:
+        st.session_state['wz197_active_interview_mode'] = True
+        st.session_state['wz_interview_finished'] = False
+    except Exception:
+        pass
+
+
+def _wz197_mark_interview_started():
+    try:
+        _wz197_clear_result_state_for_new_interview()
+        st.session_state['wz_ri_started'] = True
+        st.session_state['wz_active_interview_room'] = True
+        st.session_state['page'] = 'real_interview'
+        st.session_state['nav_page'] = 'real_interview'
+        st.session_state['current_page'] = 'real_interview'
+        st.session_state['_wz_force_page'] = 'real_interview'
+        st.session_state.setdefault('wz197_question_index', 0)
+        if st.session_state.get('wz183_target_role'):
+            st.session_state['target_role'] = st.session_state.get('wz183_target_role')
+            st.session_state['real_interview_target_role'] = st.session_state.get('wz183_target_role')
+        if st.session_state.get('wz183_target_company'):
+            st.session_state['target_company'] = st.session_state.get('wz183_target_company')
+            st.session_state['real_interview_company'] = st.session_state.get('wz183_target_company')
+        if st.session_state.get('wz_ri_country_adaptation_v181'):
+            st.session_state['selected_country'] = st.session_state.get('wz_ri_country_adaptation_v181')
+            st.session_state['target_country'] = st.session_state.get('wz_ri_country_adaptation_v181')
+        if st.session_state.get('interview_language'):
+            st.session_state['preferred_language'] = st.session_state.get('interview_language')
+    except Exception:
+        pass
+
+# Replace earlier marker so existing buttons using it become safe.
+try:
+    _wz196_mark_interview_started = _wz197_mark_interview_started
+except Exception:
+    pass
+
+
+def _wz197_room_css():
+    try:
+        st.markdown(r'''
+<style id="wz197-active-room-css">
+.wz197-wrap{max-width:1480px;margin:12px auto 92px;padding:0 10px;}
+.wz197-hero{border:1px solid rgba(56,189,248,.22);background:linear-gradient(135deg,rgba(8,24,43,.94),rgba(20,18,58,.88));border-radius:24px;padding:22px 24px;margin-bottom:14px;box-shadow:0 18px 60px rgba(0,0,0,.22)}
+.wz197-kicker{color:#67e8f9;text-transform:uppercase;letter-spacing:.17em;font-weight:950;font-size:.76rem;margin-bottom:8px}.wz197-title{font-size:2.15rem;line-height:1.02;font-weight:1000;color:#fff;margin:0 0 8px}.wz197-sub{color:rgba(226,232,240,.72);font-weight:750;margin:0;line-height:1.45}.wz197-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.wz197-chip{border:1px solid rgba(148,163,184,.2);background:rgba(15,23,42,.58);border-radius:999px;padding:7px 11px;color:#e5e7eb;font-weight:900;font-size:.9rem}.wz197-beta{margin:10px 0 14px;padding:10px 12px;border:1px solid rgba(251,191,36,.22);background:rgba(251,191,36,.08);color:#fde68a;border-radius:15px;font-weight:850;font-size:.88rem}.wz197-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr);gap:14px;align-items:start}.wz197-card{border:1px solid rgba(148,163,184,.16);background:rgba(15,23,42,.68);border-radius:20px;padding:16px}.wz197-q-label{color:#93c5fd;text-transform:uppercase;letter-spacing:.12em;font-weight:950;font-size:.75rem;margin-bottom:8px}.wz197-question{font-size:1.28rem;line-height:1.25;color:#fff;font-weight:950;margin-bottom:10px}.wz197-help{color:#94a3b8;font-size:.9rem;font-weight:700;margin-bottom:10px}.wz197-state-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.wz197-state{background:rgba(2,6,23,.35);border:1px solid rgba(148,163,184,.14);border-radius:15px;padding:10px}.wz197-state b{display:block;color:#93c5fd;text-transform:uppercase;letter-spacing:.07em;font-size:.68rem;margin-bottom:3px}.wz197-state span{font-size:1.15rem;color:#fff;font-weight:950}.wz197-interrupt{margin-top:10px;padding:10px;border-radius:14px;background:rgba(127,29,29,.22);border:1px solid rgba(248,113,113,.24);color:#fecaca;font-weight:850}.wz197-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.wz197-actions button{border-radius:14px!important;font-weight:900!important}.wz197-timeline{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.wz197-pill{padding:6px 9px;border-radius:999px;background:rgba(15,23,42,.72);border:1px solid rgba(148,163,184,.16);font-size:.78rem;font-weight:850;color:#cbd5e1}.wz197-pill.good{border-color:rgba(74,222,128,.25);color:#bbf7d0}.wz197-pill.warn{border-color:rgba(251,191,36,.25);color:#fde68a}.wz197-pill.bad{border-color:rgba(248,113,113,.25);color:#fecaca}
+[class*="workobot"], [class*="Work-O-Bot"], .wz-floating-bot, .workzo-floating-bot{right:28px!important;bottom:30px!important;z-index:880!important;}
+@media(max-width:820px){.wz197-wrap{margin-top:6px!important;padding:0 3px 96px!important}.wz197-hero{padding:16px!important;border-radius:18px!important}.wz197-title{font-size:1.55rem!important}.wz197-grid{grid-template-columns:1fr!important}.wz197-state-grid{grid-template-columns:1fr 1fr!important}.wz197-question{font-size:1.05rem!important}[class*="workobot"], [class*="Work-O-Bot"], .wz-floating-bot, .workzo-floating-bot{right:12px!important;bottom:18px!important;transform:scale(.78)!important;transform-origin:bottom right!important}}
+</style>
+''', unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def _wz197_text(value, fallback=''):
+    try:
+        value = str(value or '').strip()
+        return value if value else fallback
+    except Exception:
+        return fallback
+
+
+def _wz197_questions():
+    role = _wz197_text(st.session_state.get('target_role') or st.session_state.get('real_interview_target_role') or st.session_state.get('wz183_target_role'), 'this role')
+    company = _wz197_text(st.session_state.get('target_company') or st.session_state.get('real_interview_company') or st.session_state.get('wz183_target_company'), 'the company')
+    return [
+        f"Tell me about yourself and keep it relevant to {role} at {company}.",
+        "Walk me through one project where your work created measurable impact.",
+        "What was your exact contribution, and how do you know it worked?",
+        "Can you give me a specific example that matches this job description?",
+        "What would make you successful in the first 90 days?",
+    ]
+
+
+def _wz197_get_state():
+    try:
+        if callable(globals().get('_wz195_get_state')):
+            return _wz195_get_state()
+    except Exception:
+        pass
+    try:
+        if callable(globals().get('_wz187_get_recruiter_state')):
+            return _wz187_get_recruiter_state()
+    except Exception:
+        pass
+    return {'confidence':72,'attention':82,'patience':68,'hiring_signal':'Needs proof','mood':'Calm','concern':'Waiting for answer proof','last_interrupt':''}
+
+
+def _wz197_score(answer):
+    try:
+        if callable(globals().get('_wz195_update_state_from_answer')):
+            return _wz195_update_state_from_answer(answer, source='active_interview_room')
+    except Exception:
+        pass
+    try:
+        if callable(globals().get('_wz187_apply_answer')):
+            return _wz187_apply_answer(answer)
+    except Exception:
+        pass
+    return _wz197_get_state()
+
+
+def _wz197_render_live_room():
+    try:
+        if callable(globals().get('_wz182_css')): _wz182_css()
+        if callable(globals().get('_wz185_final_order_spacing_css')): _wz185_final_order_spacing_css()
+        if callable(globals().get('_wz186_hide_legacy_header_and_bot_css')): _wz186_hide_legacy_header_and_bot_css()
+        _wz197_room_css()
+        if callable(globals().get('_wz182_topbar')): _wz182_topbar()
+
+        role = _wz197_text(st.session_state.get('target_role') or st.session_state.get('real_interview_target_role') or st.session_state.get('wz183_target_role'), 'Target role')
+        company = _wz197_text(st.session_state.get('target_company') or st.session_state.get('real_interview_company') or st.session_state.get('wz183_target_company'), 'Target company')
+        country = _wz197_text(st.session_state.get('selected_country') or st.session_state.get('target_country') or st.session_state.get('wz_ri_country_adaptation_v181'), 'Global / Remote')
+        language = _wz197_text(st.session_state.get('interview_language') or st.session_state.get('preferred_language'), 'Auto-detect')
+        recruiter = _wz197_text(st.session_state.get('wz_ri_recruiter_personality_v181'), 'AI Recruiter')
+        qs = _wz197_questions()
+        idx = int(st.session_state.get('wz197_question_index', 0) or 0)
+        idx = max(0, min(idx, len(qs)-1))
+        state = _wz197_get_state()
+        timeline = state.get('timeline') if isinstance(state.get('timeline'), list) else []
+        last_interrupt = _wz197_text(state.get('last_interrupt'), '')
+
+        import html as _h
+        st.markdown(f'''
+<div class="wz197-wrap">
+  <div class="wz197-hero">
+    <div class="wz197-kicker">Live interview room · question {idx+1} of {len(qs)}</div>
+    <div class="wz197-title">Your recruiter is listening.</div>
+    <p class="wz197-sub">Answer first. Results only appear after you finish the interview.</p>
+    <div class="wz197-chips">
+      <span class="wz197-chip">👤 {_h.escape(recruiter)}</span><span class="wz197-chip">💼 {_h.escape(role)}</span><span class="wz197-chip">🏢 {_h.escape(company)}</span><span class="wz197-chip">🌍 {_h.escape(country)}</span><span class="wz197-chip">🗣 {_h.escape(language)}</span>
+    </div>
+  </div>
+  <div class="wz197-beta">Testing mode: Streamlit beta interview room. Voice, silence detection, and interruption timing are simulated here; stronger real-time voice can come later on a bigger platform.</div>
+  <div class="wz197-grid">
+    <div class="wz197-card">
+      <div class="wz197-q-label">Recruiter question</div>
+      <div class="wz197-question">{_h.escape(qs[idx])}</div>
+      <div class="wz197-help">Tip: answer directly, prove ownership, and add real numbers only if true.</div>
+    </div>
+    <div class="wz197-card">
+      <div class="wz197-q-label">Recruiter state · live</div>
+      <div class="wz197-state-grid">
+        <div class="wz197-state"><b>Confidence</b><span>{int(state.get('confidence',72) or 72)}%</span></div>
+        <div class="wz197-state"><b>Attention</b><span>{int(state.get('attention',82) or 82)}%</span></div>
+        <div class="wz197-state"><b>Patience</b><span>{int(state.get('patience',68) or 68)}%</span></div>
+        <div class="wz197-state"><b>Hiring signal</b><span>{_h.escape(str(state.get('hiring_signal','Needs proof')))}</span></div>
+      </div>
+      <div class="wz197-timeline">
+        <span class="wz197-pill {'good' if int(state.get('confidence',72) or 72) >= 78 else 'warn' if int(state.get('confidence',72) or 72) >= 58 else 'bad'}">Mood: {_h.escape(str(state.get('mood','Calm')))}</span>
+        <span class="wz197-pill warn">Concern: {_h.escape(str(state.get('concern','Waiting for answer proof')))}</span>
+      </div>
+      {('<div class="wz197-interrupt">Recruiter interruption: '+_h.escape(last_interrupt)+'</div>') if last_interrupt else ''}
+    </div>
+  </div>
+</div>
+''', unsafe_allow_html=True)
+
+        answer = st.text_area('Your answer', key=f'wz197_active_answer_{idx}', height=145, placeholder='Speak/type your answer here. WorkZo will score it after you submit.')
+        c1, c2, c3, c4 = st.columns([1.3, 1.1, 1.1, 3])
+        with c1:
+            if st.button('Submit answer', key=f'wz197_submit_{idx}', type='primary', use_container_width=True):
+                if str(answer or '').strip():
+                    _wz197_score(answer)
+                    try:
+                        hist = st.session_state.get('wz197_answer_history') if isinstance(st.session_state.get('wz197_answer_history'), list) else []
+                        hist.append({'question': qs[idx], 'answer': str(answer).strip(), 'state_after': _wz197_get_state()})
+                        st.session_state['wz197_answer_history'] = hist[-20:]
+                    except Exception:
+                        pass
+                    st.success('Answer saved. Recruiter state updated.')
+                    st.rerun()
+                else:
+                    st.warning('Please answer before submitting.')
+        with c2:
+            if st.button('Next question', key=f'wz197_next_{idx}', use_container_width=True):
+                st.session_state['wz197_question_index'] = min(idx + 1, len(qs)-1)
+                st.rerun()
+        with c3:
+            if st.button('Finish interview', key='wz197_finish', use_container_width=True):
+                st.session_state['wz_interview_finished'] = True
+                st.session_state['wz197_active_interview_mode'] = False
+                st.session_state['wz_ri_started'] = False
+                st.session_state['wz_active_interview_room'] = False
+                # Now results/report sections are allowed.
+                st.session_state['page'] = 'progress'
+                st.rerun()
+        with c4:
+            if st.button('↩ Edit setup', key='wz197_edit_setup', use_container_width=False):
+                st.session_state['wz_ri_started'] = False
+                st.session_state['wz_active_interview_room'] = False
+                st.session_state['wz197_active_interview_mode'] = False
+                st.rerun()
+
+        if timeline:
+            recent = timeline[-4:]
+            pills = []
+            for item in recent:
+                try:
+                    after = int(item.get('after', 0) or 0)
+                    klass = 'good' if after >= 78 else 'warn' if after >= 58 else 'bad'
+                    pills.append(f'<span class="wz197-pill {klass}">Confidence {after}% · {_h.escape(str(item.get("concern",""))[:42])}</span>')
+                except Exception:
+                    pass
+            if pills:
+                st.markdown('<div class="wz197-wrap"><div class="wz197-card"><div class="wz197-q-label">Confidence changes this interview</div><div class="wz197-timeline">' + ''.join(pills) + '</div></div></div>', unsafe_allow_html=True)
+
+        if callable(globals().get('_wz182_floating_workobot')): _wz182_floating_workobot()
+        if callable(globals().get('_wz186_hide_legacy_header_and_bot_css')): _wz186_hide_legacy_header_and_bot_css()
+    except Exception as exc:
+        st.error(f'Active interview room could not load safely: {exc}')
+
+
+# Override the earlier room renderer. Do NOT call legacy interview/result renderers here.
+def _wz196_render_interview_room():
+    return _wz197_render_live_room()
+
+
+def show_dashboard():
+    try:
+        if st.session_state.get('wz_ri_started') or st.session_state.get('wz_active_interview_room') or st.session_state.get('wz197_active_interview_mode'):
+            return _wz197_render_live_room()
+        if callable(_wz197_prev_show_dashboard):
+            return _wz197_prev_show_dashboard()
+        st.warning('WorkZo dashboard renderer is not available.')
+    except Exception as exc:
+        st.error(f'WorkZo could not route safely: {exc}')
+        try:
+            if callable(_wz197_prev_show_dashboard):
+                return _wz197_prev_show_dashboard()
+        except Exception:
+            pass
+
+
+# =========================================================
+# WorkZo v198 - Strict Interview Result Gating
+# =========================================================
+# Fix: Results/reports must never appear before a user actually attends
+# the interview and submits at least one real answer in the active room.
+# Main principle:
+#   PRE-INTERVIEW  -> setup only
+#   LIVE INTERVIEW -> question + answer box + live state only
+#   POST-INTERVIEW -> report only if real submitted answers exist
+# =========================================================
+
+try:
+    _wz198_prev_show_dashboard = show_dashboard
+except Exception:
+    _wz198_prev_show_dashboard = None
+
+
+def _wz198_answer_history():
+    """Return only real submitted active-interview answers."""
+    try:
+        hist = st.session_state.get('wz197_answer_history')
+        if not isinstance(hist, list):
+            return []
+        clean = []
+        for item in hist:
+            if not isinstance(item, dict):
+                continue
+            ans = str(item.get('answer') or '').strip()
+            q = str(item.get('question') or '').strip()
+            # Require a real human-like answer, not placeholders/demo strings.
+            if len(ans.split()) >= 5 and q:
+                clean.append(item)
+        return clean
+    except Exception:
+        return []
+
+
+def _wz198_has_real_interview_answers():
+    return len(_wz198_answer_history()) > 0
+
+
+def _wz198_can_show_results():
+    try:
+        return bool(st.session_state.get('wz_interview_finished')) and _wz198_has_real_interview_answers()
+    except Exception:
+        return False
+
+
+def _wz198_clear_stale_demo_results():
+    """Clear fake/demo report values when there is no real interview history."""
+    if _wz198_has_real_interview_answers():
+        return
+    stale_keys = [
+        'interview_result', 'interview_results', 'final_interview_result', 'final_interview_report',
+        'real_interview_result', 'real_interview_results', 'interview_summary', 'wz_interview_report',
+        'wz_final_report', 'wz189_post_interview_report', 'wz192_post_interview_report',
+        'wz194_result_mode', 'wz195_result_mode', 'wz_show_interview_result', 'show_interview_result',
+        'show_results', 'wz_result_ready', 'wz194_result_ready', 'wz195_result_ready', 'wz187_finished',
+        'wz192_last_answer_eval', 'wz195_last_answer_eval', 'wz195_recruiter_memory',
+        'wz192_recruiter_memory', 'wz194_interview_memory'
+    ]
+    for k in stale_keys:
+        try:
+            st.session_state.pop(k, None)
+        except Exception:
+            pass
+
+
+def _wz198_start_new_interview_clean():
+    """Hard reset result state every time Start Real Interview is clicked."""
+    try:
+        _wz198_clear_stale_demo_results()
+        for k in [
+            'wz197_answer_history', 'wz197_question_index', 'wz_interview_finished',
+            'interview_finished', 'real_interview_finished', 'wz_result_ready',
+            'show_results', 'show_interview_result'
+        ]:
+            try:
+                if k == 'wz197_question_index':
+                    st.session_state[k] = 0
+                elif k == 'wz197_answer_history':
+                    st.session_state[k] = []
+                else:
+                    st.session_state[k] = False
+            except Exception:
+                pass
+        st.session_state['wz_ri_started'] = True
+        st.session_state['wz_active_interview_room'] = True
+        st.session_state['wz197_active_interview_mode'] = True
+        st.session_state['page'] = 'real_interview'
+        st.session_state['nav_page'] = 'real_interview'
+        st.session_state['current_page'] = 'real_interview'
+    except Exception:
+        pass
+
+
+# Replace the start marker again so any existing Start Real Interview button opens a clean room.
+def _wz197_mark_interview_started():
+    _wz198_start_new_interview_clean()
+    try:
+        if st.session_state.get('wz183_target_role'):
+            st.session_state['target_role'] = st.session_state.get('wz183_target_role')
+            st.session_state['real_interview_target_role'] = st.session_state.get('wz183_target_role')
+        if st.session_state.get('wz183_target_company'):
+            st.session_state['target_company'] = st.session_state.get('wz183_target_company')
+            st.session_state['real_interview_company'] = st.session_state.get('wz183_target_company')
+        if st.session_state.get('wz_ri_country_adaptation_v181'):
+            st.session_state['selected_country'] = st.session_state.get('wz_ri_country_adaptation_v181')
+            st.session_state['target_country'] = st.session_state.get('wz_ri_country_adaptation_v181')
+    except Exception:
+        pass
+
+try:
+    _wz196_mark_interview_started = _wz197_mark_interview_started
+except Exception:
+    pass
+
+
+def _wz198_no_results_placeholder():
+    try:
+        st.markdown('''
+        <div style="max-width:1180px;margin:18px auto;padding:18px 20px;border-radius:18px;
+                    border:1px solid rgba(56,189,248,.18);background:rgba(15,23,42,.58);">
+          <div style="font-weight:950;color:#f8fafc;font-size:1.25rem;margin-bottom:6px;">No interview result yet</div>
+          <div style="color:#94a3b8;font-weight:700;line-height:1.5;">
+            Start the interview and submit at least one answer. WorkZo will only generate recruiter confidence,
+            trust drops, weakest-answer retry, and final report from your real answers — not from demo data.
+          </div>
+        </div>
+        ''', unsafe_allow_html=True)
+        if st.button('🎤 Start real interview now', key='wz198_start_from_empty_results', type='primary'):
+            _wz197_mark_interview_started()
+            st.rerun()
+    except Exception:
+        st.info('No interview result yet. Start the interview and submit at least one answer first.')
+
+
+# Safe post-interview gate for known result/report renderers.
+def _wz198_gate_result_function(fn):
+    def _wrapped(*args, **kwargs):
+        if not _wz198_can_show_results():
+            _wz198_clear_stale_demo_results()
+            return _wz198_no_results_placeholder()
+        return fn(*args, **kwargs)
+    _wrapped._wz198_gated = True
+    return _wrapped
+
+for _wz198_name in [
+    'render_interview_result', 'render_final_interview_report', 'render_interview_summary',
+    'show_interview_results', 'render_real_interview_results', 'render_progress_page',
+    'show_progress_page', 'render_progress', 'show_progress'
+]:
+    try:
+        _fn = globals().get(_wz198_name)
+        if callable(_fn) and not getattr(_fn, '_wz198_gated', False):
+            globals()[_wz198_name] = _wz198_gate_result_function(_fn)
+    except Exception:
+        pass
+
+
+# Override live room finish behavior with strict rule: cannot finish with zero answers.
+try:
+    _wz198_prev_live_room = _wz197_render_live_room
+except Exception:
+    _wz198_prev_live_room = None
+
+# Patch the existing live room by replacing the Finish button behavior is hard inside the function,
+# so we provide a stricter wrapper: if finished without answers, immediately reopen the room.
+def _wz197_render_live_room():
+    try:
+        # If legacy state tried to finish without submitted answers, undo it and keep user in the room.
+        if bool(st.session_state.get('wz_interview_finished')) and not _wz198_has_real_interview_answers():
+            st.session_state['wz_interview_finished'] = False
+            st.session_state['wz_ri_started'] = True
+            st.session_state['wz_active_interview_room'] = True
+            st.session_state['wz197_active_interview_mode'] = True
+            st.warning('Submit at least one real answer before viewing interview results.')
+        if callable(_wz198_prev_live_room):
+            return _wz198_prev_live_room()
+        st.error('Active interview room renderer is unavailable.')
+    except Exception as exc:
+        st.error(f'Active interview room could not load safely: {exc}')
+
+
+def _wz198_should_open_live_room():
+    try:
+        return bool(st.session_state.get('wz_ri_started') or st.session_state.get('wz_active_interview_room') or st.session_state.get('wz197_active_interview_mode')) and not _wz198_can_show_results()
+    except Exception:
+        return False
+
+
+def show_dashboard():
+    """Final safe router: never show post-interview reports before real submitted answers."""
+    try:
+        # Keep active interview active until user has submitted answers and explicitly finishes.
+        if _wz198_should_open_live_room():
+            return _wz197_render_live_room()
+        # If user lands on a result/progress route without real answers, block generic reports.
+        current = str(st.session_state.get('page') or st.session_state.get('nav_page') or st.session_state.get('current_page') or '').lower()
+        if any(x in current for x in ['progress', 'result', 'report']) and not _wz198_can_show_results():
+            _wz198_clear_stale_demo_results()
+            return _wz198_no_results_placeholder()
+        if callable(_wz198_prev_show_dashboard):
+            return _wz198_prev_show_dashboard()
+        st.warning('WorkZo dashboard renderer is not available.')
+    except Exception as exc:
+        st.error(f'WorkZo could not route safely: {exc}')
+        try:
+            if callable(_wz198_prev_show_dashboard):
+                return _wz198_prev_show_dashboard()
+        except Exception:
+            pass
+
+
+# On module load, clear stale report values if the user has not submitted real answers.
+try:
+    _wz198_clear_stale_demo_results()
+except Exception:
+    pass
