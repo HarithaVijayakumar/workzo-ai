@@ -6630,3 +6630,143 @@ def workzo_streamlit_voice_interruption_hint(seconds_elapsed=0, answer_text=""):
             state=st.session_state.get("wz_streamlit_recruiter_state") or {"attention":82,"patience":68}; state["attention"]=max(1,int(state.get("attention",82))-6); state["patience"]=max(1,int(state.get("patience",68))-6); state["mood"]="Waiting"; st.session_state["wz_streamlit_recruiter_state"]=state; return "Take a breath — start with one specific example."
     except Exception: pass
     return ""
+
+# =========================================================
+# WorkZo v200 - Post-Interview-Only Recruiter Metrics
+# =========================================================
+# Fix: remove baseline/static recruiter confidence numbers from the live
+# interview room. Confidence, attention, patience and hiring signal are still
+# calculated silently after each submitted answer, but they are shown only in
+# the final post-interview report after the user finishes the interview.
+# This avoids showing demo-looking numbers while the recruiter is still asking
+# questions.
+# =========================================================
+
+try:
+    _wz200_original_render_interview = _wz_sr_original_render_interview
+except Exception:
+    _wz200_original_render_interview = globals().get("render_real_interview_simulation")
+
+try:
+    _wz200_original_final_score = _wz_sr_original_final_score
+except Exception:
+    _wz200_original_final_score = globals().get("_wz_ri_render_final_score")
+
+
+def _wz_sr_render_state_panel():
+    """Intentionally hidden during live interview.
+
+    Recruiter state is still updated internally by _wz_sr_apply_state()
+    after each answer. The user sees the derived confidence/timeline only
+    after ending the interview, inside the post-interview report.
+    """
+    return None
+
+
+def _wz200_has_real_answer_history():
+    try:
+        answers = st.session_state.get("wz_ri_answers")
+        if isinstance(answers, list):
+            for item in answers:
+                if isinstance(item, dict):
+                    ans = str(item.get("answer") or item.get("candidate_answer") or "").strip()
+                else:
+                    ans = str(item or "").strip()
+                if len(ans.split()) >= 5:
+                    return True
+    except Exception:
+        pass
+    try:
+        hist = st.session_state.get("wz197_answer_history")
+        if isinstance(hist, list):
+            for item in hist:
+                if isinstance(item, dict) and len(str(item.get("answer") or "").split()) >= 5:
+                    return True
+    except Exception:
+        pass
+    return False
+
+
+def _wz200_render_recruiter_metrics_after_interview():
+    """Show confidence metrics only after real answers exist."""
+    try:
+        if not _wz200_has_real_answer_history():
+            st.info("No recruiter confidence report yet. Finish at least one real interview answer first.")
+            return
+        state = st.session_state.get("wz_streamlit_recruiter_state") or {}
+        timeline = state.get("timeline", []) if isinstance(state.get("timeline", []), list) else []
+        confidence = int(state.get("confidence", 72) or 72)
+        attention = int(state.get("attention", 82) or 82)
+        patience = int(state.get("patience", 68) or 68)
+        signal = str(state.get("hiring_signal") or "Still evaluating")
+        mood = str(state.get("mood") or "Evaluating")
+        flags = state.get("last_flags", []) if isinstance(state.get("last_flags", []), list) else []
+
+        st.markdown("## Recruiter confidence after your answers")
+        st.caption("These numbers are based on the answers you submitted in this interview, not pre-filled demo values.")
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Confidence", f"{confidence}%")
+        c2.metric("Attention", f"{attention}%")
+        c3.metric("Patience", f"{patience}%")
+        c4.metric("Hiring signal", signal)
+
+        if timeline:
+            parts = []
+            for item in timeline[-6:]:
+                before = int(item.get("before", 0) or 0)
+                after = int(item.get("after", 0) or 0)
+                label = "🟢 recovered" if after > before else "🔴 dropped" if after < before else "😐 stable"
+                parts.append(f"{label} {before}% → {after}%")
+            st.info("Recruiter confidence timeline: " + "  →  ".join(parts))
+
+        if flags:
+            st.warning("Recruiter trust risks detected: " + " · ".join([str(x) for x in flags[:5]]))
+        else:
+            st.success(f"Recruiter mood: {mood}. No major trust-risk flag detected in the latest answer.")
+    except Exception:
+        pass
+
+
+def render_real_interview_simulation():
+    """Voice/text interview room without visible baseline confidence metrics."""
+    try:
+        _wz_sr_mobile_css()
+    except Exception:
+        pass
+    try:
+        _wz_sr_beta_disclaimer()
+    except Exception:
+        pass
+    try:
+        _wz_sr_track("interview_page_opened", {"source": "streamlit_beta_no_live_metrics"})
+    except Exception:
+        pass
+    result = None
+    try:
+        if callable(_wz200_original_render_interview):
+            result = _wz200_original_render_interview()
+    except Exception as exc:
+        try:
+            st.error(f"Interview room could not load safely: {exc}")
+        except Exception:
+            pass
+    # Do NOT render confidence/attention/patience here.
+    return result
+
+
+def _wz_ri_render_final_score(result: dict, company: str, role: str, website: str, language: str):
+    """Final report with recruiter state shown only after interview completion."""
+    try:
+        _wz_sr_track("interview_finished", {"company": company, "role": role, "score": (result or {}).get("overall_score") if isinstance(result, dict) else None})
+    except Exception:
+        pass
+    try:
+        if callable(_wz200_original_final_score):
+            _wz200_original_final_score(result, company, role, website, language)
+    except Exception:
+        pass
+    _wz200_render_recruiter_metrics_after_interview()
+    try:
+        _wz_sr_render_emotional_report()
+    except Exception:
+        pass
