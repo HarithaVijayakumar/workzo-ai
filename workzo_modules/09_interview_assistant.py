@@ -7449,3 +7449,146 @@ try:
             return {}
 except Exception:
     pass
+
+# =========================================================
+# WorkZo FINAL PATCH - all-language interview + recruiter selection sync
+# Reads dashboard selections from all known keys and prevents stale Sarah/English defaults.
+# =========================================================
+import json as _wz202_json
+_WZ202_LANGUAGES = ["English","German","Dutch","French","Spanish","Portuguese","Italian","Arabic","Hindi","Tamil","Polish","Turkish","Swedish","Danish","Norwegian","Finnish","Czech","Greek","Japanese","Korean","Chinese"]
+_WZ202_ALIAS = {"deutsch":"German","german":"German","english":"English","englisch":"English","dutch":"Dutch","nederlands":"Dutch","french":"French","français":"French","spanish":"Spanish","español":"Spanish","portuguese":"Portuguese","português":"Portuguese","italian":"Italian","arabic":"Arabic","hindi":"Hindi","tamil":"Tamil","polish":"Polish","turkish":"Turkish","swedish":"Swedish","danish":"Danish","norwegian":"Norwegian","finnish":"Finnish","czech":"Czech","greek":"Greek","japanese":"Japanese","korean":"Korean","chinese":"Chinese"}
+_WZ202_SPEECH = {"English":"en-US","German":"de-DE","Dutch":"nl-NL","French":"fr-FR","Spanish":"es-ES","Portuguese":"pt-PT","Italian":"it-IT","Arabic":"ar-SA","Hindi":"hi-IN","Tamil":"ta-IN","Polish":"pl-PL","Turkish":"tr-TR","Swedish":"sv-SE","Danish":"da-DK","Norwegian":"nb-NO","Finnish":"fi-FI","Czech":"cs-CZ","Greek":"el-GR","Japanese":"ja-JP","Korean":"ko-KR","Chinese":"zh-CN"}
+
+def _wz202_clean(v, fb=""):
+    try:
+        s=str(v or "").strip()
+        return s if s else fb
+    except Exception:
+        return fb
+
+def _wz202_lang(v):
+    raw=_wz202_clean(v,"")
+    if not raw or raw.lower() in {"auto","auto-detect","auto-detect / user preference","same as interview","user preference"}: return "English"
+    if raw in _WZ202_LANGUAGES: return raw
+    return _WZ202_ALIAS.get(raw.lower(), raw if raw in _WZ202_LANGUAGES else "English")
+
+def _wz202_latest_lang():
+    for k in ["interview_language","selected_interview_language","wz_interview_language","wz_ri_language_choice_v150","wz_ri_interview_language","preferred_language","response_language","language","ui_language"]:
+        raw=_wz202_clean(st.session_state.get(k),"")
+        if raw and raw.lower() not in {"auto","auto-detect","auto-detect / user preference","same as interview","user preference"}:
+            return _wz202_lang(raw)
+    return "English"
+
+def _wz202_recruiter(v=None):
+    if v is None:
+        for k in ["wz_ri_recruiter_personality_v181","wz_ri_recruiter_personality","selected_recruiter_personality","wz_voice_recruiter_name","recruiter_personality","interviewer_personality"]:
+            raw=_wz202_clean(st.session_state.get(k),"")
+            if raw and raw.lower() not in {"strict","friendly","fast-paced","technical recruiter","senior hiring manager"}: v=raw; break
+    txt=_wz202_clean(v,"Sarah — Friendly HR").replace("👩","").replace("👨","").strip()
+    return txt or "Sarah — Friendly HR"
+
+def _wz202_gender(recruiter):
+    r=_wz202_recruiter(recruiter).lower()
+    return "male" if any(x in r for x in ["daniel","markus","james","alex","hans","carlos","thomas","ahmed"]) else "female"
+
+def _wz202_role_company():
+    role=_wz202_clean(st.session_state.get("wz_ri_role") or st.session_state.get("wz183_target_role") or st.session_state.get("target_role") or st.session_state.get("target_job_title"), "the role")
+    company=_wz202_clean(st.session_state.get("wz_ri_company") or st.session_state.get("wz183_target_company") or st.session_state.get("target_company"), "the company")
+    return role, company
+
+def _wz202_sync_selection(reset_if_changed=False):
+    lang=_wz202_latest_lang(); rec=_wz202_recruiter(); role,company=_wz202_role_company()
+    lock={"language":lang,"recruiter":rec,"role":role,"company":company}
+    changed=st.session_state.get("wz_ri_selection_lock")!=lock
+    for k in ["wz_ri_interview_language","interview_language","selected_interview_language","preferred_language","language","response_language","ui_language"]: st.session_state[k]=lang
+    st.session_state["wz_ri_language_choice_v150"]=lang
+    st.session_state["wz_speech_lang_code"]=_WZ202_SPEECH.get(lang,"en-US")
+    for k in ["wz_ri_recruiter_personality_v181","wz_ri_recruiter_personality","selected_recruiter_personality","wz_voice_recruiter_name"]: st.session_state[k]=rec
+    st.session_state["wz_voice_recruiter_gender"]=_wz202_gender(rec)
+    st.session_state["wz_ri_personality"]="Technical recruiter" if "daniel" in rec.lower() else ("Fast-paced" if "priya" in rec.lower() else ("Strict" if "markus" in rec.lower() else "Friendly"))
+    st.session_state["wz_ri_role"]=role; st.session_state["target_role"]=role; st.session_state["target_job_title"]=role
+    st.session_state["wz_ri_company"]=company; st.session_state["target_company"]=company
+    st.session_state["wz_ri_selection_lock"]=lock
+    if reset_if_changed and changed:
+        st.session_state["wz_ri_questions"]=[]; st.session_state["wz_ri_current_index"]=0; st.session_state["wz_ri_answers"]=[]; st.session_state["wz_ri_live_reactions"]=[]; st.session_state["wz_ri_final_score"]={}; st.session_state["wz_ri_audio_nonce"]=int(st.session_state.get("wz_ri_audio_nonce",0) or 0)+1
+    return lock
+
+def _wz202_opening(lang, role, company):
+    d={
+    "English":f"Tell me about yourself and keep it relevant to {role} at {company}.",
+    "German":f"Erzählen Sie mir bitte kurz etwas über sich und verbinden Sie Ihren Hintergrund mit der Position {role} bei {company}.",
+    "Dutch":f"Vertel kort iets over jezelf en koppel je achtergrond aan de functie {role} bij {company}.",
+    "French":f"Présentez-vous brièvement et reliez votre parcours au poste de {role} chez {company}.",
+    "Spanish":f"Preséntate brevemente y conecta tu experiencia con el puesto de {role} en {company}.",
+    "Portuguese":f"Apresente-se brevemente e conecte sua experiência à vaga de {role} na {company}.",
+    "Italian":f"Presentati brevemente e collega la tua esperienza al ruolo di {role} presso {company}.",
+    "Hindi":f"कृपया अपना संक्षिप्त परिचय दीजिए और अपने अनुभव को {company} में {role} role से जोड़िए.",
+    "Tamil":f"தயவு செய்து உங்களைச் சுருக்கமாக அறிமுகப்படுத்தி, உங்கள் அனுபவத்தை {company} நிறுவனத்தின் {role} பணியுடன் இணைக்கவும்.",
+    "Arabic":f"قدّم نفسك باختصار واربط خبرتك بدور {role} في {company}.",
+    "Japanese":f"簡潔に自己紹介し、あなたの経験を{company}の{role}職に結びつけて説明してください。",
+    "Korean":f"간단히 자기소개를 하고, 본인의 경험을 {company}의 {role} 직무와 연결해서 설명해 주세요.",
+    "Chinese":f"请简短介绍自己，并说明你的经历如何匹配 {company} 的 {role} 岗位。"}
+    return d.get(lang,d["English"])
+
+def _wz_voice_first_build_opening_question(cv_text, jd, role, company, language):
+    _wz202_sync_selection(reset_if_changed=False)
+    lang=_wz202_latest_lang(); role,company=_wz202_role_company()
+    return _wz202_opening(lang, role, company)
+
+def _wz_ri_build_questions(cv_text, jd, company, role, website="", company_context="", language="English", personality=""):
+    _wz202_sync_selection(reset_if_changed=False)
+    lang=_wz202_latest_lang(); role,company=_wz202_role_company()
+    qs=[_wz202_opening(lang,role,company)]
+    fallback=[f"Give me one specific example that proves you can succeed in {role}.","What measurable result did your work create?","Tell me about a challenge where you had to take ownership.",f"Why should {company} trust you for this role?","What weakness could make a recruiter hesitate, and how are you improving it?"]
+    langmap={
+        "German":[f"Nennen Sie mir ein konkretes Beispiel, das zeigt, dass Sie in der Position {role} erfolgreich sein können.","Welches messbare Ergebnis hat Ihre Arbeit erzielt?","Beschreiben Sie eine Herausforderung, bei der Sie Verantwortung übernommen haben.",f"Warum sollte {company} Ihnen diese Rolle zutrauen?","Welche Schwäche könnte einen Recruiter zweifeln lassen, und wie verbessern Sie sie?"],
+        "French":[f"Donnez-moi un exemple concret prouvant votre adéquation pour le poste {role}.","Quel résultat mesurable avez-vous obtenu ?","Parlez-moi d’un défi où vous avez pris la responsabilité.",f"Pourquoi {company} devrait-elle vous faire confiance pour ce poste ?","Quel point faible pourrait inquiéter un recruteur et comment l’améliorez-vous ?"],
+        "Spanish":[f"Dame un ejemplo concreto que demuestre que puedes tener éxito en {role}.","¿Qué resultado medible generó tu trabajo?","Cuéntame un desafío en el que asumiste responsabilidad.",f"¿Por qué {company} debería confiar en ti para este puesto?","¿Qué debilidad podría preocupar a un reclutador y cómo la estás mejorando?"],
+        "Dutch":[f"Geef een concreet voorbeeld dat laat zien dat je succesvol kunt zijn in {role}.","Welk meetbaar resultaat heeft je werk opgeleverd?","Vertel over een uitdaging waarbij je verantwoordelijkheid nam.",f"Waarom zou {company} jou deze rol toevertrouwen?","Welke zwakte kan een recruiter laten twijfelen en hoe verbeter je die?"]}
+    qs.extend(langmap.get(lang,fallback))
+    return qs[:6]
+
+def _wz_voice_first_browser_speak(text, key=None, auto=True, language=None, recruiter=None):
+    lang=_wz202_lang(language or _wz202_latest_lang()); rec=_wz202_recruiter(recruiter); code=_WZ202_SPEECH.get(lang,"en-US")
+    safe_text=_wz202_json.dumps(str(text or "")); safe_key=str(key or "wz_voice")
+    gender=_wz202_gender(rec); auto_js="true" if auto else "false"
+    st.components.v1.html(f"""
+    <div id="{safe_key}" style="display:none"></div>
+    <script>
+    (function(){{
+      const text = {safe_text}; const lang = "{code}"; const gender = "{gender}"; const auto = {auto_js};
+      function pickVoice(){{
+        const voices = window.speechSynthesis ? (window.speechSynthesis.getVoices() || []) : [];
+        let list = voices.filter(v => (v.lang || '').toLowerCase().startsWith(lang.toLowerCase().slice(0,2)));
+        if(!list.length) list = voices;
+        if(gender === 'male'){{ const male = list.find(v => /daniel|mark|george|guy|david|alex|thomas|male|google uk english male/i.test(v.name||'')); if(male) return male; }}
+        else {{ const female = list.find(v => /samantha|zira|susan|anna|helena|female|google uk english female|lekha|veena/i.test(v.name||'')); if(female) return female; }}
+        return list[0] || voices[0] || null;
+      }}
+      function speak(){{
+        if(!window.speechSynthesis || !text) return;
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = lang; msg.rate = gender === 'male' ? 0.90 : 0.94; msg.pitch = gender === 'male' ? 0.86 : 1.04;
+        const v = pickVoice(); if(v) msg.voice = v;
+        setTimeout(() => window.speechSynthesis.speak(msg), 180);
+      }}
+      window.workzoSpeakRecruiter = speak;
+      if(auto){{ if(speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = speak; speak(); }}
+    }})();
+    </script>
+    """, height=0)
+
+try:
+    _wz202_prev_render_real_interview_simulation = render_real_interview_simulation
+    def render_real_interview_simulation():
+        lock=_wz202_sync_selection(reset_if_changed=False)
+        qlock=st.session_state.get("wz_ri_questions_lock")
+        if st.session_state.get("wz_ri_started") and qlock and qlock != lock:
+            st.session_state["wz_ri_questions"]=[]
+            st.session_state["wz_ri_current_index"]=0
+            st.session_state["wz_ri_answers"]=[]
+            st.session_state["wz_ri_final_score"]={}
+        return _wz202_prev_render_real_interview_simulation()
+except Exception:
+    pass

@@ -30072,7 +30072,7 @@ def _wz182_topbar():
         with c_logo:
             st.markdown(f'''
             <div class="wz182-brand-inline">
-              <img class="wz182-logo" src="{logo}" alt="WorkZo AI logo" />
+              <img class="wz182-logo" src="{logo}" alt="WorkZo AI logo" style="width:56px!important;height:56px!important;max-width:56px!important;max-height:56px!important;object-fit:contain!important;border-radius:14px!important;display:block!important;" />
               <div><div class="wz182-name">WorkZo AI</div><div class="wz182-sub">AI Interview Simulator</div></div>
             </div>
             ''', unsafe_allow_html=True)
@@ -32240,7 +32240,7 @@ try:
                 with st.container(key="wz191_brand_home"):
                     st.markdown(f'''
                     <div class="wz182-brand-inline">
-                      <img class="wz182-logo" src="{logo}" alt="WorkZo AI logo" />
+                      <img class="wz182-logo" src="{logo}" alt="WorkZo AI logo" style="width:56px!important;height:56px!important;max-width:56px!important;max-height:56px!important;object-fit:contain!important;border-radius:14px!important;display:block!important;" />
                       <div><div class="wz182-name">WorkZo AI</div><div class="wz182-sub">AI Interview Simulator</div></div>
                     </div>
                     ''', unsafe_allow_html=True)
@@ -35079,9 +35079,17 @@ try:
                 if st.button("", key="wz202_logo_home_invisible", help="Go to WorkZo home"):
                     _wz202_go_home(); st.rerun()
                 st.markdown(f"""
-                <style>.st-key-wz202_logo_home_invisible button{{position:absolute!important;width:250px!important;height:64px!important;opacity:0!important;z-index:20!important;}}</style>
+                <style>
+                .st-key-wz202_logo_home_invisible button{{position:absolute!important;width:260px!important;height:64px!important;opacity:0!important;z-index:20!important;}}
+                .wz182-brand-inline{{display:flex!important;align-items:center!important;gap:12px!important;min-height:64px!important;max-height:72px!important;overflow:hidden!important;}}
+                .wz182-brand-inline img,.wz182-logo{{width:56px!important;height:56px!important;max-width:56px!important;max-height:56px!important;object-fit:contain!important;border-radius:14px!important;display:block!important;}}
+                .wz182-name{{font-size:1.08rem!important;font-weight:850!important;line-height:1.05!important;color:#fff!important;}}
+                .wz182-sub{{font-size:.78rem!important;font-weight:800!important;color:#62f3ff!important;margin-top:5px!important;}}
+                [data-testid="stHorizontalBlock"]:has(.wz182-brand-inline){{align-items:center!important;}}
+                @media(max-width:760px){{.wz182-brand-inline img,.wz182-logo{{width:44px!important;height:44px!important}}.wz182-name{{font-size:.95rem!important}}.wz182-sub{{font-size:.68rem!important}}.st-key-wz202_logo_home_invisible button{{width:190px!important;height:54px!important}}}}
+                </style>
                 <div class="wz182-brand-inline" style="pointer-events:none;">
-                  <img class="wz182-logo" src="{logo}" alt="WorkZo AI logo" />
+                  <img class="wz182-logo" src="{logo}" alt="WorkZo AI logo" style="width:56px!important;height:56px!important;max-width:56px!important;max-height:56px!important;object-fit:contain!important;border-radius:14px!important;display:block!important;" />
                   <div><div class="wz182-name">WorkZo AI</div><div class="wz182-sub">AI Interview Simulator</div></div>
                 </div>
                 """, unsafe_allow_html=True)
