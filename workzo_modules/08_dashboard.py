@@ -33686,458 +33686,399 @@ def _wz195_onboarding_clarity_line():
 try: _wz195_apply_css()
 except Exception: pass
 
+# --- WorkZo mobile layout safety patch ---
+# Fixes iPhone/Safari responsive issues where desktop cards/columns compress text vertically.
+def _wz_mobile_layout_safety_patch():
+    try:
+        st.markdown(r'''
+<style>
+/* WorkZo mobile layout safety patch */
+@media (max-width: 900px) {
+  /* Avoid letter-by-letter text wrapping caused by narrow columns/cards */
+  html, body, .stApp, .main, [data-testid="stAppViewContainer"], [data-testid="stMain"],
+  .block-container, .element-container, .stMarkdown, .stMarkdown p, .stMarkdown div,
+  div[class*="wz"], section[class*="wz"], article[class*="wz"] {
+    max-width: 100% !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    white-space: normal !important;
+    box-sizing: border-box !important;
+  }
 
-def workzo_streamlit_ready_disclaimer_text():
-    return "Testing mode: live voice, interruption timing, memory, analytics, and country behavior are Streamlit-ready beta features. A stronger real-time version is planned after moving WorkZo to a bigger platform."
+  /* Streamlit desktop columns must stack on phones */
+  [data-testid="stHorizontalBlock"] {
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+  [data-testid="column"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
 
+  /* Main page container: less side padding and no oversized top gaps */
+  .block-container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    padding-top: .65rem !important;
+    padding-bottom: 5.8rem !important;
+  }
 
-# =========================================================
-# WorkZo v130 - Founder Dashboard: Recruiter Simulation Intelligence
-# Scope: founder analytics only. Privacy-safe, Streamlit-manageable.
-# Does NOT store CV, JD, names, emails, phone numbers, or answer transcripts.
-# =========================================================
+  /* Make all custom WorkZo grids single-column on mobile */
+  .wz-grid, .wz-card-grid, .wz-feature-grid, .wz-steps-grid,
+  .wz83-grid, .wz118-grid, .wz183-grid, .wz195-grid,
+  .wz-home-grid, .wz-dashboard-grid, .wz-tool-grid,
+  div[class*="grid"], div[class*="Grid"] {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Landing / onboarding step cards: stop text from squeezing into icon column */
+  .wz-step-card, .wz-feature-card, .wz-card, .wz-panel,
+  .wz83-card, .wz118-card, .wz183-card, .wz195-card,
+  div[class*="card"], section[class*="card"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: auto !important;
+    padding: 16px !important;
+    overflow: visible !important;
+  }
+
+  .wz-step-card, .wz-feature-card,
+  div[class*="step"], div[class*="feature"] {
+    display: block !important;
+  }
+
+  /* If an icon column exists inside a card, keep it inline instead of forcing text narrow */
+  .wz-step-card > *, .wz-feature-card > *,
+  div[class*="step"] > *, div[class*="feature"] > * {
+    max-width: 100% !important;
+  }
+
+  /* Mobile typography */
+  h1, .wz-hero-title, div[class*="hero"] h1 {
+    font-size: clamp(2rem, 10vw, 2.55rem) !important;
+    line-height: 1.05 !important;
+    letter-spacing: -0.04em !important;
+  }
+  h2 { font-size: clamp(1.45rem, 7vw, 2rem) !important; line-height: 1.12 !important; }
+  h3 { font-size: clamp(1.1rem, 5vw, 1.35rem) !important; line-height: 1.25 !important; }
+  p, li, label, .stMarkdown p, .stMarkdown li,
+  div[class*="sub"], div[class*="desc"], div[class*="body"] {
+    font-size: .98rem !important;
+    line-height: 1.55 !important;
+  }
+
+  /* CTA buttons: full-width, readable, not clipped */
+  .stButton > button, button[kind="primary"], .wz-main-cta button,
+  div[class*="cta"] button, div[class*="CTA"] button {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 52px !important;
+    padding: 14px 18px !important;
+    font-size: 1.02rem !important;
+    border-radius: 999px !important;
+  }
+
+  /* Chips / pills wrap cleanly */
+  .wz-chip-row, .wz-chips, .wz-pill-row, .wz-flags,
+  div[class*="chip"], div[class*="pill"] {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .wz-chip, .wz-pill, span[class*="chip"], span[class*="pill"] {
+    max-width: 100% !important;
+    white-space: normal !important;
+  }
+
+  /* Header/nav should not overflow on mobile */
+  .wz-navbar, .wz-header, div[class*="navbar"], div[class*="header"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 10px 12px !important;
+    gap: 8px !important;
+    overflow: visible !important;
+  }
+
+  /* Reduce heavy glow/blur on phones for smoother Safari performance */
+  * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  [class*="glow"], [class*="blur"], [style*="blur"] {
+    filter: none !important;
+    box-shadow: 0 10px 24px rgba(0,0,0,.22) !important;
+  }
+
+  /* Floating Work-O-Bot: keep fully inside viewport and avoid blocking text */
+  .wz-floating-bot, .workobot-floating, .work-o-bot-floating,
+  div[class*="floating"], div[class*="bot-float"], div[class*="workobot"] {
+    right: 12px !important;
+    bottom: calc(76px + env(safe-area-inset-bottom)) !important;
+    max-width: min(210px, calc(100vw - 24px)) !important;
+    transform: scale(.86) !important;
+    transform-origin: bottom right !important;
+    z-index: 999 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .block-container {
+    padding-left: .85rem !important;
+    padding-right: .85rem !important;
+    padding-top: .45rem !important;
+  }
+
+  /* Stronger landing/onboarding card repair for narrow iPhones */
+  .wz-step-card, .wz-feature-card, .wz-card, .wz-panel,
+  .wz83-card, .wz118-card, .wz183-card, .wz195-card,
+  div[class*="card"], section[class*="card"] {
+    padding: 14px !important;
+    border-radius: 22px !important;
+  }
+
+  h1, .wz-hero-title, div[class*="hero"] h1 {
+    font-size: clamp(1.85rem, 11vw, 2.25rem) !important;
+  }
+
+  /* If a card uses CSS grid with tiny icon/text columns, force one column */
+  .wz-step-card, .wz-feature-card,
+  div[class*="step-card"], div[class*="feature-card"] {
+    grid-template-columns: 1fr !important;
+    align-items: start !important;
+  }
+
+  /* Floating bot icon only on very small screens to prevent overlap */
+  .wz-floating-bot, .workobot-floating, .work-o-bot-floating,
+  div[class*="floating"], div[class*="bot-float"], div[class*="workobot"] {
+    right: 10px !important;
+    bottom: calc(70px + env(safe-area-inset-bottom)) !important;
+    transform: scale(.78) !important;
+  }
+}
+</style>
+''', unsafe_allow_html=True)
+    except Exception:
+        pass
 
 try:
-    import json as _wz130_json
-    import math as _wz130_math
-    from collections import Counter as _wz130_Counter, defaultdict as _wz130_defaultdict
+    _wz_mobile_layout_safety_patch()
 except Exception:
     pass
 
-
-def _wz130_safe_int(value, default=0):
-    try:
-        if value is None or value == '':
-            return default
-        return int(float(str(value).replace('%', '').strip()))
-    except Exception:
-        return default
-
-
-def _wz130_details(row):
-    try:
-        raw = row.get('details') if isinstance(row, dict) else ''
-        if isinstance(raw, dict):
-            return raw
-        if not raw:
-            return {}
-        parsed = _wz130_json.loads(raw)
-        return parsed if isinstance(parsed, dict) else {}
-    except Exception:
-        return {}
-
-
-def _wz130_text(row):
-    try:
-        d = _wz130_details(row)
-        return (str(row.get('event', '')) + ' ' + str(row.get('page', '')) + ' ' + ' '.join([str(k) + ' ' + str(v) for k, v in d.items()])).lower()
-    except Exception:
-        return ''
-
-
-def _wz130_has(row, *terms):
-    try:
-        text = _wz130_text(row)
-        return any(str(t).lower() in text for t in terms)
-    except Exception:
-        return False
-
-
-def _wz130_sessions(rows):
-    grouped = {}
-    try:
-        for r in rows or []:
-            sid = str(r.get('session_id') or 'unknown')
-            grouped.setdefault(sid, []).append(r)
-    except Exception:
-        pass
-    return grouped
-
-
-def _wz130_count(rows, *terms):
-    try:
-        return sum(1 for r in rows or [] if _wz130_has(r, *terms))
-    except Exception:
-        return 0
-
-
-def _wz130_unique_sessions_with(rows, *terms):
-    try:
-        return len({str(r.get('session_id') or '') for r in rows or [] if str(r.get('session_id') or '') and _wz130_has(r, *terms)})
-    except Exception:
-        return 0
-
-
-def _wz130_pct(part, total):
-    try:
-        return f"{int(round((float(part) / float(total)) * 100))}%" if total else '0%'
-    except Exception:
-        return '0%'
-
-
-def _wz130_event_bucket(row):
-    """Map raw events to the founder's real product questions."""
-    try:
-        if _wz130_has(row, 'retry', 'weakest answer', 're-answer'):
-            return 'Retry loop'
-        if _wz130_has(row, 'confidence_drop', 'trust_drop', 'confidence dropped', 'losing trust', 'weak answer'):
-            return 'Confidence drop'
-        if _wz130_has(row, 'confidence_recovery', 'recovered', 'recovery', 'strong recovery'):
-            return 'Recovery moment'
-        if _wz130_has(row, 'interruption', 'let me stop', 'answer directly', 'pressure'):
-            return 'Pressure/interruption'
-        if _wz130_has(row, 'start_real_interview', 'start interview', 'interview_started', 'start_recruiter'):
-            return 'Interview started'
-        if _wz130_has(row, 'answer_submitted', 'typed_answer', 'spoken_answer', 'submit answer'):
-            return 'Answer submitted'
-        if _wz130_has(row, 'post_interview', 'final report', 'interview_completed', 'results'):
-            return 'Report viewed'
-        if _wz130_has(row, 'cv upload', 'cv_uploaded', 'has_cv'):
-            return 'CV uploaded'
-        if _wz130_has(row, 'job description', 'jd', 'job_pasted', 'understand job'):
-            return 'Job context'
-        if _wz130_has(row, 'feedback', 'like', 'dislike'):
-            return 'Feedback'
-        if _wz130_has(row, 'find job', 'jobs'):
-            return 'Job search'
-        if _wz130_has(row, 'cover letter', 'cover'):
-            return 'Cover letter'
-        if _wz130_has(row, 'improve cv', 'resume'):
-            return 'Resume/CV tool'
-        if _wz130_has(row, 'work-o-bot', 'coach', 'assistant'):
-            return 'Assistant used'
-    except Exception:
-        pass
-    return 'Other'
-
-
-def _wz130_session_bucket(items):
-    text = ' '.join(_wz130_text(r) for r in items or [])
-    if any(t in text for t in ['retry', 'weakest answer', 're-answer']):
-        return 'Retried weak answer'
-    if any(t in text for t in ['final report', 'interview_completed', 'post_interview', 'results']):
-        return 'Reached report'
-    if any(t in text for t in ['answer_submitted', 'typed_answer', 'spoken_answer']):
-        return 'Submitted answer'
-    if any(t in text for t in ['start interview', 'interview_started', 'start_recruiter']):
-        return 'Started interview'
-    if any(t in text for t in ['cv_uploaded', 'cv upload', 'has_cv']):
-        return 'Uploaded CV'
-    return 'Visited only'
-
-
-def _wz130_founder_insights(rows):
-    """Generate human founder insights from safe event patterns."""
-    insights = []
-    try:
-        total_sessions = len(_wz130_sessions(rows)) or 0
-        started = _wz130_unique_sessions_with(rows, 'start interview', 'interview_started', 'start_recruiter')
-        answers = _wz130_unique_sessions_with(rows, 'answer_submitted', 'typed_answer', 'spoken_answer')
-        reports = _wz130_unique_sessions_with(rows, 'final report', 'interview_completed', 'post_interview', 'results')
-        retries = _wz130_unique_sessions_with(rows, 'retry', 'weakest answer', 're-answer')
-        drops = _wz130_count(rows, 'confidence_drop', 'trust_drop', 'losing trust', 'weak answer')
-        recoveries = _wz130_count(rows, 'confidence_recovery', 'recovered', 'recovery')
-        interruptions = _wz130_count(rows, 'interruption', 'let me stop', 'answer directly', 'pressure')
-
-        if started and answers == 0:
-            insights.append(('Interview room friction', 'Users start interviews but do not submit answers yet. Check the answer input, mic/typing clarity, and first-question pressure.'))
-        if started and reports and reports / max(started, 1) >= 0.45:
-            insights.append(('Good completion signal', f'{_wz130_pct(reports, started)} of interview starters reached report/result signals. Keep the flow focused.'))
-        if started and retries / max(started, 1) >= 0.20:
-            insights.append(('Retention loop emerging', f'{_wz130_pct(retries, started)} of interview starters triggered retry behavior. This is your strongest engagement signal.'))
-        elif started:
-            insights.append(('Retry loop needs visibility', 'Retry weakest answer is not yet strongly used. Make it appear immediately after confidence drops.'))
-        if drops and not recoveries:
-            insights.append(('Pressure without recovery', 'Confidence drops are being detected, but recovery moments are low. Users need a clearer path to repair trust.'))
-        if recoveries and drops:
-            insights.append(('Emotional recovery loop working', 'Both confidence drops and recovery moments exist. This is the WorkZo moat: recruiter trust can be repaired.'))
-        if interruptions and started:
-            insights.append(('Pressure realism active', 'Interruption/pressure signals are present. Watch whether they improve retry behavior or cause drop-off.'))
-        if total_sessions and started / max(total_sessions, 1) < 0.25:
-            insights.append(('Onboarding/start friction', 'Many visitors do not start an interview. Make the first action even clearer: CV → Job → Start Simulation.'))
-        if not rows:
-            insights.append(('No analytics yet', 'Use the app once end-to-end, then reopen this dashboard. Analytics will populate automatically.'))
-    except Exception:
-        pass
-    return insights[:8]
-
-
-def _wz130_dropoff_table(rows):
-    try:
-        grouped = _wz130_sessions(rows)
-        counts = _wz130_Counter(_wz130_session_bucket(items) for items in grouped.values())
-        return dict(counts.most_common())
-    except Exception:
-        return {}
-
-
-def _wz130_country_language(rows):
-    countries, languages = [], []
-    try:
-        for r in rows or []:
-            c = str(r.get('country') or '').strip()
-            l = str(r.get('language') or '').strip()
-            if c:
-                countries.append(c)
-            if l:
-                languages.append(l)
-    except Exception:
-        pass
-    return dict(_wz130_Counter(countries).most_common(12)), dict(_wz130_Counter(languages).most_common(12))
-
-
-def _wz130_render_card(title, value, note='', tone='default'):
-    try:
-        tone_border = {
-            'good': 'rgba(34,197,94,.35)',
-            'warn': 'rgba(245,158,11,.35)',
-            'bad': 'rgba(239,68,68,.35)',
-            'default': 'rgba(148,163,184,.22)',
-        }.get(tone, 'rgba(148,163,184,.22)')
-        st.markdown(f"""
-        <div class="wz130-founder-card" style="border-color:{tone_border};">
-            <div class="wz130-card-title">{title}</div>
-            <div class="wz130-card-value">{value}</div>
-            <div class="wz130-card-note">{note}</div>
-        </div>
-        """, unsafe_allow_html=True)
-    except Exception:
-        st.metric(title, value, help=note or None)
-
-
-def _wz130_render_founder_css():
-    try:
-        st.markdown("""
-        <style id="workzo-v130-founder-dashboard-css">
-        .wz130-founder-hero{
-            border:1px solid rgba(96,165,250,.24);
-            background:radial-gradient(circle at top left, rgba(37,99,235,.22), rgba(15,23,42,.84) 54%);
-            border-radius:26px;
-            padding:22px 24px;
-            margin:6px 0 18px 0;
-            box-shadow:0 18px 44px rgba(2,6,23,.30);
-        }
-        .wz130-founder-kicker{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:#93c5fd;font-weight:800;margin-bottom:6px;}
-        .wz130-founder-title{font-size:1.6rem;font-weight:900;color:#f8fafc;line-height:1.15;margin-bottom:8px;}
-        .wz130-founder-sub{font-size:.95rem;color:#cbd5e1;line-height:1.55;max-width:860px;}
-        .wz130-founder-card{
-            background:rgba(15,23,42,.78);
-            border:1px solid rgba(148,163,184,.22);
-            border-radius:20px;
-            padding:15px 16px;
-            min-height:112px;
-            box-shadow:0 12px 28px rgba(2,6,23,.22);
-            margin-bottom:10px;
-        }
-        .wz130-card-title{font-size:.76rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;font-weight:800;margin-bottom:6px;}
-        .wz130-card-value{font-size:1.55rem;color:#f8fafc;font-weight:900;line-height:1.15;margin-bottom:6px;}
-        .wz130-card-note{font-size:.82rem;color:#cbd5e1;line-height:1.35;}
-        .wz130-insight{
-            border:1px solid rgba(148,163,184,.18);
-            background:rgba(30,41,59,.56);
-            border-radius:18px;
-            padding:13px 15px;
-            margin:8px 0;
-        }
-        .wz130-insight b{color:#f8fafc;}
-        .wz130-insight span{color:#cbd5e1;font-size:.9rem;}
-        .wz130-pill{display:inline-block;border:1px solid rgba(148,163,184,.22);border-radius:999px;padding:6px 10px;margin:4px 5px 4px 0;color:#e2e8f0;background:rgba(15,23,42,.72);font-size:.82rem;}
-        @media(max-width:760px){
-            .wz130-founder-hero{padding:17px 16px;border-radius:22px;}
-            .wz130-founder-title{font-size:1.28rem;}
-            .wz130-founder-card{min-height:auto;padding:13px 14px;}
-            .wz130-card-value{font-size:1.25rem;}
-        }
-        </style>
-        """, unsafe_allow_html=True)
-    except Exception:
-        pass
-
+# =========================================================
+# WorkZo v196 - Start Interview Route Fix
+# =========================================================
+# Problem fixed:
+# After changing Simulation Setup / Recruiter Behavior controls, the
+# "Start Real Interview" button could set state but the router kept rendering
+# the pre-interview dashboard because page='real_interview' was also used for
+# the main dashboard. This patch separates the READY dashboard from the ACTIVE
+# interview room using st.session_state['wz_ri_started'].
+# =========================================================
 
 try:
-    _wz130_previous_founder_dashboard = render_founder_dashboard
+    _wz196_previous_show_dashboard = show_dashboard
 except Exception:
-    _wz130_previous_founder_dashboard = None
+    _wz196_previous_show_dashboard = None
 
 
-def render_founder_dashboard():
-    """Founder Dashboard v130: emotional recruiter-simulation analytics.
-
-    Goal: help the founder understand why users return, retry, recover, or leave.
-    Privacy: reads only safe analytics rows. No CV/JD/answer text is stored or shown.
-    """
+def _wz196_apply_room_css():
     try:
-        _wz130_render_founder_css()
-        try:
-            if callable(globals().get('_wz119_write_event')):
-                _wz119_write_event('founder_dashboard_opened', 'Founder Dashboard', {'source': 'v130'})
-        except Exception:
-            pass
+        st.markdown(r'''
+        <style id="wz196-start-route-fix">
+          .wz196-room-shell{
+            max-width:1500px;margin:18px auto 0;padding:0 8px 24px;
+          }
+          .wz196-room-hero{
+            border:1px solid rgba(125,211,252,.22);
+            background:linear-gradient(135deg,rgba(8,24,43,.92),rgba(20,18,58,.88));
+            border-radius:24px;
+            padding:22px 24px;
+            box-shadow:0 20px 70px rgba(0,0,0,.24);
+            margin-bottom:16px;
+          }
+          .wz196-room-kicker{
+            color:#67e8f9;text-transform:uppercase;letter-spacing:.16em;
+            font-weight:900;font-size:.78rem;margin-bottom:7px;
+          }
+          .wz196-room-title{font-size:2rem;line-height:1.05;font-weight:1000;margin:0 0 8px;color:#fff;}
+          .wz196-room-sub{color:rgba(226,232,240,.72);font-weight:700;margin:0;}
+          .wz196-room-strip{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+          .wz196-room-chip{
+            border:1px solid rgba(148,163,184,.20);background:rgba(15,23,42,.58);
+            color:#e5e7eb;border-radius:999px;padding:8px 12px;font-weight:900;
+          }
+          .wz196-beta-note{
+            margin:10px 0 16px;padding:11px 13px;border-radius:16px;
+            border:1px solid rgba(251,191,36,.22);background:rgba(251,191,36,.08);
+            color:#fde68a;font-weight:800;font-size:.9rem;
+          }
+          .wz196-room-actions{display:flex;justify-content:flex-end;margin:0 0 12px;}
+          .wz196-room-actions button{border-radius:14px!important;font-weight:900!important;}
+          @media(max-width:768px){
+            .wz196-room-shell{margin-top:8px!important;padding:0 2px 80px!important;}
+            .wz196-room-hero{padding:16px!important;border-radius:18px!important;}
+            .wz196-room-title{font-size:1.45rem!important;}
+            .wz196-room-sub{font-size:.92rem!important;line-height:1.45!important;}
+            .wz196-room-chip{font-size:.82rem!important;padding:7px 10px!important;}
+            .st-key-wz182_float_bot{right:14px!important;bottom:22px!important;transform:scale(.86)!important;}
+          }
+        </style>
+        ''', unsafe_allow_html=True)
+    except Exception:
+        pass
 
-        rows = []
-        feedback_rows = []
-        try:
-            rows = _wz119_read_csv_dicts(_wz119_analytics_file()) if callable(globals().get('_wz119_read_csv_dicts')) else []
-        except Exception:
-            rows = []
-        try:
-            feedback_rows = _wz119_read_csv_dicts(_wz119_feedback_file()) if callable(globals().get('_wz119_read_csv_dicts')) else []
-        except Exception:
-            feedback_rows = []
 
-        # Remove the dashboard-open event from metrics so founder views do not inflate product usage.
-        product_rows = [r for r in rows if not _wz130_has(r, 'founder_dashboard_opened', 'founder dashboard')]
-        sessions = _wz130_sessions(product_rows)
-        total_sessions = len(sessions)
-        return_sessions = sum(1 for _sid, items in sessions.items() if len(items) >= 4)
-        interview_starts = _wz130_unique_sessions_with(product_rows, 'start interview', 'interview_started', 'start_recruiter')
-        answers = _wz130_unique_sessions_with(product_rows, 'answer_submitted', 'typed_answer', 'spoken_answer')
-        reports = _wz130_unique_sessions_with(product_rows, 'final report', 'interview_completed', 'post_interview', 'results')
-        retries = _wz130_unique_sessions_with(product_rows, 'retry', 'weakest answer', 're-answer')
-        drops = _wz130_count(product_rows, 'confidence_drop', 'trust_drop', 'losing trust', 'weak answer')
-        recoveries = _wz130_count(product_rows, 'confidence_recovery', 'recovered', 'recovery')
-        interruptions = _wz130_count(product_rows, 'interruption', 'let me stop', 'answer directly', 'pressure')
+def _wz196_safe_text(value, fallback=""):
+    try:
+        value = str(value or "").strip()
+        return value if value else fallback
+    except Exception:
+        return fallback
 
-        st.markdown("""
-        <div class="wz130-founder-hero">
-            <div class="wz130-founder-kicker">Founder intelligence</div>
-            <div class="wz130-founder-title">Recruiter Simulation Analytics</div>
-            <div class="wz130-founder-sub">Track the signals that matter for WorkZo: interview starts, confidence drops, recovery loops, retries, global usage, and where users leave. This dashboard intentionally avoids CV text, JD text, personal data, and answer transcripts.</div>
+
+def _wz196_mark_interview_started():
+    """Single source of truth for opening the active interview room."""
+    try:
+        st.session_state["wz_ri_started"] = True
+        st.session_state["wz_active_interview_room"] = True
+        st.session_state["page"] = "real_interview"
+        st.session_state["nav_page"] = "real_interview"
+        st.session_state["current_page"] = "real_interview"
+        st.session_state["_wz_force_page"] = "real_interview"
+        # Save latest setup values so the interview room uses the edited controls.
+        if st.session_state.get("wz183_target_role"):
+            st.session_state["target_role"] = st.session_state.get("wz183_target_role")
+            st.session_state["real_interview_target_role"] = st.session_state.get("wz183_target_role")
+        if st.session_state.get("wz183_target_company"):
+            st.session_state["target_company"] = st.session_state.get("wz183_target_company")
+            st.session_state["real_interview_company"] = st.session_state.get("wz183_target_company")
+        if st.session_state.get("wz_ri_country_adaptation_v181"):
+            st.session_state["selected_country"] = st.session_state.get("wz_ri_country_adaptation_v181")
+            st.session_state["target_country"] = st.session_state.get("wz_ri_country_adaptation_v181")
+        if st.session_state.get("interview_language"):
+            st.session_state["preferred_language"] = st.session_state.get("interview_language")
+    except Exception:
+        pass
+
+
+def _wz196_render_interview_room():
+    """Render the active interview room instead of sending the user back to setup."""
+    try:
+        if callable(globals().get("_wz182_css")): _wz182_css()
+        if callable(globals().get("_wz185_final_order_spacing_css")): _wz185_final_order_spacing_css()
+        if callable(globals().get("_wz186_hide_legacy_header_and_bot_css")): _wz186_hide_legacy_header_and_bot_css()
+        _wz196_apply_room_css()
+        if callable(globals().get("_wz182_topbar")): _wz182_topbar()
+
+        role = _wz196_safe_text(st.session_state.get("target_role") or st.session_state.get("real_interview_target_role") or st.session_state.get("wz183_target_role"), "Target role")
+        company = _wz196_safe_text(st.session_state.get("target_company") or st.session_state.get("real_interview_company") or st.session_state.get("wz183_target_company"), "Target company")
+        country = _wz196_safe_text(st.session_state.get("selected_country") or st.session_state.get("target_country") or st.session_state.get("wz_ri_country_adaptation_v181"), "Global / Remote")
+        language = _wz196_safe_text(st.session_state.get("interview_language") or st.session_state.get("preferred_language"), "Auto-detect")
+        recruiter = _wz196_safe_text(st.session_state.get("wz_ri_recruiter_personality_v181"), "AI Recruiter")
+
+        st.markdown(f'''
+        <div class="wz196-room-shell">
+          <div class="wz196-room-hero">
+            <div class="wz196-room-kicker">Live interview room</div>
+            <h1 class="wz196-room-title">Your recruiter is ready.</h1>
+            <p class="wz196-room-sub">Answer naturally. WorkZo will update confidence, attention, trust risk, and follow-up pressure based on your answer quality.</p>
+            <div class="wz196-room-strip">
+              <span class="wz196-room-chip">👤 {html.escape(recruiter)}</span>
+              <span class="wz196-room-chip">💼 {html.escape(role)}</span>
+              <span class="wz196-room-chip">🏢 {html.escape(company)}</span>
+              <span class="wz196-room-chip">🌍 {html.escape(country)}</span>
+              <span class="wz196-room-chip">🗣 {html.escape(language)}</span>
+            </div>
+          </div>
+          <div class="wz196-beta-note">Beta test version: this Streamlit interview room simulates recruiter pressure and answer-based scoring. A stronger real-time voice version can be built later on a larger platform.</div>
         </div>
-        """, unsafe_allow_html=True)
+        ''', unsafe_allow_html=True)
 
-        k1, k2, k3, k4 = st.columns(4)
-        with k1:
-            _wz130_render_card('Users / sessions', total_sessions, 'Anonymous safe session IDs.', 'default')
-        with k2:
-            _wz130_render_card('Interview starts', interview_starts, f'{_wz130_pct(interview_starts, total_sessions)} of sessions.', 'good' if interview_starts else 'warn')
-        with k3:
-            _wz130_render_card('Retry loop', retries, f'{_wz130_pct(retries, interview_starts)} of interview starters retried.', 'good' if retries else 'warn')
-        with k4:
-            _wz130_render_card('Report reached', reports, f'{_wz130_pct(reports, interview_starts)} start → report.', 'good' if reports else 'warn')
+        with st.container(key="wz196_room_actions"):
+            c1, c2, c3 = st.columns([4, 1.2, 1.2])
+            with c2:
+                if st.button("↩ Edit setup", key="wz196_back_to_setup", use_container_width=True):
+                    st.session_state["wz_ri_started"] = False
+                    st.session_state["wz_active_interview_room"] = False
+                    st.rerun()
+            with c3:
+                if st.button("Restart", key="wz196_restart_interview", use_container_width=True):
+                    for k in ["wz187_recruiter_state", "wz187_last_answer_eval", "wz187_candidate_answer", "wz195_recruiter_state"]:
+                        try: st.session_state.pop(k, None)
+                        except Exception: pass
+                    st.session_state["wz_ri_started"] = True
+                    st.rerun()
 
-        st.markdown('### Emotional simulation signals')
-        e1, e2, e3, e4 = st.columns(4)
-        with e1:
-            _wz130_render_card('Confidence drops', drops, 'Moments where recruiter trust weakened.', 'warn' if drops else 'default')
-        with e2:
-            _wz130_render_card('Recovery moments', recoveries, 'Moments where user repaired recruiter trust.', 'good' if recoveries else 'warn')
-        with e3:
-            _wz130_render_card('Interruptions / pressure', interruptions, 'Realism events: direct challenge, stop, clarify.', 'default')
-        with e4:
-            _wz130_render_card('Return-like sessions', return_sessions, 'Sessions with multiple meaningful actions.', 'good' if return_sessions else 'default')
-
-        st.markdown('### Core product funnel')
-        funnel = {
-            'Visited': total_sessions,
-            'Started interview': interview_starts,
-            'Submitted answer': answers,
-            'Reached report': reports,
-            'Retried weak answer': retries,
-        }
-        try:
-            st.bar_chart(funnel)
-        except Exception:
-            st.write(funnel)
-
-        st.markdown('### Where users currently stop')
-        d1, d2 = st.columns([1.15, .85])
-        with d1:
-            dropoff = _wz130_dropoff_table(product_rows)
-            if dropoff:
-                st.bar_chart(dropoff)
-            else:
-                st.info('No drop-off pattern yet. Use one full interview flow, then reopen this dashboard.')
-        with d2:
-            st.markdown('**Founder read**')
-            if interview_starts and not answers:
-                st.warning('Users may be starting interviews but not answering. Check input clarity and first-question pressure.')
-            elif answers and not reports:
-                st.warning('Users answer but may not reach the final report. Make completion and feedback feel immediate.')
-            elif retries:
-                st.success('Retry behavior exists. This is a strong retention signal.')
-            else:
-                st.info('Look for whether users move from start → answer → report → retry.')
-
-        st.markdown('### Action groups')
-        buckets = dict(_wz130_Counter(_wz130_event_bucket(r) for r in product_rows).most_common(14))
-        if buckets:
-            st.bar_chart(buckets)
-        else:
-            st.info('No action groups yet.')
-
-        st.markdown('### Global usage')
-        ctry, lang = _wz130_country_language(product_rows)
-        g1, g2 = st.columns(2)
-        with g1:
-            st.markdown('**Countries selected**')
-            if ctry:
-                st.bar_chart(ctry)
-            else:
-                st.caption('No country selection tracked yet.')
-        with g2:
-            st.markdown('**Interview languages selected**')
-            if lang:
-                st.bar_chart(lang)
-            else:
-                st.caption('No language selection tracked yet.')
-
-        st.markdown('### Founder insights')
-        insights = _wz130_founder_insights(product_rows)
-        if insights:
-            for title, body in insights:
-                st.markdown(f"""
-                <div class="wz130-insight"><b>{title}</b><br><span>{body}</span></div>
-                """, unsafe_allow_html=True)
-        else:
-            st.info('No insights yet. Complete a few test sessions to generate founder intelligence.')
-
-        st.markdown('### Feedback quality')
-        fb1, fb2, fb3 = st.columns(3)
-        likes = sum(1 for r in feedback_rows if str(r.get('rating', '')).lower() in {'like', 'liked', '👍', 'positive'})
-        dislikes = sum(1 for r in feedback_rows if str(r.get('rating', '')).lower() in {'dislike', 'disliked', '👎', 'negative'})
-        with fb1:
-            _wz130_render_card('Feedback entries', len(feedback_rows), 'Written comments + reactions.', 'default')
-        with fb2:
-            _wz130_render_card('Positive', likes, 'Liked signals.', 'good' if likes else 'default')
-        with fb3:
-            _wz130_render_card('Negative', dislikes, 'Confusion or dislike signals.', 'bad' if dislikes else 'default')
-
-        if feedback_rows:
-            with st.expander('Recent feedback', expanded=False):
-                for r in list(reversed(feedback_rows[-15:])):
-                    page = str(r.get('page') or 'General')[:80]
-                    rating = str(r.get('rating') or 'note')[:20]
-                    text = str(r.get('feedback') or r.get('details') or '')[:900]
-                    ts = str(r.get('timestamp') or '')[:30]
-                    icon = '👍' if rating == 'like' else ('👎' if rating == 'dislike' else '💬')
-                    st.markdown(f'**{icon} {page}** · {ts}  \n{text}')
-                    st.markdown('---')
-
-        with st.expander('Privacy-safe raw analytics', expanded=False):
-            st.caption('Raw rows shown here are safe analytics only. Do not add CV/JD/answer text to analytics events.')
+        rendered = False
+        # Prefer the real interview module if it exists.
+        for fn_name in ["render_real_interview_simulation", "show_interview_simulation", "show_real_interview", "render_real_interview"]:
+            fn = globals().get(fn_name)
+            if callable(fn):
+                try:
+                    fn()
+                    rendered = True
+                    break
+                except Exception:
+                    rendered = False
+        # Fallback: use the Streamlit-manageable answer intelligence panel.
+        if not rendered:
             try:
-                import pandas as _wz130_pd
-                st.dataframe(_wz130_pd.DataFrame(product_rows[-300:]), use_container_width=True)
+                if callable(globals().get("_wz187_render_live_answer_panel")):
+                    _wz187_render_live_answer_panel()
+                    rendered = True
             except Exception:
-                st.write(product_rows[-80:])
+                rendered = False
+        if not rendered:
+            st.info("Interview room is open. Add your answer below and WorkZo will evaluate it in beta mode.")
+            answer = st.text_area("Your answer", key="wz196_fallback_answer", height=130, placeholder="Answer the recruiter question here...")
+            if st.button("Submit answer", key="wz196_fallback_submit", type="primary") and str(answer or '').strip():
+                if callable(globals().get("_wz195_update_state_from_answer")):
+                    _wz195_update_state_from_answer(answer, source="fallback_room")
+                elif callable(globals().get("_wz187_apply_answer")):
+                    _wz187_apply_answer(answer)
+                st.success("Answer scored. Recruiter confidence updated.")
+                st.rerun()
 
-        st.markdown('### What this dashboard should help you decide')
-        st.markdown("""
-        <span class="wz130-pill">Is recruiter pressure too strong?</span>
-        <span class="wz130-pill">Do users retry weak answers?</span>
-        <span class="wz130-pill">Where does trust drop?</span>
-        <span class="wz130-pill">Do users recover confidence?</span>
-        <span class="wz130-pill">Which countries/languages need better rules?</span>
-        <span class="wz130-pill">Where do users leave?</span>
-        """, unsafe_allow_html=True)
-
+        if callable(globals().get("_wz182_floating_workobot")): _wz182_floating_workobot()
+        if callable(globals().get("_wz186_hide_legacy_header_and_bot_css")): _wz186_hide_legacy_header_and_bot_css()
     except Exception as exc:
+        st.error(f"Interview room could not open safely: {exc}")
+
+
+def show_dashboard():
+    """Final safe router: if interview has started, open the room, not the setup dashboard."""
+    try:
+        # Keep direct feature pages working exactly as before.
+        page_key = ""
         try:
-            st.error(f'Founder analytics could not load safely: {exc}')
-            if callable(_wz130_previous_founder_dashboard):
-                st.caption('Showing previous founder dashboard fallback.')
-                _wz130_previous_founder_dashboard()
+            page_key = _wz182_get_page_key() if callable(globals().get("_wz182_get_page_key")) else str(st.session_state.get("page") or "")
+        except Exception:
+            page_key = str(st.session_state.get("page") or "")
+        page_key = str(page_key or "").strip().lower()
+
+        if st.session_state.get("wz_ri_started") or st.session_state.get("wz_active_interview_room"):
+            return _wz196_render_interview_room()
+
+        if callable(_wz196_previous_show_dashboard):
+            return _wz196_previous_show_dashboard()
+
+        st.warning("WorkZo dashboard renderer is not available.")
+    except Exception as exc:
+        st.error(f"WorkZo could not route safely: {exc}")
+        try:
+            if callable(_wz196_previous_show_dashboard):
+                return _wz196_previous_show_dashboard()
         except Exception:
             pass
 
+
+# Also patch the known start button handler indirectly: any existing Start button now only needs
+# to set wz_ri_started=True; the router above will open the room on rerun.
+try:
+    st.session_state.setdefault("wz_active_interview_room", bool(st.session_state.get("wz_ri_started", False)))
+except Exception:
+    pass
