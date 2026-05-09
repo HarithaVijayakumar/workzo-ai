@@ -3711,7 +3711,7 @@ def render_real_interview_simulation():
         st.markdown(zoom_room_html, unsafe_allow_html=True)
 
     try:
-        _wz_ri_auto_speak(question, f"voice_first_q_{idx}")
+        _wz_ri_auto_speak(question, f"voice_first_q_{idx}_{st.session_state.get('wz_ri_audio_nonce',0)}")
     except Exception:
         pass
 
@@ -3805,6 +3805,8 @@ def render_real_interview_simulation():
 
         st.session_state["wz_ri_current_index"] = idx + 1
         st.session_state["wz_ri_question_started_at"] = time.time()
+        st.session_state["wz_ri_audio_nonce"] = int(st.session_state.get("wz_ri_audio_nonce", 0)) + 1
+        st.session_state["wz_force_next_question_voice"] = True
         st.rerun()
 
 
@@ -7719,5 +7721,167 @@ try:
         st.session_state["wz_voice_recruiter_gender"] = _wz203_gender(rec)
         _wz203_components.html(_wz203_voice_script(text, key_suffix, True, lang, rec, show_button=True), height=48)
 
+except Exception:
+    pass
+
+# =========================================================
+# WorkZo v204 - Recruiter style behavior + next-question voice reliability
+# Purpose:
+# - Recruiter style now changes behavior, not only label.
+# - After submitting answer 1, question 2 uses a fresh voice component key.
+# - Browser voice is still device-dependent, but male/female intent is stronger.
+# =========================================================
+try:
+    import html as _wz204_html
+    import streamlit as _wz204_st
+    try:
+        import streamlit.components.v1 as _wz204_components
+    except Exception:
+        _wz204_components = None
+
+    def _wz204_style():
+        return str(_wz204_st.session_state.get('wz_ri_recruiter_style_v181') or _wz204_st.session_state.get('wz_ri_recruiter_style') or 'Balanced')
+
+    def _wz204_next_question_by_style(language, role, company, idx):
+        style = _wz204_style()
+        role_txt = str(role or 'this role')
+        company_txt = str(company or 'the company')
+        banks = {
+            'Balanced': [
+                f'Which requirement in this {role_txt} role is your strongest match, and what proof supports it?',
+                'Tell me about one real project or task where you created measurable impact.',
+                'What would be your biggest gap for this role, and how would you close it?',
+                f'Why should {company_txt} move you to the next round?',
+            ],
+            'Behavioral-heavy': [
+                'Tell me about a time you handled a difficult stakeholder or customer. What did you do?',
+                'Describe a mistake or challenge at work. What did you learn and change afterward?',
+                'Give me a STAR example where you took ownership without waiting for instructions.',
+                'Tell me about a time you had to communicate something complex clearly.',
+            ],
+            'Technical-heavy': [
+                f'Walk me through the most technical work you have done that is relevant to {role_txt}.',
+                'Which tools or methods from your background are strongest for this role? Give evidence.',
+                'Describe a technical problem you solved from start to finish.',
+                'How would you approach the first technical task in this job description?',
+            ],
+            'Fast-paced': [
+                'Give me the result first: what is your strongest proof for this role?',
+                'Be direct — what measurable impact have you created?',
+                'What is the one reason I should trust you in this role?',
+                'In 30 seconds, explain why you fit this job.',
+            ],
+            'Leadership-focused': [
+                'Tell me about a decision you owned. What was at stake and what changed?',
+                'Describe a time you influenced others without formal authority.',
+                'How do you prioritize when multiple people need something from you?',
+                'Give me an example where you were accountable for the final outcome.',
+            ],
+        }
+        qs = banks.get(style, banks['Balanced'])
+        base = qs[(max(1, int(idx)) - 1) % len(qs)]
+        lang = str(language or 'English').lower()
+        if lang.startswith('german'):
+            return 'Bitte antworten Sie strukturiert und mit konkreten Belegen: ' + base
+        if lang.startswith('french'):
+            return 'Répondez de façon structurée avec des preuves concrètes: ' + base
+        if lang.startswith('spanish'):
+            return 'Responde de forma estructurada con pruebas concretas: ' + base
+        if lang.startswith('hindi'):
+            return 'Kripya structured answer dijiye, concrete proof ke saath: ' + base
+        if lang.startswith('tamil'):
+            return 'Dhayavu seithu structured answer sollunga, concrete proof oda: ' + base
+        return base
+
+    _wz204_prev_next_question = globals().get('_wz_voice_first_next_question')
+    def _wz_voice_first_next_question(cv_text, jd, role, company, language, answers, idx):
+        try:
+            if callable(_wz204_prev_next_question) and idx > 0:
+                q = _wz204_prev_next_question(cv_text, jd, role, company, language, answers, idx)
+                qtxt = str(q or '').strip()
+                if qtxt:
+                    style = _wz204_style()
+                    if style == 'Fast-paced' and not qtxt.lower().startswith(('be direct', 'give me')):
+                        return 'Be direct. ' + qtxt
+                    if style == 'Leadership-focused' and 'ownership' not in qtxt.lower():
+                        return qtxt + ' Please focus on your ownership and decision-making.'
+                    if style == 'Technical-heavy' and 'technical' not in qtxt.lower() and 'tool' not in qtxt.lower():
+                        return qtxt + ' Please include the tools, method, and technical proof.'
+                    return qtxt
+        except Exception:
+            pass
+        return _wz204_next_question_by_style(language, role, company, idx)
+
+    def _wz204_gender_from_recruiter():
+        rec = str(_wz204_st.session_state.get('wz_voice_recruiter_name') or _wz204_st.session_state.get('wz_ri_recruiter_personality_v181') or '')
+        return 'male' if any(x in rec.lower() for x in ['daniel','markus','mark','michael','john','david','ahmed']) else 'female'
+
+    def _wz204_lang_code(language=None):
+        lang = str(language or _wz204_st.session_state.get('wz_ri_interview_language') or _wz204_st.session_state.get('interview_language') or 'English').lower()
+        if lang.startswith('german'): return 'de-DE'
+        if lang.startswith('french'): return 'fr-FR'
+        if lang.startswith('spanish'): return 'es-ES'
+        if lang.startswith('portuguese'): return 'pt-PT'
+        if lang.startswith('italian'): return 'it-IT'
+        if lang.startswith('dutch'): return 'nl-NL'
+        if lang.startswith('hindi'): return 'hi-IN'
+        if lang.startswith('tamil'): return 'ta-IN'
+        if lang.startswith('arabic'): return 'ar-SA'
+        return 'en-US'
+
+    def _wz204_voice_html(text, key, lang, gender, auto=True, visible=True):
+        safe_text = _wz204_html.escape(str(text or ''))
+        safe_key = _wz204_html.escape(str(key or 'wz_voice'))
+        auto_js = 'true' if auto else 'false'
+        display = 'inline-flex' if visible else 'none'
+        return f'''
+        <button id="btn_{safe_key}" style="display:{display};align-items:center;gap:8px;border:1px solid rgba(96,165,250,.35);background:rgba(15,23,42,.9);color:white;border-radius:14px;padding:10px 14px;font-weight:800;cursor:pointer;">🔊 Ask question out loud</button>
+        <script>
+        (function(){{
+          const text = `{safe_text}`;
+          const lang = `{lang}`;
+          const gender = `{gender}`;
+          const autoplay = {auto_js};
+          function clean(t){{return (t||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();}}
+          function voices(){{return window.speechSynthesis ? (window.speechSynthesis.getVoices() || []) : [];}}
+          function pickVoice(){{
+            let vs = voices();
+            let same = vs.filter(v => (v.lang||'').toLowerCase().startsWith(lang.slice(0,2).toLowerCase()));
+            if(!same.length) same = vs;
+            const maleNames = /daniel|mark|markus|thomas|david|george|alex|paul|microsoft.*mark|google.*male|male/i;
+            const femaleNames = /sarah|samantha|zira|anna|helena|victoria|karen|moira|google.*female|female/i;
+            let gendered = same.filter(v => gender === 'male' ? maleNames.test(v.name||'') : femaleNames.test(v.name||''));
+            const pool = gendered.length ? gendered : same;
+            return pool.find(v => /natural|neural|premium|enhanced|google|microsoft/i.test(v.name||'')) || pool[0] || vs[0] || null;
+          }}
+          function speak(){{
+            if(!window.speechSynthesis || !text) return;
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(clean(text));
+            u.lang = lang;
+            u.rate = gender === 'male' ? 0.86 : 0.90;
+            u.pitch = gender === 'male' ? 0.72 : 1.03;
+            const v = pickVoice();
+            if(v) u.voice = v;
+            setTimeout(()=>window.speechSynthesis.speak(u), 220);
+          }}
+          const b = document.getElementById('btn_{safe_key}');
+          if(b) b.onclick = speak;
+          if(autoplay){{
+            if(window.speechSynthesis && speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = function(){{setTimeout(speak,150);}};
+            setTimeout(speak,450);
+          }}
+        }})();
+        </script>'''
+
+    def _wz_ri_auto_speak(text: str, key_suffix: str = 'question'):
+        lang = _wz204_lang_code()
+        gender = _wz204_gender_from_recruiter()
+        nonce = int(_wz204_st.session_state.get('wz_ri_audio_nonce', 0))
+        key = f'{key_suffix}_{nonce}'
+        if _wz204_components is not None:
+            _wz204_components.html(_wz204_voice_html(text, key, lang, gender, auto=True, visible=True), height=54)
+        else:
+            _wz204_st.button('🔊 Ask question out loud', key=f'wz_voice_btn_{key}')
 except Exception:
     pass
